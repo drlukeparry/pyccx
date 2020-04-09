@@ -3,6 +3,10 @@ PyCCX - Python Calculix
 .. image:: https://github.com/drlukeparry/pyccx/workflows/Python%20application/badge.svg
   :target: https://github.com/drlukeparry/pyccx/actions
 
+.. image:: https://readthedocs.org/projects/pyccx/badge/?version=latest
+:target: https://pyccx.readthedocs.io/en/latest/?badge=latest
+:alt: Documentation Status
+
 Provides a library for creating and running 3D FEA simulations using the opensource Calculix FEA Package.
 
 The aims of this project was to provide a simple framework for implemented 3D FEA Analysis using the opensource `Calculix <http://www.calculix.de>`_ solver.
