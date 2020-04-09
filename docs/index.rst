@@ -9,9 +9,14 @@ Welcome to PyCCX's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: pyccx
-   .. autosummary::
-
+.
+.. autosummary::
+   :toctree: _autosummary
+   pyccx.core
+   pyccx.loadcase
+   pyccx.material
+   pyccx.mesh
+   pyccx.results
 
 Links
 ==========
