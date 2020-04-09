@@ -60,7 +60,7 @@ class LoadCase:
         else:
             raise ValueError('Load case type is not supported')
 
-    def writeBoundaryCondition(self) -> outStr:
+    def writeBoundaryCondition(self) -> str:
         """
         Generates the outString containing all the attached boundary conditions. Calculix cannot share existing boundary
         conditions and therefore has to be explicitly referenced per loadcase
@@ -134,10 +134,9 @@ class LoadCase:
 
         return bcondStr
 
-    def writeInput(self):
+    def writeInput(self) -> str:
 
-        outStr = ''
-        outStr += '{:*^64}\n'.format(' LOAD CASE ({:s}) '.format(self.name))
+        outStr  = '{:*^64}\n'.format(' LOAD CASE ({:s}) '.format(self.name))
         outStr += '*STEP\n'
         # Write the thermal analysis loadstep
 

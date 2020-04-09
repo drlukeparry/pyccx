@@ -39,7 +39,7 @@ class NodeSet:
      An node set is basic entity for storing node set lists
      """
     def __init__(self, name, nodes):
-        self.name =  name
+        self.name = name
         self._nodes = nodes
 
     @property
@@ -84,7 +84,7 @@ class ElementSet:
         out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
-    
+
 class Simulation:
     """
     Provides the base class for running a Calculix simulation
