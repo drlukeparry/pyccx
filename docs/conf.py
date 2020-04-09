@@ -40,8 +40,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'PyOCL'
+project = u'pyccx'
 copyright = u'2020, Luke Parry'
+author = 'Luke Parry'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -183,7 +184,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'sample.tex', u'PyOCL Documentation',
+  ('index', 'sample.tex', u'PyCCX Documentation',
    u'Luke Parry', 'manual'),
 ]
 
