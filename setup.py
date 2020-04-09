@@ -23,6 +23,9 @@ requirements_easy = set([
 requirements_docs = set([
     'sphinx',
     'jupyter',
+    'numpy',
+    'pypandoc',
+    'autodocsumm'
     'sphinx_rtd_theme'])
 
 with open('README.rst') as f:
