@@ -5,11 +5,7 @@
 
 Welcome to PyCCX's documentation!
 ==================================
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
 
-.
 .. autosummary::
    :toctree: _autosummary
    pyccx.core
@@ -17,6 +13,11 @@ Welcome to PyCCX's documentation!
    pyccx.material
    pyccx.mesh
    pyccx.results
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
 
 Links
 ==========
