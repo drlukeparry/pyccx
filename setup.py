@@ -23,10 +23,9 @@ requirements_easy = set([
 requirements_docs = set([
     'sphinx',
     'jupyter',
-    'numpy',
+    'sphinx_rtd_theme',
     'pypandoc',
-    'autodocsumm'
-    'sphinx_rtd_theme'])
+    'autodocsumm'])
 
 with open('README.rst') as f:
     readme = f.read()
@@ -54,5 +53,8 @@ setup(
     license=license,
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=list(requirements_default),
+    extras_require={'easy': list(requirements_easy),
+                    'docs': list(requirements_docs)}
 )
+
 

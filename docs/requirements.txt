@@ -1,0 +1,5 @@
+sphinx
+numpy
+gmsh-sdk
+autodocsumm
+pypandoc
