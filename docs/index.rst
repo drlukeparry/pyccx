@@ -5,13 +5,13 @@
 
 Welcome to PyCCX's documentation!
 ==================================
- .. toctree::
-   :maxdepth: 2
-
 .. automodule:: pyccx
-    :members:.. toctree::
+    :members:
+
+.. toctree::
    :maxdepth: 2
-   :caption: Contents:Indices and tables
+   :caption: Contents:
+
 
 Links
 ==========
