@@ -8,7 +8,10 @@ Welcome to PyCCX's documentation!
  .. toctree::
    :maxdepth: 2
 
-.. include:: README.rst
+.. automodule:: pyccx
+    :members:.. toctree::
+   :maxdepth: 2
+   :caption: Contents:Indices and tables
 
 Links
 ==========
@@ -28,4 +31,9 @@ Module Reference
    :maxdepth: 2
 
    modules
+
+==================
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
