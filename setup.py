@@ -34,12 +34,12 @@ with open('LICENSE') as f:
 setup(
     name='PyCCX',
     version='0.1.0',
-    description='Calculix for Python',
+    description='Simulation FEA enviornment for Python built upon Calculix and GMSH',
     long_description=readme,
     author='Luke Parry',
     author_email='dev@lukeparry.uk',
     url='https://github.com/drlukeparry/pyccx',
-    keywords='Calculix, FEA, Finite Element Analysis, Simulation',
+    keywords='FEA, Finite Element Analysis, Simulation, Calculix, GMSH',
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python',
