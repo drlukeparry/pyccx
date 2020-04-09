@@ -9,6 +9,7 @@ Welcome to PyCCX's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+.. autosummary::
 
 Links
 ==========
@@ -28,6 +29,7 @@ Module Reference
    :maxdepth: 2
 
    modules
+
 
 ==================
 * :ref:`genindex`
