@@ -6,10 +6,6 @@
 Welcome to PyCCX's documentation!
 ==================================
 
-.. automodapi:: pyccx.core
-   :toctree: api
-
-
 Links
 ==========
 .. toctree::

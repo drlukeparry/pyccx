@@ -1,4 +1,11 @@
-.. toctree::
-   :maxdepth: 4
+.. automodapi:: pyccx.core
+   :toctree: api
 
-   pyccx
+.. automodapi:: pyccx.loadcase
+   :toctree: api
+
+.. automodapi:: pyccx.material
+   :toctree: api
+
+.. automodapi:: pyccx.results
+   :toctree: api
