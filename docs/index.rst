@@ -6,13 +6,13 @@
 Welcome to PyCCX's documentation!
 ==================================
 
-.. automodule::
+.. autosummary::
+   :toctree: modules
    pyccx.core
    pyccx.loadcase
    pyccx.material
    pyccx.results
-   :members:
-   :autosummary:
+
 
 .. toctree::
    :maxdepth: 2
