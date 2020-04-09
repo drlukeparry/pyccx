@@ -1,12 +1,16 @@
 import numpy as np
 import abc
-from enum import Enum
+import os
+from enum import Enum, auto
 
 
 class LoadCaseType(Enum):
-    Static = 1
-    Thermal = 2
-    UnCoupledThermoMechanical = 4
+    STATIC = auto()
+    THERMAL = auto()
+    UNCOUPLEDTHERMOMECHANICAL = auto()
+    BUCKLE = auto()
+    MODAL = auto()
+    DYNAMIC = auto()
 
 
 class LoadCase:
@@ -47,21 +51,21 @@ class LoadCase:
 
         :param lType: Set the loadcase type using the enum LoadCaseType
         """
-        if lType == LoadCaseType.Static:
-            self.loadCaseType = LoadCaseType.Static
-        elif lType == LoadCaseType.Thermal:
-            self.loadCaseType = LoadCaseType.Thermal
-        elif lType == LoadCaseType.UnCoupledThermoMechanical:
-            self.loadCaseType = LoadCaseType.UnCoupledThermoMechanical
+        if lType == LoadCaseType.STATIC:
+            self.loadCaseType = LoadCaseType.STATIC
+        elif lType == LoadCaseType.THERMAL:
+            self.loadCaseType = LoadCaseType.THERMAL
+        elif lType == LoadCaseType.UNCOUPLEDTHERMOMECHANICAL:
+            self.loadCaseType = LoadCaseType.UNCOUPLEDTHERMOMECHANICAL
         else:
             raise ValueError('Load case type is not supported')
 
-    def writeBoundaryCondition(self) -> str:
+    def writeBoundaryCondition(self) -> outStr:
         """
-        Generates the string containing all the attached boundary conditions. Calculix cannot share existing boundary
+        Generates the outString containing all the attached boundary conditions. Calculix cannot share existing boundary
         conditions and therefore has to be explicitly referenced per loadcase
 
-        :return: str
+        :return: outStr
         """
         bcondStr = ''
 
@@ -132,29 +136,31 @@ class LoadCase:
 
     def writeInput(self):
 
-        str = ''
-        str += '{:*^64}\n'.format(' LOAD CASE ({:s}) '.format(self.name))
-        str += '*STEP\n'
+        outStr = ''
+        outStr += '{:*^64}\n'.format(' LOAD CASE ({:s}) '.format(self.name))
+        outStr += '*STEP\n'
         # Write the thermal analysis loadstep
 
-        if self.loadCaseType == LoadCaseType.Static:
-            str += '*STATIC'
-        elif self.loadCaseType == LoadCaseType.Thermal:
-            str += '*HEAT TRANSFER'  # ',STEADY STATE
-        elif self.loadCaseType == LoadCaseType.UnCoupledThermoMechanical:
-            str += '*UNCOUPLED TEMPERATURE-DISPLACEMENT'  # ',STEADY STATE
+        if self.loadCaseType == LoadCaseType.STATIC:
+            outStr += '*STATIC'
+        elif self.loadCaseType == LoadCaseType.THERMAL:
+            outStr += '*HEAT TRANSFER'
+        elif self.loadCaseType == LoadCaseType.UNCOUPLEDTHERMOMECHANICAL:
+            outStr += '*UNCOUPLED TEMPERATURE-DISPLACEMENT'
 
         if self.isSteadyState:
-            str += ', STEADY STATE'
+            outStr += ', STEADY STATE'
 
-        str += '\n{:.3f}, {:.3f}\n'.format(self.initialTimeStep, self.totalTime)
+        # Write the timestepping information
+        outStr += '\n{:.3f}, {:.3f}\n'.format(self.initialTimeStep, self.totalTime)
 
-        str += self.writeBoundaryCondition()
+        # Write the individual boundary conditions associated with this loadcase
+        outStr += self.writeBoundaryCondition()
 
-        str += os.linesep
+        outStr += os.linesep
         for postResult in self.resultSet:
-            str += postResult.writeInput()
+            outStr += postResult.writeInput()
 
-        str += '*END STEP\n\n'
+        outStr += '*END STEP\n\n'
 
-        return str
+        return outStr
