@@ -3,3 +3,4 @@ numpy
 gmsh-sdk
 autodocsumm
 pypandoc
+sphinx-automodapi
