@@ -5,9 +5,6 @@
 
 Welcome to PyCCX's documentation!
 ==================================
-.. automodule:: pyccx
-    :members:
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
