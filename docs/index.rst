@@ -6,8 +6,11 @@
 Welcome to PyCCX's documentation!
 ==================================
 
-.. automodule:: pyccx.core
+.. automodule::
+   pyccx.core
+   pyccx.results
    :members:
+   :autosummary:
 
 .. toctree::
    :maxdepth: 2
