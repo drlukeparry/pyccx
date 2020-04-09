@@ -129,7 +129,8 @@ class ElasticMaterial(Material):
     def isValid(self) -> bool:
         return True
 
-    def writeInput(self):
+    def writeInput(self) -> str:
+
         inputStr = '*material, name={:s}\n'.format(self._name)
         inputStr += '*{:s}\n'.format(self.materialModel)
 

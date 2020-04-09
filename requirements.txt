@@ -1,4 +1,0 @@
-sphinx
-numpy
-gmsh-sdk
-
