@@ -9,7 +9,9 @@ Welcome to PyCCX's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. autosummary::
+.. automodule:: pyccx
+   .. autosummary::
+
 
 Links
 ==========
