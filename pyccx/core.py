@@ -33,6 +33,58 @@ class AnalysisType(Enum):
     THERMAL = auto()
     FLUID = auto()
 
+
+class NodeSet:
+    """
+     An node set is basic entity for storing node set lists
+     """
+    def __init__(self, name, nodes):
+        self.name =  name
+        self._nodes = nodes
+
+    @property
+    def nodes(self):
+        """
+        Nodes contains the list of Node IDs
+        """
+        return self._nodes
+
+    @nodes.setter
+    def nodes(self, nodes):
+        self._nodes = nodes
+
+    def writeInput(self) -> str:
+        out = '*NSET,NSET={:s}\n'.format(self.name)
+        out += np.array2string(self.nodes, precision=2, separator=', ', threshold=9999999999)[1:-1]
+        return out
+
+
+class ElementSet:
+    """
+    An element set is basic entity for storing element set lists
+    """
+    def __init__(self, name, els):
+        self.name =  name
+        self._els = els
+
+    @property
+    def els(self):
+        """
+        Elements contains the list of Node IDs
+        """
+        return self._els
+
+    @els.setter
+    def els(self, elements):
+        self._els = elements
+
+    def writeInput(self) -> str:
+
+        out = '*ELSET,ELSET={:s\n}'.format(self.name)
+        out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
+        return out
+
+    
 class Simulation:
     """
     Provides the base class for running a Calculix simulation
