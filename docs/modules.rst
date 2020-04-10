@@ -1,11 +1,19 @@
 .. automodapi:: pyccx.core
-   :toctree: api
+    :no-inheritance-diagram:
+    :toctree: api
 
 .. automodapi:: pyccx.loadcase
-   :toctree: api
+    :no-inheritance-diagram:
+    :toctree: api
 
 .. automodapi:: pyccx.material
-   :toctree: api
+    :no-inheritance-diagram:
+    :toctree: api
 
 .. automodapi:: pyccx.results
-   :toctree: api
+    :no-inheritance-diagram:
+    :toctree: api
+
+.. automodapi:: pyccx.mesh
+    :no-inheritance-diagram:
+    :toctree: api
