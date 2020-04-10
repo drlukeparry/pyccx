@@ -6,18 +6,31 @@ from enum import Enum, auto
 
 class LoadCaseType(Enum):
     STATIC = auto()
+    """Linear Static structural analysis"""
     THERMAL = auto()
+    """Thermal analysis for performing heat transfer studies"""
     UNCOUPLEDTHERMOMECHANICAL = auto()
+    """Coupled thermo-mechanical analysis"""
     BUCKLE = auto()
+    """Buckling analysis of a structure"""
     MODAL = auto()
+    """Modal analysis of a structure"""
     DYNAMIC = auto()
+    """Dynamic analyis of a structure"""
 
 
 class LoadCase:
-    def __init__(self, name):
+    """
+    A unique Load case defines a set of simulation analysis conditions and a set of boundary conditions to apply to the domain.
+    The default and initial timestep provide an estimate for the solver should be specified  along with the total duration
+    of the load case using :func:`~pyccx.loadcase.LoadCase.setTimeStep`. The analysis type for the loadcase should be
+    specified using :func:`~pyccx.loadcase.Loadcase.setLoadCaseType`. Depending on the analysis type the steady-state solution
+    may instead be calculated.
+    """
+    def __init__(self, loadCaseName):
 
         self._input = ''
-        self.name = name
+        self.name = loadCaseName
 
         self.isSteadyState = False
         self.loadCaseType = False
@@ -27,6 +40,19 @@ class LoadCase:
 
         self.resultSet = []
         self.boundaryConditions = []
+
+    @property
+    def steadyState(self) -> bool:
+        """
+        If the loadcase should be run as steadystate
+        :return: bool
+        """
+        return self.isSteadyState
+
+    @steadyState.setter
+    def steadyState(self,state:bool) -> None:
+        self.isSteadyState = state
+
 
     def setTimeStep(self, defaultTimeStep: float = 1.0, initialIimeStep: float = None, totalTime: float = None) -> None:
         """

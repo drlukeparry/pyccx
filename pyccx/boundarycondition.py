@@ -36,7 +36,7 @@ class BoundaryCondition(abc.ABC):
     @abc.abstractmethod
     def type(self) -> int:
         """
-        Returns the BC type so that they are only applied to suitable loadcases
+        Returns the BC type so that they are only applied to suitable load cases
         """
         raise NotImplemented()
 
@@ -47,7 +47,8 @@ class BoundaryCondition(abc.ABC):
 
 class Film(BoundaryCondition):
     """
-    The film or convective heat transfer boundary condition applies the Newton's law of cooling to specified faces of
+    The film or convective heat transfer boundary condition applies the Newton's law of cooling
+    - :math:`q = h_{c}\\left(T-T_{amb}\\right)` to specified faces of
     boundaries elements (correctly ordered according to Calculix's requirements). This BC may be used in thermal and
     coupled thermo-mechanical analyses.
     """
@@ -98,7 +99,7 @@ class Film(BoundaryCondition):
 
 class HeatFlux(BoundaryCondition):
     """
-    The flux boundary condition applies the Newton's law of cooling to specified faces of
+    The flux boundary condition applies a uniform external heat flux :math:`q` to faces of surface
     boundaries elements (correctly ordered according to Calculix's requirements). This BC may be used in thermal and
     coupled thermo-mechanical analyses.
     """
@@ -117,7 +118,7 @@ class HeatFlux(BoundaryCondition):
     @property
     def flux(self) -> float:
         """
-        The flux value used for the Heat Flux Boundary Condition
+        The flux value :math:`q` used for the Heat Flux Boundary Condition
         """
         return self.flux
 
@@ -138,8 +139,10 @@ class HeatFlux(BoundaryCondition):
 
 class Radiation(BoundaryCondition):
     """
-    The radiation boundary condition applies Black-body Radiation specified to faces of
-    boundaries elements (correctly ordered according to Calculix's requirements). This BC may be used in thermal and
+    The radiation boundary condition applies Black-body radiation using the Stefan-Boltzmann Law,
+    :math:`q_{rad} = \\epsilon \\sigma_b\\left(T-T_{amb}\\right)^4`, which is imposed on the faces of
+    boundaries elements (correctly ordered according to Calculix's requirements). Ensure that the Stefan-Boltzmann constant :math:
+    `\\sigma_b`, has consistent units, which is set in the :attribute:`~pyccx.core.Simulation.SIGMAB`. This BC may be used in thermal and
     coupled thermo-mechanical analyses.
     """
 
@@ -218,7 +221,6 @@ class Fixed(BoundaryCondition):
                 bCondStr += '{:s},{:d}\n'.format(nodeset, bcond['dof'][i])
 
         return bCondStr
-
 
 
 class Acceleration(BoundaryCondition):
