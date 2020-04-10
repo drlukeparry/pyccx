@@ -1,4 +1,4 @@
-#from . import boundarycondition
+from . import boundarycondition
 from . import material
 from . import mesh
 

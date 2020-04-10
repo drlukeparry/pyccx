@@ -114,7 +114,7 @@ class LoadCase:
             elif bcond['type'] == 'accel':
 
                 bcondStr += '*DLOAD\n'
-                bcondStr += '{:s},GRAV,{:d}, {:.3f},{:.3f},{:.3f}\n'.format(bcond['el'], i, bcond['mag'], bcond['dir'][0],
+                bcondStr += '{:s},GRAV,{:.3f}, {:.3f},{:.3f},{:.3f}\n'.format(bcond['el'], bcond['mag'], bcond['dir'][0],
                                                                        bcond['dir'][1], bcond['dir'][2])
 
             elif bcond['type'] == 'force':
