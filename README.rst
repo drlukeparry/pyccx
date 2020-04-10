@@ -9,16 +9,80 @@ PyCCX - Python Calculix
 Provides a library for creating and running 3D FEA simulations using the opensource Calculix FEA Package.
 
 The aims of this project was to provide a simple framework for implemented 3D FEA Analysis using the opensource `Calculix <http://www.calculix.de>`_ solver.
-The analysis generation is complimented by use of the relatively recent introduction of the
-`GMSH-SDK <http://gmsh.info/>`_ , an extension to GMSH to provide bindings for different programming languages
-by the project authors to provide sophisticated 3D FEA mesh generation outside of the GUI implementation . This project aims to provide an integrated simplified method for generating full 3D FEA analysis
-for use in research, development and prototyping in a Python environment.
+The analysis is complimented by use of the recent introduction of the
+`GMSH-SDK <http://https://gitlab.onelab.info/gmsh/gmsh/api>`_ , an extension to 'GMSH <http://gmsh.info/>'  to provide API bindings for different programming languages
+by the project authors to provide sophisticated 3D FEA mesh generation outside of the GUI implementation . This project aims to provide an integrated approach for generating full 3D FEA analysis
+for use in research, development and prototyping in a Python environment. Along with setting up and processing the analysis,
+convenience functions are included.
 
-The inception of this project was a result of finding no package available to generate FEA analysis of CAD models in order
-to prototype concepts related to 3D printing. The project aims to compliment the work of the `PyCalculix project <https://github.com/spacether/pycalculix>`_, which currently is limited to
-providing capabilities to generate 2D Meshes and FEA analysis for 2D planar structures. The potential in the future is to provide
+The inception of this project was a result of finding no native Python/Matlab package available to perfom full non-linear FEA analysis
+of 3D CAD models in order to prototype a concept related to 3D printing. The project aims to compliment the work of
+the `PyCalculix project <https://github.com/spacether/pycalculix>`_, which currently is limited to providing capabilities
+to generate 2D Meshes and FEA analysis for 2D planar structures. The potential in the future is to provide
 a more generic extensible framework compatible with different opensource and commercial FEA solvers (e.g. Z88, Elmer).
+
+An interface that built upon GMSH was required to avoid the use of the GUI, and the domain specific .geo scripts.
 `Learn more <http://lukeparry.uk/>`_.
+
+Structure
+###########
+
+PyCCX framework consists of classes for specifying common components on the analysis, such as
+
+* Boundary Conditions
+* Load Cases
+* Material Models
+* Simulation
+
+In addition, a meshing class provides an interface with GMSH for performing the meshing routines and for associating
+boundary conditions with the elements/faces generated from geometrical CAD entities. The Simulation class assembles the
+analysis and performs the execution to the Calculix Solver. Results obtained upon completion of the analysis can be processed.
+Currently the analysis is unit-less, therefore the user should ensure that all constant, material paramters, and geometric
+lengths are consistent - by default GMSH assumes 'mm' units.
+
+Current Features
+******************
+
+**Meshing:**
+
+* Integration with GMSH for generation 3D FEA Meshes (Tet4, Tet10 currently supported)
+* Merging CAD assemblies using GMSH
+* Attaching boundary conditions to Geometrical CAD entities
+
+**FEA Capabilities:**
+
+* **Boundary Conditions** (Acceleration, Convection, Fixed Displacements, Forces, Fluxes, Pressure, Radiation)
+* **Loadcase Types** (Structural Static, Thermal, Coupled Thermo-Mechanical)
+* **Materials** (Non-linear Elastic)
+
+**Results Processing:**
+
+* Element and Nodal Results can be obtained across timesteps
+
+
+Installation
+*************
+Installation is currently supported on Windows, all this further support will be added for
+Linux environments. PyCCX can be installed along with dependencies for GMSH automatically using.
+
+```bash
+pip install pyccx
+```
+
+Depending on your environment, you will need to install the latest version of Calculix. This can be done through
+the conda-forge `calculix package <https://anaconda.org/conda-forge/calculix>`_ in the Anaconda distribution,
+
+```bash
+conda install -c conda-forge calculix
+```
+
+or alternatively downloading the package directly. On Windows platforms the path of the executable needs to be initialised before use.
+
+```python
+from pyccx.core import Simulation
+# Set the path for Calculix in Windows
+Simulation.setCalculixPath('Path')
+```
 
 ---------------
 
