@@ -47,12 +47,87 @@ class Mesher:
         self.geoms = []
         self.surfaceSets = []
         self.edgeSets = []
-        self._isDirty = False # Flag to indicate model hasn't been generated and is dirty
 
+        self._isMeshGenerated = False
+        self._isDirty = False # Flag to indicate model hasn't been generated and is dirty
+        self._isGeometryDirty = False
         self._meshingAlgorithm = MeshingAlgorithm.DELAUNAY
 
         # Set the model name for this instance
         gmsh.model.add(self._modelName)
+
+    @classmethod
+    def showGui(cls):
+        """
+        Opens up the native GMSH gui to inspect the geometry in the model and the mesh. This will block the Python script
+        until the GUI is exited.
+        """
+        if cls.Initialised:
+            gmsh.fltk.run()
+
+    def maxPhysicalGroupId(self, dim: int) -> int:
+        """
+        Returns the highest physical group id in the GMSH model
+        :param dim: int: The chosen dimension
+        :return: int: The highest group id used
+        """
+        self.setAsCurrentModel()
+        return np.max([x[1] for x in gmsh.model.getPhysicalGroups(dim)])
+
+    def getVolumeName(self, volId: int) ->str:
+        """
+        Gets the volume name (if assigned)
+
+        :param volId: int: Volume id of a region
+        :return: str
+        """
+        self.setAsCurrentModel()
+        return gmsh.model.getPhysicalName(3,volId)
+
+    def getEntityName(self, id: int) -> str:
+        """
+        Returns the name of an entity given an id (if assigned)
+
+        :param id: tuple(int,int): Dimension, Entity Id
+        :return: str
+        """
+        self.setAsCurrentModel()
+        return gmsh.model.getPhysicalName(id[0],id[1])
+
+    def setVolumeName(self, volId: int, name: str):
+        """
+        Sets the geometric name of the volume id
+
+        :param volId: int: Volume Id
+        :param name: str: Name assigned to volume
+        """
+        self.setAsCurrentModel()
+        maxId = self.maxPhysicalGroupId(3)
+        gmsh.model.addPhysicalGroup(3, [volId],maxId+1)
+        gmsh.model.setPhysicalName(3,volId, name)
+
+    def setSurfaceName(self, surfId: int, name: str):
+        """
+        Sets the geometric name of the surface id
+        :param surfId: int: Volume Id
+        :param name: str: Name assigned to volume
+        """
+        self.setAsCurrentModel()
+        maxId = self.maxPhysicalGroupId(2)
+        gmsh.model.addPhysicalGroup(2, [surfId],maxId+1)
+        gmsh.model.setPhysicalName(2,surfId, name)
+
+    def setEntityName(self, id, name: str):
+        """
+        Sets the geometric name of the volume id
+
+        :param id: tuple(int, int): Dimension, Entity Id
+        :param name: str: Name assigned to entity
+        """
+        self.setAsCurrentModel()
+        maxId = self.maxPhysicalGroupId(id[0])
+        gmsh.model.addPhysicalGroup(id[0], [id[1]],maxId+1)
+        gmsh.model.setPhysicalName(id[0], id[1], name)
 
     def name(self) -> str:
         """
@@ -63,6 +138,7 @@ class Mesher:
     def isDirty(self) -> bool:
         """
         Has the model been sucessfully generated and no pending modifications exist.
+
         :return: bool
         """
 
@@ -117,15 +193,39 @@ class Mesher:
 
         self.setMeshSize(geomPoints, meshSize)
 
+        self._isGeometryDirty = True
         self.setModelChanged()
 
+    @property
+    def volumes(self):
+        volTags = gmsh.model.getEntities(3)
+        vols = []
+        for x in volTags:
+            volName = gmsh.model.getPhysicalName(3, x[1], x[1])
+            vols.append({'id': x, 'name': volName})
 
-    def mergeGeometry(self):
+        return vols
+
+    @property
+    def surfaces(self):
+        surfTags = gmsh.model.getEntities(2)
+
+        surfs = []
+
+        for x in surfTags:
+            surfName = gmsh.model.getPhysicalName(3, x[1], x[1])
+            surfs.append({'id': x, 'name': surfName})
+
+        return surfs
+
+    def mergeGeometry(self) -> None:
+        """
+        Geometry is merged/fused together. Coincident surfaces and points are
+        automatically merged together which enables a coherent mesh to be
+        generated
+        """
+
         self.setAsCurrentModel()
-
-        # Geometry is merged/fused together. Coincident surfaces and points are
-        # automatically merged together which enables a coherent mesh to be
-        # generated
 
         volTags = gmsh.model.getEntities(3)
         out = gmsh.model.occ.fragment(volTags[1:], [volTags[0]])
@@ -133,6 +233,7 @@ class Mesher:
         # Synchronise the model
         gmsh.model.occ.synchronize()
 
+        self._isGeometryDirty = True
         self.setModelChanged()
 
     def boundingBox(self):
@@ -263,7 +364,7 @@ class Mesher:
         """
         Sets the current model to that specified in the class instance
         Only one instance of GMSH sdk is available so this must be
-        dynamically switched
+        dynamically switched between models for multiple instances of a Mesher
         """
 
         gmsh.model.setCurrent(self._modelName)
@@ -301,11 +402,32 @@ class Mesher:
 
     # Geometric methods
     def getPointsFromVolume(self, id):
+        """
+        From a Volume Id, obtain all Point Ids associated with this volume - note may include shared points.
+        :param id: int: Volume ID
+        :return: list(int) - List of Point Ids
+        """
         self.setAsCurrentModel()
         pnts = gmsh.model.getBoundary((3, id), recursive=True)
         return [x[1] for x in pnts]
 
-    def getPointsFromVolumeByName(self, volumeName):
+    def getSurfacesFromVolume(self, id: int):
+        """
+        From a Volume Id, obtain all Surface Ids associated with this volume - note may include shared boundary surfaces.
+        :param id: int: Volume ID
+        :return: list(int) - List of surface Ids
+        """
+        raise NotImplementedError()
+        self.setAsCurrentModel()
+        surfs = gmsh.model.getBoundary((3, id), recursive=False)
+        return [x[1] for x in surfs]
+
+    def getPointsFromVolumeByName(self, volumeName: str):
+        """
+        Returns all geometric points from a given volume domain by its name (if assigned)
+        :param volumeName: volumeName
+        :return:
+        """
         return self.getPointsFromVolume(self.getIdBySurfaceName(volumeName))
 
     # Mesh methods
@@ -466,6 +588,7 @@ class Mesher:
         """
         Initialises the GMSH Meshing Proceedure.
         """
+        self._isMeshGenerated = False
 
         self._setModelOptions()
 
@@ -481,7 +604,11 @@ class Mesher:
         except:
             print('\033[1;34;47m Meshing Failed \n')
 
-        self._modelGenerated = True
+        self._isMeshGenerated = True
+        self._isDirty = False
+
+    def isMeshGenerated(self) -> bool:
+        return self._isMeshGenerated
 
     def writeMesh(self, filename: str) -> None:
         """
@@ -490,7 +617,7 @@ class Mesher:
         :param filename: str - Filename (including the type) to save to.
         """
 
-        if self.isDirty():
+        if self.isMeshGenerated():
             self.setAsCurrentModel()
             gmsh.write(filename)
         else:
