@@ -36,7 +36,8 @@ class AnalysisType(Enum):
 
 class NodeSet:
     """
-     An node set is basic entity for storing node set lists
+     An node set is basic entity for storing node set lists. The set remains constant without any dynamic referencing
+     to any underlying geometric entities.
      """
     def __init__(self, name, nodes):
         self.name = name
@@ -61,7 +62,8 @@ class NodeSet:
 
 class ElementSet:
     """
-    An element set is basic entity for storing element set lists
+    An element set is basic entity for storing element set lists.The set remains constant without any dynamic referencing
+     to any underlying geometric entities.
     """
     def __init__(self, name, els):
         self.name =  name
@@ -84,6 +86,38 @@ class ElementSet:
         out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
+
+class SurfaceSet:
+    """
+    A surface-set set is basic entity for storing element face lists, typically for setting directional fluxes onto
+    surface elements based on the element ordering. The set remains constant without any dynamic referencing
+     to any underlying geometric entities.
+    """
+    def __init__(self, name, surfacePairs):
+        self.name =  name
+        self._elSurfacePairs = surfacePairs
+
+    @property
+    def surfacePairs(self):
+        """
+        Elements with the associated face orientations are specified as Nx2 numpy array, with the first column being
+        the element Id, and the second column the chosen face orientation
+        """
+        return self._els
+
+    @surfacePairs.setter
+    def els(self, surfacePairs):
+        self._elSurfacePairs = surfacePairs
+
+    def writeInput(self) -> str:
+
+        out = '*SURFACE,NAME={:s}\n'.format(self.name)
+
+        for i in range(self._elSurfacePairs.shape[0]):
+            out += '{:d},S{:d}\n'.format(self._elSurfacePairs[i,0], self._elSurfacePairs[i,1])
+
+        out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
+        return out
 
 class Simulation:
     """
