@@ -33,7 +33,6 @@ class AnalysisType(Enum):
     THERMAL = auto()
     FLUID = auto()
 
-
 class NodeSet:
     """
      An node set is basic entity for storing node set lists. The set remains constant without any dynamic referencing
@@ -118,6 +117,58 @@ class SurfaceSet:
 
         out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
+
+
+class Connector:
+    """
+     An node set is basic entity for storing node set lists. The set remains constant without any dynamic referencing
+     to any underlying geometric entities.
+     """
+    def __init__(self, name, nodes, refNode = None):
+        self.name = name
+        self._refNode = refNode
+        self._nodeset = None
+
+    @property
+    def refNode(self):
+        """
+        Reference Node ID
+        """
+        return self._refNode
+
+    @refNode.setter
+    def refNode(self, node):
+        self._refNode = node
+
+    @property
+    def nodeset(self):
+        """
+        Nodes contains the list of Node IDs
+        """
+        return self._nodeset
+
+    @nodeset.setter
+    def nodeset(self, nodes):
+
+        if isinstance(nodes, list) or isinstance(nodes,np.ndarray):
+            self._nodeset = NodeSet('Connecter_{:s}'.format(self.name), np.array(nodes))
+        elif isinstance(nodes,NodeSet):
+            self._nodeset = nodes
+        else:
+            raise ValueError('Invalid type for nodes passed to Connector()')
+
+
+    def writeInput(self) -> str:
+        # A nodeset is automatically created from the name of the connector
+        strOut = '*RIGIDBODY, NSET={:s}'.format(connector['name'])
+
+        # A reference node is optional
+        if isinstance(self.redNode, int):
+            strOut += ',REF NODE={:d}\n'.format(connector['refnode'])
+        else:
+            strOut += '\n'
+
+        return strOut
 
 class Simulation:
     """
