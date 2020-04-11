@@ -249,14 +249,16 @@ class Mesher:
         volTagId = self.getIdByVolumeName(volumeName)
         return np.array(gmsh.model.getBoundingBox(3, volTagId)).reshape(-1, 3)
 
-    def setMeshSize(self, pnts, size):
+    def setMeshSize(self, pnts, size: float):
+        """
+        Sets the mesh element size along an entity, however, this can only currently be performed using
+        """
 
-        if self.Initialised:
-            self.setAsCurrentModel()
-            tags = [(0, x) for x in pnts]
-            gmsh.model.mesh.setSize(tags, size)
+        self.setAsCurrentModel()
+        tags = [(0, x) for x in pnts]
+        gmsh.model.mesh.setSize(tags, size)
 
-            self.setModelChanged()
+        self.setModelChanged()
 
     def setMeshingAlgorithm(self, meshingAlgorithm) -> None:
         """
@@ -404,6 +406,7 @@ class Mesher:
     def getPointsFromVolume(self, id):
         """
         From a Volume Id, obtain all Point Ids associated with this volume - note may include shared points.
+
         :param id: int: Volume ID
         :return: list(int) - List of Point Ids
         """
@@ -411,9 +414,32 @@ class Mesher:
         pnts = gmsh.model.getBoundary((3, id), recursive=True)
         return [x[1] for x in pnts]
 
+    def getPointsFromEntity(self, id):
+        """
+        From an Id, obtain all Point Ids associated with this volume - note may include shared points.
+
+        :param id: tuple(int, int): Dimension and Entity ID
+        :return: list(int) - List of Point Ids
+        """
+        self.setAsCurrentModel()
+        pnts = gmsh.model.getBoundary(id, recursive=True)
+        return [x[1] for x in pnts]
+
+    def getChildrenFromEntities(self, id: int):
+        """
+        From a Entity, obtain all children associated with this volume - note may include shared entities.
+
+        :param id: tuple(int,int): Dimension, Entity Id in dimension
+        :return: list(int) - List of Ids
+        """
+        self.setAsCurrentModel()
+        entities = gmsh.model.getBoundary(id, recursive=False)
+        return [x[1] for x in entities]
+
     def getSurfacesFromVolume(self, id: int):
         """
         From a Volume Id, obtain all Surface Ids associated with this volume - note may include shared boundary surfaces.
+
         :param id: int: Volume ID
         :return: list(int) - List of surface Ids
         """
