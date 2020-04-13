@@ -29,7 +29,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx_automodapi.automodapi',
               'sphinx.ext.autosummary',
               'autodocsumm',
-              'sphinx_autodoc_typehints'
+              'sphinx_autodoc_typehints',
               'sphinx.ext.coverage']
 
 autodoc_default_options = {

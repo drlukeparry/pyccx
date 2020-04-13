@@ -38,12 +38,12 @@ class ElasticMaterial(Material):
 
         super().__init__(self, name)
 
-        self.E = 210e3  # MPA
+        self.E = 210e3
         self.nu = 0.33
         self.density = 7.85e-9
         self.alpha_CTE = 12e-6
-        self.k = 50.0  # W/mK
-        self.cp = 50.0  # W/mK
+        self.k = 50.0
+        self.cp = 50.0
 
         self._materialModel = 'elastic' # Calculix material model
 
