@@ -417,13 +417,15 @@ class Simulation:
             if not material.isValid():
                 raise AnalysisError('Material ({:s}) is not valid'.format(material.name))
 
+
         return True
 
     def run(self):
 
+        print('{:=^60}\n'.format(' RUNNING PRE-ANALYSIS CHECKS '))
         self.checkAnalysis()
 
-        print('============== Writing Input File ==================\n \n')
+        print('{:=^60}\n'.format(' WRITING INPUT FILE '))
         inputDeckContents = self.writeInput()
 
         with open("input.inp", "w") as text_file:
@@ -434,14 +436,13 @@ class Simulation:
         os.environ["CCX_NPROC_EQUATION_SOLVER"] = '{:d}'.format(Simulation.NUMTHREADS)
         os.environ["OMP_NUM_THREADS"] = '{:d}'.format(Simulation.NUMTHREADS)
 
+        print('{:=^60}\n'.format(' RUNNING CALCULIX '))
+
         if sys.platform == 'win32':
             cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe')
             arguments = '-i input'
 
             cmd = cmdPath + arguments
-
-            # direct_output = subprocess.check_output('ccx.exe -i input', shell=True) #could be anything here.
-            print('============== Running Calculix ================== \n')
 
             popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
             for stdout_line in iter(popen.stdout.readline, ""):
@@ -451,5 +452,21 @@ class Simulation:
             return_code = popen.wait()
             if return_code:
                 raise subprocess.CalledProcessError(return_code, cmd)
+
+        elif sys.platform == 'linux':
+            cmdPath = 'ccx'
+            arguments = '-i input'
+
+            cmd = cmdPath + arguments
+
+            popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+            for stdout_line in iter(popen.stdout.readline, ""):
+                print(stdout_line, end='')
+
+            popen.stdout.close()
+            return_code = popen.wait()
+            if return_code:
+                raise subprocess.CalledProcessError(return_code, cmd)
+
         else:
             raise NotImplemented(' Platform is not currently supported')
