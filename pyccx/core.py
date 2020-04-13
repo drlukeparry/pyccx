@@ -121,8 +121,7 @@ class SurfaceSet:
 
 class Connector:
     """
-     An node set is basic entity for storing node set lists. The set remains constant without any dynamic referencing
-     to any underlying geometric entities.
+     A Connector ir a rigid connector between a set of nodes and an (optional) reference node.
      """
     def __init__(self, name, nodes, refNode = None):
         self.name = name
@@ -160,11 +159,11 @@ class Connector:
 
     def writeInput(self) -> str:
         # A nodeset is automatically created from the name of the connector
-        strOut = '*RIGIDBODY, NSET={:s}'.format(connector['name'])
+        strOut = '*RIGIDBODY, NSET={:s}'.format(self.nodeset.name)
 
         # A reference node is optional
         if isinstance(self.redNode, int):
-            strOut += ',REF NODE={:d}\n'.format(connector['refnode'])
+            strOut += ',REF NODE={:d}\n'.format(self.refNode)
         else:
             strOut += '\n'
 
