@@ -2,6 +2,7 @@ import abc
 from enum import Enum, auto
 import numpy as np
 
+from .core import ElementSet, NodeSet, SurfaceSet
 
 class BoundaryConditionType(Enum):
     """
@@ -25,13 +26,25 @@ class BoundaryCondition(abc.ABC):
         self.target = target
 
     def getBoundaryElements(self):
-        return 0
+
+        if isinstance(self.target, ElementSet):
+            return self.target.els
+
+        return None
 
     def getBoundaryFaces(self):
-        return 0
+
+        if isinstance(self.target, SurfaceSet):
+            return self.target.nodes
+
+        return None
 
     def getBoundaryNodes(self):
-        return 0
+
+        if isinstance(self.target,NodeSet):
+            return self.target.nodes
+
+        return None
 
     @abc.abstractmethod
     def type(self) -> int:
@@ -210,6 +223,8 @@ class Fixed(BoundaryCondition):
 
         bCondStr = '*BOUNDARY\n'
         bcond = {}
+
+        nodeset = self.getBoundaryNodes()
         # 1-3 U, 4-6, rotational DOF, 11 = Temp
         for i in range(len(bcond['dof'])):
             if 'value' in bcond.keys():
