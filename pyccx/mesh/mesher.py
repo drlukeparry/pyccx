@@ -94,7 +94,17 @@ class Mesher:
         self.setAsCurrentModel()
         return gmsh.model.getPhysicalName(id[0],id[1])
 
-    def setVolumeName(self, volId: int, name: str):
+    def setEntityName(self, id, name:str) -> None:
+        """
+        Set the geometrical entity name - useful only as reference when vieiwing in the GMSH GUI
+        :param id: tuple(int,int), Entity Dimension and Entity Id
+        :param name: The entity name
+
+        """
+        self.setAsCurrentModel()
+        gmsh.model.setEntityName(id[0], id[1], name)
+
+    def setVolumePhysicalName(self, volId: int, name: str):
         """
         Sets the geometric name of the volume id
 
@@ -106,7 +116,7 @@ class Mesher:
         gmsh.model.addPhysicalGroup(3, [volId],maxId+1)
         gmsh.model.setPhysicalName(3,volId, name)
 
-    def setSurfaceName(self, surfId: int, name: str):
+    def setSurfacePhysicalName(self, surfId: int, name: str):
         """
         Sets the geometric name of the surface id
         :param surfId: int: Volume Id
@@ -117,7 +127,7 @@ class Mesher:
         gmsh.model.addPhysicalGroup(2, [surfId],maxId+1)
         gmsh.model.setPhysicalName(2,surfId, name)
 
-    def setEntityName(self, id, name: str):
+    def setEntityPhysicalName(self, id, name: str):
         """
         Sets the geometric name of the volume id
 
@@ -198,25 +208,23 @@ class Mesher:
 
     @property
     def volumes(self):
-        volTags = gmsh.model.getEntities(3)
-        vols = []
-        for x in volTags:
-            volName = gmsh.model.getPhysicalName(3, x[1], x[1])
-            vols.append({'id': x, 'name': volName})
-
-        return vols
+        tags = gmsh.model.getEntities(3)
+        return [(x[1]) for x in tags]
 
     @property
     def surfaces(self):
-        surfTags = gmsh.model.getEntities(2)
+        tags = gmsh.model.getEntities(2)
+        return [(x[1]) for x in tags]
 
-        surfs = []
+    @property
+    def edges(self):
+        tags = gmsh.model.getEntities(1)
+        return [(x[1]) for x in tags]
 
-        for x in surfTags:
-            surfName = gmsh.model.getPhysicalName(3, x[1], x[1])
-            surfs.append({'id': x, 'name': surfName})
-
-        return surfs
+    @property
+    def points(self):
+        tags = gmsh.model.getEntities(0)
+        return [(x[1]) for x in tags]
 
     def mergeGeometry(self) -> None:
         """
@@ -463,6 +471,10 @@ class Mesher:
         :return:
         """
         self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
         nodeList = gmsh.model.mesh.getNodes()
         return nodeList[0]
 
@@ -473,12 +485,27 @@ class Mesher:
         :return:
         """
         self.setAsCurrentModel()
+
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
         nodeList = gmsh.model.mesh.getNodes()
 
         nodeCoords = nodeList[1].reshape(-1, 3)
 
         nodeCoordsSrt = nodeCoords[np.sort(nodeList[0]) - 1]
         return nodeCoordsSrt  # , np.sort(nodeList[0])-1
+
+
+    def getElements(self, entityId):
+
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
+        return gmsh.model.mesh.getElements(entityId[0], entityId[1])[0]
 
     def getElementsByType(self, elType: int) -> np.array:
         """
@@ -492,12 +519,30 @@ class Mesher:
 
         self.setAsCurrentModel()
 
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
         elVar = gmsh.model.mesh.getElementsByType(self.ElType[elType]['id'])
         elements = elVar[1].reshape(-1, self.ElType[elType]['nodes']) - 1
 
         return elements
 
-    def getNodesFromVolume(self, volumeName: str):
+    def getNodesFromEntity(self, entityId):
+        """
+        Returns all node ids from a selected entity in the GMSH model.
+
+        :param entityId:  int : Volume name
+        :return:
+        """
+
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
+        return gmsh.model.mesh.getNodesForPhysicalGroup(entityId[0], entityId[1])[0]
+
+    def getNodesFromVolumeByName(self, volumeName: str):
         """
         Returns all node ids from a selected volume domain in the GMSH model.
 
@@ -506,6 +551,10 @@ class Mesher:
         """
 
         self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
         volTagId = self.getIdByVolumeName(volumeName)
 
         return gmsh.model.mesh.getNodesForPhysicalGroup(3, volTagId)[0]
@@ -518,6 +567,9 @@ class Mesher:
         :return:
         """
         self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
 
         edgeTagId = self.getIdByEdgeName(edgeName)
 
@@ -532,18 +584,34 @@ class Mesher:
         """
         self.setAsCurrentModel()
 
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
         surfTagId = self.getIdBySurfaceName(surfaceRegionName)
 
         return gmsh.model.mesh.getNodesForPhysicalGroup(2, surfTagId)[0]
 
+
     def getSurfaceFacesFromRegion(self, regionName):
+        self.setAsCurrentModel()
+
+        surfTagId = self.getIdBySurfaceName(regionName)
+
+        return self.getSurfaceFacesFromSurfId(surfTagId)
+
+    def getSurfaceFacesFromSurfId(self, surfTagId):
 
         self.setAsCurrentModel()
-        surfTagId = self.getIdBySurfaceName(regionName)
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
 
         mesh = gmsh.model.mesh
 
-        surfNodeList2 = mesh.getNodesForPhysicalGroup(2, surfTagId)[0]
+        surfNodeList2 = mesh.getNodes((2, surfTagId), True)[0]
+
+        #surfNodeList2 = mesh.getNodesForPhysicalGroup(2, surfTagId)[0]
 
         # Get tet elements
         tet4ElList = mesh.getElementsByType(4)
@@ -590,6 +658,10 @@ class Mesher:
         Renumbers the nodes of the entire GMSH Model
         """
         self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
         gmsh.model.mesh.renumberNodes()
         self.setModelChanged()
 
@@ -598,6 +670,10 @@ class Mesher:
         Renumbers the elements of the entire GMSH Model
         """
         self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
         gmsh.model.mesh.renumberElements()
         self.setModelChanged()
 
@@ -781,10 +857,10 @@ class Mesher:
 
         self.setAsCurrentModel()
         self.surfaceSets.append({'name': surfName, 'tag': grpTag, 'nodes': np.array([])})
-
+        gmsh.model.mesh.get
         gmsh.model.addPhysicalGroup(2, [grpTag], len(self.surfaceSets))
         gmsh.model.setPhysicalName(2, len(self.surfaceSets), surfName)
-
+        gmsh.model.removePhysicalGroups()
         self.setModelChanged()
 
     def interpTri(triVerts, triInd):
