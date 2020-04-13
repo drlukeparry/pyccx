@@ -55,6 +55,7 @@ author = 'Luke Parry'
 
 autodoc_default_options = {
     'autosummary': True,
+    'automodapi_inheritance_diagram': False
 }
 
 
