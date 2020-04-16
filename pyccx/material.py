@@ -5,6 +5,7 @@ class Material(abc.ABC):
     """
     Base class for all material model definitions
     """
+    MATERIALMODEL = 'INVALID'
 
     def __init__(self, name):
         self._input = ''
@@ -17,6 +18,11 @@ class Material(abc.ABC):
 
     def setName(self, matName: str):
         self._name = matName
+
+    @property
+    @abc.abstractmethod
+    def materialModel(self):
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def writeInput(self):
@@ -36,16 +42,22 @@ class ElasticMaterial(Material):
 
     def __init__(self, name):
 
-        super().__init__(self, name)
+        super().__init__(name)
 
         self.E = 210e3
+        """
+        Youngs Modulus
+        """
+
         self.nu = 0.33
         self.density = 7.85e-9
         self.alpha_CTE = 12e-6
         self.k = 50.0
         self.cp = 50.0
 
-        self._materialModel = 'elastic' # Calculix material model
+    @property
+    def materialModel(self):
+        return 'elastic' # Calculix material model
 
     def cast2Numpy(self, tempVals):
         if type(tempVals) == float:

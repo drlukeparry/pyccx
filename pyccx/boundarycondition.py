@@ -4,6 +4,7 @@ import numpy as np
 
 from .core import ElementSet, NodeSet, SurfaceSet
 
+
 class BoundaryConditionType(Enum):
     """
     Boundary condition type specifies which type of analyses the boundary condition may be applied to.

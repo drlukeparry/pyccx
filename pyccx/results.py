@@ -33,7 +33,7 @@ class NodalResult(Result):
         self.usePlasticStrain = False
         self.useNodalStrain = False
 
-        super().__init__(self)
+        super().__init__()
 
     def writeInput(self):
         inputStr = ''
@@ -83,6 +83,8 @@ class ElementResult(Result):
         self.useCauchyStress = False
         self.useHeatFlux = False
         self.useESE = False
+
+        super().__init__()
 
     def writeInput(self):
         str = ''

@@ -6,7 +6,7 @@ import os
 import sys
 import subprocess  # used to check ccx version
 from enum import Enum, auto
-from typing import List
+from typing import List, Tuple
 import logging
 
 from .mesh import Mesher
@@ -32,6 +32,7 @@ class AnalysisType(Enum):
     STRUCTURAL = auto()
     THERMAL = auto()
     FLUID = auto()
+
 
 class NodeSet:
     """
@@ -175,13 +176,21 @@ class Simulation:
     """
 
     NUMTHREADS = 1
+    """ Number of Threads used by the Calculix Solver """
+
     CALCULIX_PATH = ''
+    """ The Calculix directory path used for Windows platforms"""
+
+    VERBOSE_OUTPUT = True
+    """ When enabled, the output during the analysis is redirected to the console"""
 
     def __init__(self, meshModel: Mesher):
 
         self._input = ''
+        self._workingDirectory = ''
 
-        # List of materials
+        self.mpcSets = []
+        self.connectors = []
         self.materials = []
         self.materialAssignments = []
         self.model = meshModel
@@ -231,16 +240,32 @@ class Simulation:
         return cls.NUMTHREADS
 
     @classmethod
-    def setCalculixPath(cls, calculixPath: str):
+    def setCalculixPath(cls, calculixPath: str) -> None:
         """
         Sets the path for the Calculix executable. Necessary when using Windows where there is not a default
         installation proceedure for Calculix
 
-        :param calculixPath: str Directory containing the Calculix Executable
+        :param calculixPath: Directory containing the Calculix Executable
         """
 
-        if os.path.isdir(calculixPath):
+        if os.path.isdir(calculixPath) :
             cls.CALCULIX_PATH = calculixPath
+
+    @classmethod
+    def setVerboseOuput(cls, state: bool) -> None:
+        """
+        Sets if the output from Calculix should be verbose i.e. printed to the console
+
+        :param state:
+        """
+
+        cls.VERBOSE_OUTPUT = state
+
+    def setWorkingDirectory(self, workDir):
+        if os.path.isdir(workDir) and os.access(workDir, os.W_OK):
+            self._workingDirectory = workDir
+        else:
+            raise ValueError('Working directory ({:s}) is not accessible or writable'.format(workDir))
 
     @property
     def name(self):
@@ -264,9 +289,8 @@ class Simulation:
         numConnectors = 1
 
         for connector in self.connectors:
-            # Create an nodal set
-            self.nodeSets.append({'name' : 'connector_{:s}'.format(connector['name']),
-                                  'nodes': connector['nodes']})
+            # Node are created and are an attribute of a Connector
+            self._nodeSets.append(connector.nodeset)
 
             numConnectors += 1
 
@@ -303,8 +327,10 @@ class Simulation:
 
         for elSet in self._elSets:
             self._input += os.linesep
-            self._input += '*ELSET,ELSET={:s\n}'.format(elSet['name'])
-            self._input += np.array2string(elSet['els'], precision=2, separator=', ', threshold=9999999999)[1:-1]
+            self._input += elSet.writeInput()
+
+            #self._input += '*ELSET,ELSET={:s\n}'.format(elSet['name'])
+            #self._input += np.array2string(elSet['els'], precision=2, separator=', ', threshold=9999999999)[1:-1]
 
     def writeNodeSets(self):
 
@@ -316,10 +342,15 @@ class Simulation:
 
         for nodeSet in self._nodeSets:
             self._input += os.linesep
-            self._input += '*NSET,NSET={:s}\n'.format(nodeSet['name'])
-            self._input += np.array2string(nodeSet['nodes'], precision=2, separator=', ', threshold=9999999999)[1:-1]
+            self._input += nodeSet.writeInput()
+            #self._input += '*NSET,NSET={:s}\n'.format(nodeSet['name'])
+            #self._input += '*NSET,NSET={:s}\n'.format(nodeSet['name'])
+            #self._input += np.array2string(nodeSet['nodes'], precision=2, separator=', ', threshold=9999999999)[1:-1]
 
     def writeKinematicConnectors(self):
+
+        if len(self.connectors) < 1:
+            return
 
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' KINEMATIC CONNECTORS ')
@@ -327,15 +358,12 @@ class Simulation:
         for connector in self.connectors:
 
             # A nodeset is automatically created from the name of the connector
-            self.input += '*RIGIDBODY, NSET={:s}'.format(connector['name'])
-
-            # A reference node is optional
-            if isinstance(connector['refnode'], int):
-                self.input += ',REF NODE={:d}\n'.format(connector['refnode'])
-            else:
-                self.input += '\n'
+            self.input += connector.writeInput()
 
     def writeMPCs(self):
+
+        if len(self.mpcSets) < 1:
+            return
 
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' MPCS ')
@@ -398,8 +426,9 @@ class Simulation:
 
         # TODO make a unique auto-generated name for the mesh
         meshFilename = 'mesh.inp'
+        meshPath= os.path.join(self._workingDirectory, meshFilename)
 
-        self.model.writeMesh(meshFilename)
+        self.model.writeMesh(meshPath)
         self._input += '*include,input={:s}'.format(meshFilename)
 
     def checkAnalysis(self) -> bool:
@@ -420,15 +449,35 @@ class Simulation:
 
         return True
 
+    def version(self):
+
+        if sys.platform == 'win32':
+            cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
+            p = subprocess.Popen([cmdPath, '-v'], stdout=subprocess.PIPE, universal_newlines=True )
+            stdout, stderr = p.communicate()
+            version = re.search(r"(\d+).(\d+)", stdout)
+            return int(version.group(1)), int(version.group(2))
+
+        elif sys.platform == 'linux':
+            p = subprocess.Popen(['ccx', '-v'], stdout=subprocess.PIPE, universal_newlines=True )
+            stdout, stderr = p.communicate()
+            version = re.search(r"(\d+).(\d+)", stdout)
+            return int(version.group(1)), int(version.group(2))
+
+        else:
+            raise NotImplemented(' Platform is not currently supported')
+
     def run(self):
 
         print('{:=^60}\n'.format(' RUNNING PRE-ANALYSIS CHECKS '))
         self.checkAnalysis()
 
+
         print('{:=^60}\n'.format(' WRITING INPUT FILE '))
         inputDeckContents = self.writeInput()
 
-        with open("input.inp", "w") as text_file:
+        inputDeckPath = os.path.join(self._workingDirectory,'input.inp')
+        with open(inputDeckPath, "w") as text_file:
             text_file.write(inputDeckContents)
 
         # Set environment variables for performing multi-threaded
@@ -436,17 +485,19 @@ class Simulation:
         os.environ["CCX_NPROC_EQUATION_SOLVER"] = '{:d}'.format(Simulation.NUMTHREADS)
         os.environ["OMP_NUM_THREADS"] = '{:d}'.format(Simulation.NUMTHREADS)
 
-        print('{:=^60}\n'.format(' RUNNING CALCULIX '))
+        print('\n{:=^60}\n'.format(' RUNNING CALCULIX '))
 
         if sys.platform == 'win32':
-            cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe')
+            cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
             arguments = '-i input'
 
             cmd = cmdPath + arguments
 
-            popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-            for stdout_line in iter(popen.stdout.readline, ""):
-                print(stdout_line, end='')
+            popen = subprocess.Popen(cmd, cwd=self._workingDirectory,  stdout=subprocess.PIPE, universal_newlines=True)
+
+            if self.VERBOSE_OUTPUT:
+                for stdout_line in iter(popen.stdout.readline, ""):
+                    print(stdout_line, end='')
 
             popen.stdout.close()
             return_code = popen.wait()
@@ -454,19 +505,21 @@ class Simulation:
                 raise subprocess.CalledProcessError(return_code, cmd)
 
         elif sys.platform == 'linux':
-            cmdPath = 'ccx'
-            arguments = '-i input'
 
-            cmd = cmdPath + arguments
+            filename = 'input'
 
-            popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-            for stdout_line in iter(popen.stdout.readline, ""):
-                print(stdout_line, end='')
+            cmdSt = ['ccx', '-i', filename]
+
+            popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True)
+
+            if self.VERBOSE_OUTPUT:
+                for stdout_line in iter(popen.stdout.readline, ""):
+                    print(stdout_line, end='')
 
             popen.stdout.close()
             return_code = popen.wait()
             if return_code:
-                raise subprocess.CalledProcessError(return_code, cmd)
+                raise subprocess.CalledProcessError(return_code, cmdSt)
 
         else:
             raise NotImplemented(' Platform is not currently supported')

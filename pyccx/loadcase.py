@@ -132,7 +132,7 @@ class LoadCase:
 
                 for i in range(len(bcond['dof'])):
                     if 'value' in bcond.keys():
-                        bcondStr += '{:s},{:d},, {:e}\n'.format(nodeset, bcond['dof'][i],
+                        bcondStr += '{:s},{:d},,{:e}\n'.format(nodeset, bcond['dof'][i],
                                                            bcond['value'][i])  # inhomogenous boundary conditions
                     else:
                         bcondStr += '{:s},{:d}\n'.format(nodeset, bcond['dof'][i])

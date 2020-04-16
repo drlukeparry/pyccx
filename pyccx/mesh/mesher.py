@@ -3,6 +3,7 @@ import os
 import numpy as np
 import gmsh
 from enum import Enum
+from typing import List, Tuple
 
 
 class MeshingAlgorithm(Enum):
@@ -74,60 +75,61 @@ class Mesher:
         self.setAsCurrentModel()
         return np.max([x[1] for x in gmsh.model.getPhysicalGroups(dim)])
 
-    def getVolumeName(self, volId: int) ->str:
+    def getVolumeName(self, volId: int) -> str:
         """
         Gets the volume name (if assigned)
 
         :param volId: int: Volume id of a region
-        :return: str
         """
         self.setAsCurrentModel()
         return gmsh.model.getPhysicalName(3,volId)
 
-    def getEntityName(self, id: int) -> str:
+    def getEntityName(self, id: Tuple[int, int]) -> str:
         """
         Returns the name of an entity given an id (if assigned)
 
-        :param id: tuple(int,int): Dimension, Entity Id
-        :return: str
+        :param id: Dimension, Entity Id
+
         """
         self.setAsCurrentModel()
         return gmsh.model.getPhysicalName(id[0],id[1])
 
-    def setEntityName(self, id, name:str) -> None:
+    def setEntityName(self, id: Tuple[int, int], name:str) -> None:
         """
         Set the geometrical entity name - useful only as reference when vieiwing in the GMSH GUI
-        :param id: tuple(int,int), Entity Dimension and Entity Id
+
+        :param id: Entity Dimension and Entity Id
         :param name: The entity name
 
         """
         self.setAsCurrentModel()
         gmsh.model.setEntityName(id[0], id[1], name)
 
-    def setVolumePhysicalName(self, volId: int, name: str):
+    def setVolumePhysicalName(self, volId: int, name: str) -> None:
         """
         Sets the geometric name of the volume id
 
-        :param volId: int: Volume Id
-        :param name: str: Name assigned to volume
+        :param volId: Volume Id
+        :param name: Name assigned to volume
         """
         self.setAsCurrentModel()
         maxId = self.maxPhysicalGroupId(3)
         gmsh.model.addPhysicalGroup(3, [volId],maxId+1)
         gmsh.model.setPhysicalName(3,volId, name)
 
-    def setSurfacePhysicalName(self, surfId: int, name: str):
+    def setSurfacePhysicalName(self, surfId: int, name: str) -> None:
         """
         Sets the geometric name of the surface id
-        :param surfId: int: Volume Id
-        :param name: str: Name assigned to volume
+
+        :param surfId: Volume Id
+        :param name: Name assigned to volume
         """
         self.setAsCurrentModel()
         maxId = self.maxPhysicalGroupId(2)
         gmsh.model.addPhysicalGroup(2, [surfId],maxId+1)
         gmsh.model.setPhysicalName(2,surfId, name)
 
-    def setEntityPhysicalName(self, id, name: str):
+    def setEntityPhysicalName(self, id, name: str) -> None:
         """
         Sets the geometric name of the volume id
 
@@ -147,14 +149,12 @@ class Mesher:
 
     def isDirty(self) -> bool:
         """
-        Has the model been sucessfully generated and no pending modifications exist.
-
-        :return: bool
+        Has the model been successfully generated and no pending modifications exist.
         """
 
         return self._isDirty
 
-    def setModelChanged(self, state = False) -> None:
+    def setModelChanged(self, state : bool = False) -> None:
         """
         Any changes to GMSH model should call this to prevent inconsistency in a generated model
 
@@ -169,8 +169,8 @@ class Mesher:
         should be used to specify a target mesh size.
 
         :param filename:
-        :param name:
-        :param meshFactor:
+        :param name: Name to assign to the geometries imported
+        :param meshFactor: Initialise the target element size to a proportion of the average bounding box dimensions
         """
 
         if not (os.path.exists(filename) and os.access(filename, os.R_OK)):
@@ -184,6 +184,8 @@ class Mesher:
         self.geoms.append({'name': name, 'filename': filename, 'meshSize': None, 'meshFactor': meshFactor})
 
         # Set the name of the volume
+        # This automatically done to ensure that are all exported. This may change to parse through all volumes following
+        # merged and be recreated
         print(len(self.geoms))
         gmsh.model.setEntityName(3, len(self.geoms), name)
         gmsh.model.addPhysicalGroup(3, [len(self.geoms)], len(self.geoms))
@@ -206,23 +208,40 @@ class Mesher:
         self._isGeometryDirty = True
         self.setModelChanged()
 
+    def clearMesh(self) -> None:
+        """
+        Clears any meshes previously generated
+        """
+        self.setAsCurrentModel()
+        gmsh.model.mesh.clear()
+
     @property
-    def volumes(self):
+    def volumes(self) -> List[int]:
+        self.setAsCurrentModel()
         tags = gmsh.model.getEntities(3)
         return [(x[1]) for x in tags]
 
     @property
-    def surfaces(self):
+    def surfaces(self) -> List[int]:
+        """
+        Returns all the surface ids of geometry in the model
+        """
+        self.setAsCurrentModel()
         tags = gmsh.model.getEntities(2)
         return [(x[1]) for x in tags]
 
     @property
-    def edges(self):
+    def edges(self) -> List[int]:
         tags = gmsh.model.getEntities(1)
         return [(x[1]) for x in tags]
 
     @property
-    def points(self):
+    def points(self) -> List[int]:
+        """
+        Returns all the point ids
+        :return:
+        """
+        self.setAsCurrentModel()
         tags = gmsh.model.getEntities(0)
         return [(x[1]) for x in tags]
 
@@ -257,9 +276,12 @@ class Mesher:
         volTagId = self.getIdByVolumeName(volumeName)
         return np.array(gmsh.model.getBoundingBox(3, volTagId)).reshape(-1, 3)
 
-    def setMeshSize(self, pnts, size: float):
+    def setMeshSize(self, pnts: List[int], size: float) -> None:
         """
         Sets the mesh element size along an entity, however, this can only currently be performed using
+
+        :param pnts: Point ids to set the mesh size
+        :param size: Set the desired mesh length size at this point
         """
 
         self.setAsCurrentModel()
@@ -276,6 +298,7 @@ class Mesher:
         """
 
         # The meshing algorithm is applied before generation, as this may be model specific
+        print(meshingAlgorithm)
         self._meshingAlgorithm = meshingAlgorithm
         self.setModelChanged()
 
@@ -288,32 +311,62 @@ class Mesher:
             gmsh.option.setString("Geometry.OCCTargetUnit", Mesher.Units);
 
     @classmethod
-    def setElementOrder(cls, elOrder):
+    def setElementOrder(cls, elOrder: int):
+        """
+        Sets the element order globally for the entire model. Note that different element orders cannot be used within
+        the same GMSH model during generation
+
+        :param elOrder: The element order
+        """
         cls.ElementOrder = elOrder
 
         if cls.Initialised:
             gmsh.option.setNumber("Mesh.ElementOrder", Mesher.ElementOrder)
 
     @classmethod
-    def setOptimiseNetgen(cls, optNetgenVal):
-        cls.OptimiseNetgen = optNetgenVal
+    def setOptimiseNetgen(cls, state: bool) -> None:
+        """
+        Sets an option for GMSH to internally use Netgen to optimise the element quality of the generated mesh. Enabled
+        by default.
+
+        :param state: Toggles the option
+        """
+        cls.OptimiseNetgen = state
 
         if cls.Initialised:
             gmsh.option.setNumber("Mesh.OptimizeNetgen", (1 if cls.OptimiseNetgen else 0))
 
     @classmethod
-    def getNumThreads(cls):
+    def getNumThreads(cls) -> int:
+        """
+        Gets the number of threads used for parallel processing by GMSH
+        """
         return cls.NumThreads
 
     @classmethod
-    def setNumThreads(cls, numThreads):
+    def setNumThreads(cls, numThreads: int) -> None:
+        """
+        Sets the number of threads to be used for parallel processing by GMSH
+
+        :param numThreads:
+        """
         cls.NumThreads = numThreads
 
         if cls.Initialised:
             gmsh.option.setNumber("Mesh.MaxNumThreads3D", Mesher.NumThreads)
 
     @classmethod
-    def setMeshSizeFactor(self, meshSizeFactor):
+    def setMeshSizeFactor(self, meshSizeFactor: float) -> None:
+        """
+        The mesh factor size provides an estimate length for the initial element sizes based on proportion of the maximumum
+        bounding box length.
+
+        :param meshSizeFactor: The mesh factor size between [0.,1.0]
+        """
+
+        if meshSizeFactor > 1.0 or meshSizeFactor < 1e-8:
+            raise ValueError('Invalid size for the mesh size factor was provided')
+
         self.modelMeshSizeFactor = meshSizeFactor
 
     @classmethod
@@ -323,6 +376,10 @@ class Mesher:
 
     @classmethod
     def initialise(cls):
+        """
+        Initialises the GMSH runtime and sets default options. This is called automatically once.
+        :return:
+        """
 
         print(cls.Initialised)
 
@@ -372,9 +429,9 @@ class Mesher:
 
     def setAsCurrentModel(self):
         """
-        Sets the current model to that specified in the class instance
+        Sets the current model to that specified in the class instance because
         Only one instance of GMSH sdk is available so this must be
-        dynamically switched between models for multiple instances of a Mesher
+        dynamically switched between models for multiple instances of a Mesher.
         """
 
         gmsh.model.setCurrent(self._modelName)
@@ -411,45 +468,45 @@ class Mesher:
         self.setModelChanged()
 
     # Geometric methods
-    def getPointsFromVolume(self, id):
+    def getPointsFromVolume(self, id: int) -> List[int]:
         """
         From a Volume Id, obtain all Point Ids associated with this volume - note may include shared points.
 
-        :param id: int: Volume ID
+        :param id: Volume ID
         :return: list(int) - List of Point Ids
         """
         self.setAsCurrentModel()
         pnts = gmsh.model.getBoundary((3, id), recursive=True)
         return [x[1] for x in pnts]
 
-    def getPointsFromEntity(self, id):
+    def getPointsFromEntity(self, id: Tuple[int,int]) -> List[int]:
         """
         From an Id, obtain all Point Ids associated with this volume - note may include shared points.
 
-        :param id: tuple(int, int): Dimension and Entity ID
-        :return: list(int) - List of Point Ids
+        :param id: Dimension and Entity ID
+        :return: List of Point Ids
         """
         self.setAsCurrentModel()
         pnts = gmsh.model.getBoundary(id, recursive=True)
         return [x[1] for x in pnts]
 
-    def getChildrenFromEntities(self, id: int):
+    def getChildrenFromEntities(self, id: Tuple[int,int]) -> List[int]:
         """
         From a Entity, obtain all children associated with this volume - note may include shared entities.
 
-        :param id: tuple(int,int): Dimension, Entity Id in dimension
-        :return: list(int) - List of Ids
+        :param id:  Dimension, Entity Id
+        :return: List of Ids
         """
         self.setAsCurrentModel()
         entities = gmsh.model.getBoundary(id, recursive=False)
         return [x[1] for x in entities]
 
-    def getSurfacesFromVolume(self, id: int):
+    def getSurfacesFromVolume(self, id: int) -> List[int]:
         """
         From a Volume Id, obtain all Surface Ids associated with this volume - note may include shared boundary surfaces.
 
-        :param id: int: Volume ID
-        :return: list(int) - List of surface Ids
+        :param id:  Volume Id
+        :return: List of surface Ids
         """
         raise NotImplementedError()
         self.setAsCurrentModel()
@@ -498,20 +555,31 @@ class Mesher:
         return nodeCoordsSrt  # , np.sort(nodeList[0])-1
 
 
-    def getElements(self, entityId):
-
+    def getElements(self, entityId: Tuple[int,int] = None):
+        """
+        Returns the elements for the entire model or optionally a specific entity.
+        :param entityId: The entity id to obtain elements for
+        :return:
+        """
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
             raise ValueError('Mesh is not generated')
 
-        return gmsh.model.mesh.getElements(entityId[0], entityId[1])[0]
+        if entityId:
+            # return all the elements for the entity
+            return gmsh.model.mesh.getElements(entityId[0], entityId[1])[0]
+        else:
+            # Return all the elements in the model
+            return gmsh.model.mesh.getElements()[0]
 
-    def getElementsByType(self, elType: int) -> np.array:
+
+    def getElementsByType(self, elType: int) -> np.ndarray:
         """
-        Returns all elements of type (elType) from the GMSH model.
+        Returns all elements of type (elType) from the GMSH model. Note: the element ids are returned with
+        an index starting from 0 - internally GMSH uses an index starting from 1, like most FEA pre-processors
 
-        :return: 
+        :return: List of element Ids.
         """
 
         if elType not in self.ElType:
@@ -523,11 +591,12 @@ class Mesher:
             raise ValueError('Mesh is not generated')
 
         elVar = gmsh.model.mesh.getElementsByType(self.ElType[elType]['id'])
-        elements = elVar[1].reshape(-1, self.ElType[elType]['nodes']) - 1
+        elements = elVar[1].reshape(-1, self.ElType[elType]['nodes']) # TODO check if necessary - 1
 
         return elements
 
-    def getNodesFromEntity(self, entityId):
+
+    def getNodesFromEntity(self, entityId: Tuple[int,int]) -> np.ndarray:
         """
         Returns all node ids from a selected entity in the GMSH model.
 
@@ -540,13 +609,29 @@ class Mesher:
         if not self._isMeshGenerated:
             raise ValueError('Mesh is not generated')
 
-        return gmsh.model.mesh.getNodesForPhysicalGroup(entityId[0], entityId[1])[0]
+        return gmsh.model.mesh.getNodes(entityId[0], entityId[1], True)[0]
+
+    def getNodesByEntityName(self, entityName: str) -> np.ndarray:
+        """
+        Returns all nodes for a selected surface region
+
+        :param entityName: The geometric surface name
+        :return: Node Ids
+        """
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise ValueError('Mesh is not generated')
+
+        tagId = self.getIdByEntityName(entityName)
+
+        return gmsh.model.mesh.getNodes(tagId[0], tagId[1], True)[0]
 
     def getNodesFromVolumeByName(self, volumeName: str):
         """
         Returns all node ids from a selected volume domain in the GMSH model.
 
-        :param volumeName:  str : Volume name
+        :param volumeName:  Volume name
         :return:
         """
 
@@ -557,13 +642,13 @@ class Mesher:
 
         volTagId = self.getIdByVolumeName(volumeName)
 
-        return gmsh.model.mesh.getNodesForPhysicalGroup(3, volTagId)[0]
+        return gmsh.model.mesh.getNodes(3, volTagId, True)[0]
 
-    def getNodesFromEdge(self, edgeName: str):
+    def getNodesFromEdgeByName(self, edgeName: str):
         """
         Returns all nodes from a geometric edge
 
-        :param edgeName: str: The geometric edge name
+        :param edgeName: The geometric edge name
         :return:
         """
         self.setAsCurrentModel()
@@ -575,11 +660,12 @@ class Mesher:
 
         return gmsh.model.mesh.getNodes(1, edgeTagId, True)[0]
 
-    def getNodesFromRegion(self, surfaceRegionName: str):
+
+    def getNodesFromSurfaceByName(self, surfaceRegionName: str):
         """
         Returns all nodes for a selected surface region
 
-        :param surfaceRegionName: str The geometric surface name
+        :param surfaceRegionName: The geometric surface name
         :return:
         """
         self.setAsCurrentModel()
@@ -589,7 +675,7 @@ class Mesher:
 
         surfTagId = self.getIdBySurfaceName(surfaceRegionName)
 
-        return gmsh.model.mesh.getNodesForPhysicalGroup(2, surfTagId)[0]
+        return gmsh.model.mesh.getNodes(2, surfTagId, True)[0]
 
 
     def getSurfaceFacesFromRegion(self, regionName):
@@ -609,9 +695,9 @@ class Mesher:
 
         mesh = gmsh.model.mesh
 
-        surfNodeList2 = mesh.getNodes((2, surfTagId), True)[0]
+        surfNodeList2 = mesh.getNodes(2, surfTagId, True)[0]
 
-        #surfNodeList2 = mesh.getNodesForPhysicalGroup(2, surfTagId)[0]
+        #surfNodeList2 = mesh.getNodesForEntity(2, surfTagId)[0]
 
         # Get tet elements
         tet4ElList = mesh.getElementsByType(4)
@@ -620,9 +706,12 @@ class Mesher:
         tet4Nodes = tet4ElList[1].reshape(-1, 4)
         tet10Nodes = tet10ElList[1].reshape(-1, 10)
 
-        tetNodes = np.vstack([tet4Nodes, tet10Nodes[:, :4]])
+        tetNodes = np.vstack([tet4Nodes,
+                              tet10Nodes[:, :4]])
 
-        tetElList = np.hstack([tet4ElList[0], tet10ElList[0]])
+        # Note subtract 1 to get an index starting from zero
+        tetElList = np.hstack([tet4ElList[0]  -1,
+                               tet10ElList[0] -1])
 
         tetMinEl = np.min(tetElList)
 
@@ -680,10 +769,9 @@ class Mesher:
     def _setModelOptions(self) -> None:
         """
         Private method for initialising any additional options for individual models within GMSH which are not global.
-        :return:
         """
         self.setAsCurrentModel()
-        gmsh.option.setNumber("Mesh.Algorithm", self._meshingAlgorithm)
+        gmsh.option.setNumber("Mesh.Algorithm", self._meshingAlgorithm.value)
 
 
     def generateMesh(self) -> None:
@@ -710,6 +798,9 @@ class Mesher:
         self._isDirty = False
 
     def isMeshGenerated(self) -> bool:
+        """
+        Returns if the mesh has been successfully generated by GMSH
+        """
         return self._isMeshGenerated
 
     def writeMesh(self, filename: str) -> None:
@@ -725,6 +816,28 @@ class Mesher:
         else:
             raise ValueError('Mesh has not been generated before writing the file')
 
+    def getIdByEntityName(self, entityName: str) -> int:
+        """
+        Obtains the ID for volume name
+
+        :param volumeName: str
+        :return: int: Volume ID
+        """
+        self.setAsCurrentModel()
+
+        vols = gmsh.model.getEntities()
+        names = [(gmsh.model.getEntityName(x[0], x[1]), x) for x in vols]
+
+        tagId = -1
+        for name in names:
+            if name[0] == entityName:
+                tagId = name[1]
+
+        if tagId == -1:
+            raise ValueError('Volume region ({:s}) was not found'.format(entityName))
+
+        return tagId
+
 
     def getIdByVolumeName(self, volumeName: str) -> int:
         """
@@ -735,8 +848,8 @@ class Mesher:
         """
         self.setAsCurrentModel()
 
-        vols = gmsh.model.getPhysicalGroups(3)
-        names = [(gmsh.model.getPhysicalName(3, x[1]), x[1]) for x in vols]
+        vols = gmsh.model.getEntities(3)
+        names = [(gmsh.model.getEntityName(3, x[1]), x[1]) for x in vols]
 
         volTagId = -1
         for name in names:
@@ -752,18 +865,22 @@ class Mesher:
         """
         Obtains the ID for the edge name
 
-        :param edgeName: str - Geometric edge name
-        :return: int: Edge ID
+        :param edgeName: Geometric edge name
+        :return: Edge ID
         """
+
         self.setAsCurrentModel()
 
+        surfs = gmsh.model.getEntities(1)
+        names = [(gmsh.model.getEntityName(1, x[1]), x[1]) for x in surfs]
+
         edgeTagId = -1
-        for edge in self.edgeSets:
-            if edge['name'] == edgeName:
-                edgeTagId = edge['tag']
+        for name in names:
+            if name[0] == edgeName:
+                surfTagId = name[1]
 
         if edgeTagId == -1:
-            raise ValueError('Edge ({:s}) was not found'.format(edgeName))
+            raise ValueError('Surface region ({:s}) was not found'.format(edgeName))
 
         return edgeTagId
 
@@ -771,14 +888,14 @@ class Mesher:
         """
         Obtains the ID for the surface name
 
-        :param edgeName: str - Geometric surface name
-        :return: int: Surface ID
+        :param surfaceName:  Geometric surface name
+        :return: Surface Ids
         """
 
         self.setAsCurrentModel()
 
-        surfs = gmsh.model.getPhysicalGroups(2)
-        names = [(gmsh.model.getPhysicalName(2, x[1]), x[1]) for x in surfs]
+        surfs = gmsh.model.getEntities(2)
+        names = [(gmsh.model.getEntityName(2, x[1]), x[1]) for x in surfs]
 
         surfTagId = -1
         for name in names:
@@ -789,50 +906,6 @@ class Mesher:
             raise ValueError('Surface region ({:s}) was not found'.format(surfaceName))
 
         return surfTagId
-
-    def getSurfaceFacesFromRegionTet10(self, regionName):
-
-        surfTagId = self.getIdBySurfaceName(regionName)
-
-        mesh = gmsh.model.mesh
-
-        surfNodeList2 = mesh.getNodesForPhysicalGroup(2, surfTagId)[0]
-
-        # Get tet10 elements
-        tetElList = mesh.getElementsByType(11)
-
-        tetNodes = tetElList[1].reshape(-1, 10)
-        tetMinEl = np.min(tetElList[0])
-
-        mask = np.isin(tetNodes, surfNodeList2)  # Mark nodes which are on boundary
-        ab = np.sum(mask, axis=1)  # Count how many nodes were marked for each element
-        fndIdx = np.argwhere(ab > 5)  # For all tets
-        elIdx = tetElList[0][fndIdx]
-        if np.sum(ab > 6) > 0:
-            raise ValueError('Instance of all nodes of tet where found')
-
-        # Tet elements for Film [masks]
-        F1 = [1, 1, 1, 0]  # 1: 1 2 3 = [1,1,1,0]
-        F2 = [1, 1, 0, 1]  # 2: 1 4 2 = [1,1,0,1]
-        F3 = [0, 1, 1, 1]  # 3: 2 4 3 = [0,1,1,1]
-        F4 = [1, 0, 1, 1]  # 4: 3 4 1 = [1,0,1,1]
-
-        surfFaces = np.zeros((len(elIdx), 2), dtype=np.uint32)
-        surfFaces[:, 0] = elIdx.flatten()
-
-        mask = mask[:, :4]
-
-        surfFaces[mask[fndIdx.ravel()].dot(F1) == 3, 1] = 1  # Mask 1
-        surfFaces[mask[fndIdx.ravel()].dot(F2) == 3, 1] = 2  # Mask 2
-        surfFaces[mask[fndIdx.ravel()].dot(F3) == 3, 1] = 3  # Mask 3
-        surfFaces[mask[fndIdx.ravel()].dot(F4) == 3, 1] = 4  # Mask 4
-
-        # sort by faces
-        surfFaces = surfFaces[surfFaces[:, 1].argsort()]
-
-        surfFaces[:, 0] = surfFaces[:, 0] - (tetMinEl + 1)
-
-        return surfFaces
 
     def setEdgeSet(self, grpTag, edgeName):
         # Adding a physical group will export the surface mesh later so these need removing
