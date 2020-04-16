@@ -39,21 +39,74 @@ class Material(abc.ABC):
 
 
 class ElasticMaterial(Material):
+    """
+    Represents a generic non-linear elastic material which may be used in both structural, and thermal type analyses
+    """
 
     def __init__(self, name):
 
         super().__init__(name)
 
-        self.E = 210e3
-        """
-        Youngs Modulus
-        """
-
-        self.nu = 0.33
-        self.density = 7.85e-9
-        self.alpha_CTE = 12e-6
+        self._E = 210e3
+        self._nu = 0.33
+        self._density = 7.85e-9
+        self._alpha_CTE = 12e-6
         self.k = 50.0
-        self.cp = 50.0
+        self._cp = 50.0
+
+    @property
+    def E(self):
+        """Elastic Modulus :math:`E`"""
+        return self._E
+
+    @E.setter
+    def E(self, val):
+        self._E = val
+
+    @property
+    def nu(self):
+        """Poisson's Ratio :math:`\\nu` """
+        return self._nu
+
+    @nu.setter
+    def nu(self, val):
+        self._nu = val
+
+    @property
+    def density(self):
+        """Density :math:`\\rho`"""
+        return self._density
+
+    @density.setter
+    def density(self, val):
+        self._density = val
+
+    @property
+    def alpha_CTE(self):
+        """Thermal Expansion Coefficient :math:`\\alpha_{cte}`"""
+        return self._alpha_CTE
+
+    @alpha_CTE.setter
+    def alpha_CTE(self, val):
+        self._alpha_CTE = val
+
+    @property
+    def k(self):
+        """Thermal conductivity :math:`k`"""
+        return self._k
+
+    @k.setter
+    def k(self, val):
+        self._k = val
+
+    @property
+    def cp(self):
+        """Specific Heat :math:`c_p`"""
+        return self._cp
+
+    @cp.setter
+    def cp(self, val):
+        self._cp = val
 
     @property
     def materialModel(self):
