@@ -10,6 +10,7 @@ from typing import List, Tuple
 import logging
 
 from .mesh import Mesher
+from .results import ResultProcessor
 
 import gmsh
 import numpy as np
@@ -467,6 +468,13 @@ class Simulation:
 
         else:
             raise NotImplemented(' Platform is not currently supported')
+
+    def results(self) -> ResultProcessor:
+        """ Returns the results obtained after running an analysis """
+        if self.isAnalysisCompleted():
+            return ResultProcessor('input')
+        else:
+            raise ValueError('Results were not available')
 
     def isAnalysisCompleted(self) -> bool:
         """ Returns whether the analysis was completed successfully. """
