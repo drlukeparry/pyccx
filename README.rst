@@ -27,12 +27,14 @@ An interface that built upon GMSH was required to avoid the use of the GUI, and 
 Structure
 ###########
 
-PyCCX framework consists of classes for specifying common components on the analysis, such as
+PyCCX framework consists of classes for specifying common components on the pre-processing phase, including the following
+common operations:
 
-* Boundary Conditions
-* Load Cases
-* Material Models
-* Simulation
+* Mesh generation
+* Creating and applying boundary conditions
+* Creating load cases
+* Creating and assigning material models
+* Performing the simulation
 
 In addition, a meshing class provides an interface with GMSH for performing the meshing routines and for associating
 boundary conditions with the elements/faces generated from geometrical CAD entities. The Simulation class assembles the
@@ -87,8 +89,9 @@ or alternatively downloading the package directly. On Windows platforms the path
     # Set the path for Calculix in Windows
     Simulation.setCalculixPath('Path')
 
----------------
 
-If you want to learn more about ``setup.py`` files, check out `this repository <https://github.com/drlukeparry/pyocl/setup.py>`_.
+USAGE
+******
 
-
+The basic usage is split between the meshing facilities provided by GMSH and analysing a problem using the Calculix Solver. Documented
+examples are provided in `examples <https://github.com/drlukeparry/pyccx/tree/master/examples>`_ .
