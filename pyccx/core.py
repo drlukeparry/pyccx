@@ -477,8 +477,32 @@ class Simulation:
             raise ValueError('Results were not available')
 
     def isAnalysisCompleted(self) -> bool:
-        """ Returns whether the analysis was completed successfully. """
+        """ Returns if the analysis was completed successfully. """
         return self._analysisCompleted
+
+    def clearAnalysis(self, includeResults:bool = False) -> None:
+        """ Clears any files generated from the analysis
+
+        :param includeResults:  If set True will also delete the result files generated from the analysis
+        """
+
+        filename = 'input' # Base filename for the analysis
+
+        files = [filename + '.inp',
+                 filename + '.cvg',
+                 filename + '.sta']
+
+        if includeResults:
+            files.append(filename + '.frd')
+            files.append(filename + '.dat')
+
+        try:
+            for file in files:
+                filePath = os.path.join(self._workingDirectory,file)
+                os.remove(filePath)
+        except:
+            pass
+
 
     def run(self):
         """

@@ -271,7 +271,11 @@ class ResultProcessor:
 
         return [line, name, rfstr, time, iteration]
 
-    def read(self):
+    def read(self) -> None:
+        """
+        Opens up the results files and processes the results
+        """
+
         infile = open('{:s}.frd'.format(self.jobName), 'r')
         print('Loading nodal results from file: ' + self.jobName)
 
