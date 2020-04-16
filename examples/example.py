@@ -4,6 +4,9 @@
 nod"""
 
 import pyccx
+
+from pyccx.mesh import ElementType, Mesher
+
 from pyccx.core import ElementSet, NodeSet, SurfaceSet, Simulation
 from pyccx.results import ElementResult, NodalResult, ResultProcessor
 from pyccx.loadcase import  LoadCase, LoadCaseType
@@ -11,7 +14,7 @@ from pyccx.material import ElasticMaterial
 
 
 # Create a Mesher object to interface with GMSH. Provide a unique name. Multiple instance of this can be created.
-myMeshModel = pyccx.mesh.Mesher('myModel')
+myMeshModel = Mesher('myModel')
 
 # Set the number of threads to use for any multi-threaded meshing algorithms e.g. HXT
 myMeshModel.setNumThreads(4)
@@ -168,4 +171,4 @@ results.read()
 nodalTemp = results.lastIncrement()['temp'][:, 1]
 
 # Obtain the nodal coordinates and elements for further p
-tetEls = myMeshModel.getElementsByType('TET4')
+tetEls = myMeshModel.getElementsByType(ElementType.TET4)

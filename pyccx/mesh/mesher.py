@@ -5,7 +5,6 @@ import gmsh
 from enum import Enum
 from typing import List, Tuple
 
-
 class MeshingAlgorithm(Enum):
     DELAUNAY = 1
     FRONTAL = 4
@@ -16,14 +15,80 @@ class MeshingAlgorithm(Enum):
     HXT = 10
 
 
+class ElementType:
+    """
+    Element types information used via GMSH and Calculix
+    """
+
+    class NODE:
+        """ A single node element s"""
+        id = 15
+        name = 'Node'
+        nodes = 1
+        faces = None
+
+    class TET4:
+        """ 1st order linear Tet Element (C3D4) """
+        id = 11
+        name =  'C3D4'
+        nodes = 4
+        faces = np.array([[1,2,3], [1,4,2], [2,4,3], [3,4,1]])
+
+    class TET10:
+        """ 2nd order Quadratic Tet Element (C3D10) consisting of 10 nodes """
+        id = 11
+        name = 'C3D10'
+        nodes = 4
+        faces = np.array([[1,2,3], [1,4,2], [2,4,3], [3,4,1]])
+
+    class HEX8:
+        """ Linear Hex Element (C3D8) """
+        id = 5
+        name = 'C3D8'
+        nodes = 8
+        faces = np.array([[1,2,3,4], [5,8,7,6], [1,5,6,2], [2,6,7,3], [3,7,8,4], [4,8,5,1]])
+
+    class HEX8R:
+        """Linear Hex Element (C3D8R) with reduced order integration """
+        id = 5
+        name = 'C3D8R'
+        nodes = 8
+        faces = np.array([[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]])
+
+    class HEX8R:
+        """
+        Linear Hex Element (C3D8I) with reformulation to reduce the effects of shear and
+        volumetric locking and hourglass effects under some extreme situations
+        """
+        id = 5
+        name = 'C3D8I'
+        nodes = 8
+        faces = np.array([[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]])
+
+    class HEX8R:
+        """
+        Quadratic Hex Element (C3D20) consisting of 20 Nodes
+        """
+        id = 17
+        name = 'C3D20'
+        nodes = 20
+        faces = np.array([[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]])
+
+
+    class WEDGE6:
+        """ Wedge or Prism Element (C3D6) """
+        id = 6
+        name = 'C3D6'
+        nodes = 6
+        faces = np.array([[1,2,3], [4,5,6], [1,2,5,4], [2,3,6,5], [3,1,4,6]])
+
+
+
 class Mesher:
     """
     The Mesher class provides the base interface built upon the GMSH-SDK API operations. It provides the capability
     to mesh multiple PythonOCC objects
     """
-    ElType = {'TET4' : {'id': 4, 'nodes': 4},
-              'TET10': {'id': 11, 'nodes': 10}
-              }
 
     # Static class variables for meshing operations
 
@@ -574,24 +639,21 @@ class Mesher:
             return gmsh.model.mesh.getElements()[0]
 
 
-    def getElementsByType(self, elType: int) -> np.ndarray:
+    def getElementsByType(self, elType) -> np.ndarray:
         """
-        Returns all elements of type (elType) from the GMSH model. Note: the element ids are returned with
+        Returns all elements of type (elType) from the GMSH model, within class ElementTypes. Note: the element ids are returned with
         an index starting from 0 - internally GMSH uses an index starting from 1, like most FEA pre-processors
 
         :return: List of element Ids.
         """
-
-        if elType not in self.ElType:
-            raise ValueError('Invalid element type provided')
 
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
             raise ValueError('Mesh is not generated')
 
-        elVar = gmsh.model.mesh.getElementsByType(self.ElType[elType]['id'])
-        elements = elVar[1].reshape(-1, self.ElType[elType]['nodes']) # TODO check if necessary - 1
+        elVar = gmsh.model.mesh.getElementsByType(elType.id)
+        elements = elVar[1].reshape(-1, elType.nodes) # TODO check if necessary - 1
 
         return elements
 
@@ -700,8 +762,8 @@ class Mesher:
         #surfNodeList2 = mesh.getNodesForEntity(2, surfTagId)[0]
 
         # Get tet elements
-        tet4ElList = mesh.getElementsByType(4)
-        tet10ElList = mesh.getElementsByType(11)
+        tet4ElList = mesh.getElementsByType(ElementType.TET4.id)
+        tet10ElList = mesh.getElementsByType(ElementType.TET10.id)
 
         tet4Nodes = tet4ElList[1].reshape(-1, 4)
         tet10Nodes = tet10ElList[1].reshape(-1, 10)

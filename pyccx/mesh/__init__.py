@@ -1,2 +1,2 @@
-from .mesher import Mesher, MeshingAlgorithm
+from .mesher import ElementType, Mesher, MeshingAlgorithm
 from . import mesh
