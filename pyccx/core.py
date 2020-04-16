@@ -188,6 +188,7 @@ class Simulation:
 
         self._input = ''
         self._workingDirectory = ''
+        self._analysisCompleted = False
 
         self.mpcSets = []
         self.connectors = []
@@ -467,11 +468,20 @@ class Simulation:
         else:
             raise NotImplemented(' Platform is not currently supported')
 
+    def isAnalysisCompleted(self) -> bool:
+        """ Returns whether the analysis was completed successfully. """
+        return self._analysisCompleted
+
     def run(self):
+        """
+        Performs pre-analysis checks on the model and submits the job for Calculix to perform.
+        """
+
+        # Reset analysis status
+        self._analysisCompleted = False
 
         print('{:=^60}\n'.format(' RUNNING PRE-ANALYSIS CHECKS '))
         self.checkAnalysis()
-
 
         print('{:=^60}\n'.format(' WRITING INPUT FILE '))
         inputDeckContents = self.writeInput()
@@ -504,6 +514,9 @@ class Simulation:
             if return_code:
                 raise subprocess.CalledProcessError(return_code, cmd)
 
+            # Analysis was completed successfully
+            self._analysisCompleted = True
+
         elif sys.platform == 'linux':
 
             filename = 'input'
@@ -520,6 +533,9 @@ class Simulation:
             return_code = popen.wait()
             if return_code:
                 raise subprocess.CalledProcessError(return_code, cmdSt)
+
+            # Analysis was completed successfully
+            self._analysisCompleted = True
 
         else:
             raise NotImplemented(' Platform is not currently supported')
