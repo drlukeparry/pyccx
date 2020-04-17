@@ -7,7 +7,7 @@ import pyccx
 
 from pyccx.mesh import ElementType, Mesher
 
-from pyccx.core import ElementSet, NodeSet, SurfaceSet, Simulation
+from pyccx.core import DOF, ElementSet, NodeSet, SurfaceSet, Simulation
 from pyccx.results import ElementResult, NodalResult, ResultProcessor
 from pyccx.loadcase import  LoadCase, LoadCaseType
 from pyccx.material import ElastoPlasticMaterial
@@ -71,8 +71,8 @@ surface5Nodes = myMeshModel.getNodesByEntityName('MySurface5') # MySurface5
 # Obtain nodes from the volume
 volumeNodes = myMeshModel.getNodesFromVolumeByName('PartA')
 
-import gmsh
-#gmsh.fltk.run()
+# The generated mesh can be interactively viewed natively within gmsh by calling the following
+myMeshModel.showGui()
 
 """ Create the analysis"""
 # Set the number of simulation threads to be used by Calculix Solver across all analyses
@@ -121,25 +121,18 @@ elThermalPostResult.useHeatFlux = True
 
 thermalLoadCase.resultSet = [nodeThermalPostResult, elThermalPostResult]
 
-"""
-class DOF(Enum):
-    UX = 1
-    V = 2
-    W = 3
-    T = 11
-"""
-
 # Set thermal boundary conditions for the loadcase(Current Version)
 
 thermalLoadCase.boundaryConditions.append(
-    {'type': 'fixed', 'nodes': 'surface6Nodes', 'dof': [11], 'value': [60]})
+    {'type': 'fixed', 'nodes': 'surface6Nodes', 'dof': [DOF.T], 'value': [60]})
 
 thermalLoadCase.boundaryConditions.append(
-    {'type': 'fixed', 'nodes': 'surface1Nodes', 'dof': [11], 'value': [20]})
+    {'type': 'fixed', 'nodes': 'surface1Nodes', 'dof': [DOF.T], 'value': [20]})
+
 
 thermalLoadCase.boundaryConditions.append({'type': 'faceflux', 'faces':  bottomFaces, 'flux':50})
 
-# =========== Material  =========== #
+# ====================== Material  ====================== #
 # Add a elastic material and assign it to the volume.
 # Note ensure that the units correctly correspond with the geometry length scales
 
@@ -157,6 +150,8 @@ analysis.materialAssignments = [('PartA', 'Steel')]
 
 # Set the loadcases used in sequential order
 analysis.loadCases = [thermalLoadCase]
+
+# ====================== Analysis Run  ====================== #
 
 # Run the analysis
 analysis.run()

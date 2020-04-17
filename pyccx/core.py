@@ -171,6 +171,16 @@ class Connector:
 
         return strOut
 
+
+class DOF:
+    UX = 1
+    UY = 2
+    UZ = 3
+    RX = 4
+    RY = 5
+    RZ = 6
+    T = 11
+
 class Simulation:
     """
     Provides the base class for running a Calculix simulation
