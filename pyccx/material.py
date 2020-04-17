@@ -32,9 +32,7 @@ class Material(abc.ABC):
     @abc.abstractmethod
     def isValid(self) -> bool:
         """
-        Abstract method - re-implement in material models to check parameters are correct by the user
-
-        :return: bool
+        Abstract method: re-implement in material models to check parameters are correct by the user
         """
         raise NotImplemented()
 
