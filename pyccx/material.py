@@ -1,5 +1,6 @@
 import numpy as np
 import abc
+from enum import Enum, auto
 
 class Material(abc.ABC):
     """
@@ -31,17 +32,34 @@ class Material(abc.ABC):
     @abc.abstractmethod
     def isValid(self) -> bool:
         """
-        Abstract method - reimplement in material models to check parameters are correct by the user
+        Abstract method - re-implement in material models to check parameters are correct by the user
 
         :return: bool
         """
         raise NotImplemented()
 
 
-class ElasticMaterial(Material):
+class ElastoPlasticMaterial(Material):
     """
-    Represents a generic non-linear elastic material which may be used in both structural, and thermal type analyses
+    Represents a generic non-linear elastic/plastic material which may be used in both structural, and thermal type analyses
     """
+
+    class WorkHardeningType(Enum):
+        """
+        Work hardening mode selecting the hardening regime for the accumulation of plastic-strain
+        """
+
+        NONE = auto()
+        """ Prevents any plastic deformation """
+
+        ISOTROPIC = auto()
+        """ Isotropic  work hardening """
+
+        KINEMATIC = auto()
+        """ Kinematic work hardening """
+
+        COMBINED = auto()
+        """ Cyclic work hardening """
 
     def __init__(self, name):
 
@@ -53,6 +71,10 @@ class ElasticMaterial(Material):
         self._alpha_CTE = 12e-6
         self.k = 50.0
         self._cp = 50.0
+
+        # Plastic Behavior
+        self._workHardeningMode = ElastoPlasticMaterial.WorkHardeningType.NONE
+        self._hardeningCurve = None
 
     @property
     def E(self):
@@ -108,11 +130,45 @@ class ElasticMaterial(Material):
     def cp(self, val):
         self._cp = val
 
+    def isPlastic(self) -> bool:
+        """
+        Returns True if the material has a plastic behaviour
+        """
+        return self._workHardeningMode is not ElastoPlasticMaterial.WorkHardeningType.NONE
+
+    @property
+    def workHardeningMode(self):
+        """
+        The work hardening mode of the material - if this is set, plastic behaviour will be assumed requiring a
+        work hardening curve to be provided
+        """
+        return self._workHardeningMode
+
+    @workHardeningMode.setter
+    def workHardeningMode(self, mode: WorkHardeningType) -> None:
+        self._workHardeningMode = mode
+
+    @property
+    def hardeningCurve(self) -> np.ndarray:
+        """
+        Sets the work hardening stress-strain curve with an nx3 array (curve) set with each row entry to (stress :math:`\\sigma`, plastic strain :math:`\\varepsilon_p`, Temperature :math:`T`). The first row
+        of a temperature group describes the yield point :math:`\\sigma_y` for the onset of the plastic regime.
+        """
+        return self._hardeningCurve
+
+    @hardeningCurve.setter
+    def hardeningCurve(self, curve):
+        if not isinstance(curve, np.ndarray) or curve.shape[1] != 3:
+            raise ValueError('Work hardening curve should be an nx3 numpy array')
+
+        self._hardeningCurve = curve
+
     @property
     def materialModel(self):
         return 'elastic' # Calculix material model
 
-    def cast2Numpy(self, tempVals):
+    @staticmethod
+    def cast2Numpy(tempVals):
         if type(tempVals) == float:
             tempVal = np.array([tempVals])
         elif type(tempVals) == list:
@@ -130,11 +186,11 @@ class ElasticMaterial(Material):
         nu = self.cast2Numpy(self.nu)
         E = self.cast2Numpy(self.E)
 
-        if (nu.ndim != E.ndim):
+        if nu.ndim != E.ndim:
             raise ValueError("Both Poissons ratio and Young's modulus must be temperature dependent or constant")
 
         if nu.shape[0] == 1:
-            if (nu.shape[0] != E.shape[0]):
+            if nu.shape[0] != E.shape[0]:
                 raise ValueError("Same number of entries must exist for Poissons ratio and Young' Modulus")
 
             lineStr += ',type=iso\n'
@@ -146,14 +202,36 @@ class ElasticMaterial(Material):
         else:
             raise ValueError('Not currently support elastic mode')
 
+
         return lineStr
+
+    def writePlasticProp(self):
+
+        if not self.isPlastic():
+            return ''
+
+        if self.isPlastic() and self.hardeningCurve is None:
+            raise ValueError('Plasticity requires a work hardening curve to be defined')
+
+        lineStr = ''
+        if self._workHardeningMode is ElastoPlasticMaterial.WorkHardeningType.ISOTROPIC:
+            lineStr += '*plastic HARDENING=ISOTROPIC\n'
+        elif self._workHardeningMode is ElastoPlasticMaterial.WorkHardeningType.KINEMATIC:
+            lineStr += '*plastic HARDENING=KINEMATIC\n'
+        elif self._workHardeningMode is ElastoPlasticMaterial.WorkHardeningType.COMBINED:
+            lineStr += '*cyclic hardening HARDENING=COMBINED\n'
+
+        for i in range(self.hardeningCurve.shape[0]):
+            lineStr += '{:e},{:e},{:e}\n'.format(self._hardeningCurve[i, 0], # Stress
+                                                 self._hardeningCurve[i, 1], # Plastic Strain
+                                                 self._hardeningCurve[i, 2]) # Temperature
 
     def writeMaterialProp(self, matPropName: str, tempVals) -> str:
         """
         Helper method to write the material property name and formatted values depending on the anisotropy of the material
         and if non-linear parameters are used.
 
-        :param matPropName: str: Material property
+        :param matPropName: Material property
         :param tempVals: Values to assign material properties
         :return: str:
         """
@@ -212,5 +290,8 @@ class ElasticMaterial(Material):
 
         if self.k:
             inputStr += self.writeMaterialProp('conductivity', self.k)
+
+        # Write the plastic mode
+        inputStr += self.writePlasticProp()
 
         return inputStr

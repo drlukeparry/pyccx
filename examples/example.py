@@ -10,7 +10,7 @@ from pyccx.mesh import ElementType, Mesher
 from pyccx.core import ElementSet, NodeSet, SurfaceSet, Simulation
 from pyccx.results import ElementResult, NodalResult, ResultProcessor
 from pyccx.loadcase import  LoadCase, LoadCaseType
-from pyccx.material import ElasticMaterial
+from pyccx.material import ElastoPlasticMaterial
 
 
 # Create a Mesher object to interface with GMSH. Provide a unique name. Multiple instance of this can be created.
@@ -123,7 +123,7 @@ thermalLoadCase.resultSet = [nodeThermalPostResult, elThermalPostResult]
 
 """
 class DOF(Enum):
-    U = 1
+    UX = 1
     V = 2
     W = 3
     T = 11
@@ -143,7 +143,7 @@ thermalLoadCase.boundaryConditions.append({'type': 'faceflux', 'faces':  bottomF
 # Add a elastic material and assign it to the volume.
 # Note ensure that the units correctly correspond with the geometry length scales
 
-steelMat = ElasticMaterial('Steel')
+steelMat = ElastoPlasticMaterial('Steel')
 steelMat.E = 210000.
 steelMat.alpha_CTE = [25e-6, 23e-6, 24e-6]   # Thermal Expansion Coefficient
 steelMat.density = 1.0    # Density
