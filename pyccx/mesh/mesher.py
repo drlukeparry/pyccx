@@ -29,7 +29,7 @@ class ElementType:
 
     class TET4:
         """ 1st order linear Tet Element (C3D4) """
-        id = 11
+        id = 4
         name =  'C3D4'
         nodes = 4
         faces = np.array([[1,2,3], [1,4,2], [2,4,3], [3,4,1]])
@@ -747,6 +747,19 @@ class Mesher:
 
         return self.getSurfaceFacesFromSurfId(surfTagId)
 
+    def _getFaceOrderMask(self, elementType):
+        """
+        Private method which constructs the face mask array from the faces ordering of an element.
+        :param elementType:
+        :return:
+        """
+        mask = np.zeros([elementType.faces.shape[0], np.max(elementType.faces)])
+        for i in np.arange(mask.shape[0]):
+            mask[i, elementType.faces[i] - 1] = 1
+
+        return mask
+
+
     def getSurfaceFacesFromSurfId(self, surfTagId):
 
         self.setAsCurrentModel()
@@ -775,27 +788,42 @@ class Mesher:
         tetElList = np.hstack([tet4ElList[0]  -1,
                                tet10ElList[0] -1])
 
+        print(ElementType.TET4.id)
         tetMinEl = np.min(tetElList)
 
         mask = np.isin(tetNodes, surfNodeList2)  # Mark nodes which are on boundary
         ab = np.sum(mask, axis=1)  # Count how many nodes were marked for each element
-        fndIdx = np.argwhere(ab > 2)  # For all tets
+        fndIdx = np.argwhere(ab > 2)  # For all tets locate where the number of nodes on the surface = 3
+
+        # Elements which belong onto the surface
         elIdx = tetElList[fndIdx]
+
+        # Below if more than a four nodes (tet) lies on the surface, an error has occured
         if np.sum(ab > 3) > 0:
             raise ValueError('Instance of all nodes of tet where found')
 
+
         # Tet elements for Film [masks]
-        F1 = [1, 1, 1, 0]  # 1: 1 2 3 = [1,1,1,0]
-        F2 = [1, 1, 0, 1]  # 2: 1 4 2 = [1,1,0,1]
-        F3 = [0, 1, 1, 1]  # 3: 2 4 3 = [0,1,1,1]
-        F4 = [1, 0, 1, 1]  # 4: 3 4 1 = [1,0,1,1]
+
         surfFaces = np.zeros((len(elIdx), 2), dtype=np.uint32)
         surfFaces[:, 0] = elIdx.flatten()
 
-        surfFaces[mask[fndIdx.ravel()].dot(F1) == 3, 1] = 1  # Mask
-        surfFaces[mask[fndIdx.ravel()].dot(F2) == 3, 1] = 2  # Mask
-        surfFaces[mask[fndIdx.ravel()].dot(F3) == 3, 1] = 3  # Mask
-        surfFaces[mask[fndIdx.ravel()].dot(F4) == 3, 1] = 4  # Mask
+        fMask = self._getFaceOrderMask(ElementType.TET4)
+
+        # Iterate across each face of the element and apply mask across the elements
+        for i in np.arange(fMask.shape[0]):
+            surfFaces[mask[fndIdx.ravel()].dot(fMask[i]) == 3, 1] = 1  # Mask
+
+        if False:
+            F1 = [1, 1, 1, 0]  # 1: 1 2 3 = [1,1,1,0]
+            F2 = [1, 1, 0, 1]  # 2: 1 4 2 = [1,1,0,1]
+            F3 = [0, 1, 1, 1]  # 3: 2 4 3 = [0,1,1,1]
+            F4 = [1, 0, 1, 1]  # 4: 3 4 1 = [1,0,1,1]
+
+            surfFaces[mask[fndIdx.ravel()].dot(F1) == 3, 1] = 1  # Mask
+            surfFaces[mask[fndIdx.ravel()].dot(F2) == 3, 1] = 2  # Mask
+            surfFaces[mask[fndIdx.ravel()].dot(F3) == 3, 1] = 3  # Mask
+            surfFaces[mask[fndIdx.ravel()].dot(F4) == 3, 1] = 4  # Mask
 
         # sort by faces
         surfFaces = surfFaces[surfFaces[:, 1].argsort()]
