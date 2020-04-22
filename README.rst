@@ -1,5 +1,9 @@
 PyCCX - Python Calculix
 ========================
+
+.. image:: https://badges.gitter.im/pyccx/community.svg
+   :alt: Join the chat at https://gitter.im/pyccx/community
+   :target: https://gitter.im/pyccx/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 .. image:: https://github.com/drlukeparry/pyccx/workflows/Python%20application/badge.svg
     :target: https://github.com/drlukeparry/pyccx/actions
 .. image:: https://readthedocs.org/projects/pyccx/badge/?version=latest
