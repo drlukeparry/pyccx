@@ -1,18 +1,29 @@
 import abc
-from enum import Enum, auto
+from enum import Enum, Flag, auto
+from typing import List, Tuple
+
 import numpy as np
 
-from .core import ElementSet, NodeSet, SurfaceSet
+from .core import ElementSet, NodeSet, SurfaceSet, DOF
 
 
-class BoundaryConditionType(Enum):
+class BoundaryConditionType(Flag):
     """
-    Boundary condition type specifies which type of analyses the boundary condition may be applied to.
+    Boundary condition type specifies which type of analyses the boundary condition may be applied to. Flags may be mixed
+    when coupled analyses are performed (e.g.  thermomechanical analysis: STRUCTURAL | THERMAL)
     """
+
     ANY = auto()
+    """ Boundary condition can be used in any analysis"""
+
     STRUCTURAL = auto()
+    """ Boundary condition can be used in a structural analysis"""
+
     THERMAL = auto()
+    """ Boundary condition can be used in a thermal analysis"""
+
     FLUID = auto()
+    """ Boundary condition can be used in a fluid  analysis"""
 
 
 class BoundaryCondition(abc.ABC):
@@ -25,6 +36,9 @@ class BoundaryCondition(abc.ABC):
         self.init = True
         self.model  = model
         self.target = target
+
+    def getTargetName(self) -> str:
+        return self.target.name
 
     def getBoundaryElements(self):
 
@@ -48,7 +62,7 @@ class BoundaryCondition(abc.ABC):
         return None
 
     @abc.abstractmethod
-    def type(self) -> int:
+    def type(self) -> BoundaryConditionType:
         """
         Returns the BC type so that they are only applied to suitable load cases
         """
@@ -67,15 +81,17 @@ class Film(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, model, faces):
+    def __init__(self, model, target):
 
         self.h = 0.0
         self.T_amb = 0.0
-        self.faces = faces
 
-        super().__init__(model, faces)
+        if not isinstance(self.target,SurfaceSet):
+            raise ValueError('A SurfaceSet must be used for a Film Boundary Condition')
 
-    def type(self) -> int:
+        super().__init__(model, target)
+
+    def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
 
     @property
@@ -96,8 +112,8 @@ class Film(BoundaryCondition):
         """
         return self.T_amb
 
-    @heatTransferCoefficient.setter
-    def ambientTemerature(self, Tamb:float) -> None:
+    @ambientTemperature.setter
+    def ambientTemperature(self, Tamb:float) -> None:
         self.T_amb = Tamb
 
     def writeInput(self) -> str:
@@ -118,15 +134,17 @@ class HeatFlux(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, model, faces):
+    def __init__(self, model, target):
 
         self.flux = 0.0
-        self.faces = faces
+        self.target = target
 
-        super().__init__(model, faces)
+        if not isinstance(self.target, SurfaceSet):
+            raise ValueError('A SurfaceSet must be used for a Heat Flux Boundary Condition')
 
+        super().__init__(model, target)
 
-    def type(self) -> int:
+    def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
 
     @property
@@ -160,15 +178,17 @@ class Radiation(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, model, faces):
+    def __init__(self, model, target):
 
         self.T_amb = 0.0
         self.epsilon = 1.0
-        self.faces = faces
 
-        super().__init__(model, faces)
+        if not isinstance(self.target, SurfaceSet):
+            raise ValueError('A SurfaceSet must be used for a Radiation Boundary Condition')
 
-    def type(self) -> int:
+        super().__init__(model, target)
+
+    def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
 
     @property
@@ -176,7 +196,11 @@ class Radiation(BoundaryCondition):
         """
         The emmisivity value :math:`\\epsilon` used for the Radiation Boundary Condition
         """
-        return self.emmisivity
+        return self.epsilon
+
+    @emmisivity.setter
+    def emmisivity(self, val: float):
+        self.epsilon = val
 
     @property
     def ambientTemperature(self) -> float:
@@ -186,9 +210,8 @@ class Radiation(BoundaryCondition):
         return self.T_amb
 
     @ambientTemperature.setter
-    def ambientTemerature(self, Tamb: float) -> None:
+    def ambientTemperature(self, Tamb: float) -> None:
         self.T_amb = Tamb
-
 
     def writeInput(self) -> str:
 
@@ -208,33 +231,51 @@ class Fixed(BoundaryCondition):
     the analysis type.
     """
 
-    def __init__(self, model, target):
+    def __init__(self, model, target, dof : List[DOF] = [], values = None):
 
-        self.dof = []
-        self.values = []
+        if not isinstance(target, NodeSet):
+            raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
+
+        self._dof = []
+        self._values = values
 
         super().__init__(model, target)
 
-    def type(self) -> int:
+    def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.ANY
+
+    @property
+    def dof(self):
+        return self._dof
+
+    @dof.setter
+    def dof(self, vals):
+        self._dof = vals
+
+    @property
+    def values(self):
+        return self._dof
+
+    @values.setter
+    def values(self, vals):
+        self._values = vals
 
     def writeInput(self) -> str:
 
-        raise NotImplemented()
-
         bCondStr = '*BOUNDARY\n'
-        bcond = {}
 
-        nodeset = self.getBoundaryNodes()
+        nodesetName = self.getTargetName()
+
+        if len(self.dof) != len(self._values):
+            raise ValueError('DOF and Prescribed DOF must have a matching size')
         # 1-3 U, 4-6, rotational DOF, 11 = Temp
-        for i in range(len(bcond['dof'])):
-            if 'value' in bcond.keys():
+        for i in range(len(self._dof)):
+            if self._values:
                 # inhomogenous boundary conditions
-                bCondStr += '{:s},{:d},, {:e}\n'.format(nodeset, bcond['dof'][i],
-                                                        bcond['value'][i])
+                bCondStr += '{:s},{:d},, {:e}\n'.format(nodesetName, self._dof[i],self._values[i])
             else:
                 # Fixed boundary condition
-                bCondStr += '{:s},{:d}\n'.format(nodeset, bcond['dof'][i])
+                bCondStr += '{:s},{:d}\n'.format(nodesetName, self._dof[i])
 
         return bCondStr
 
@@ -249,9 +290,10 @@ class Acceleration(BoundaryCondition):
 
         self.mag = 1.0
         self.dir = np.array([0.0,0.0,1.0])
+
         super().__init__(model, target)
 
-    def type(self) -> int:
+    def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
 
     def setVector(self, v) -> None:
@@ -278,7 +320,7 @@ class Acceleration(BoundaryCondition):
         self.mag = magVal
 
     @property
-    def direction(self) -> float:
+    def direction(self) -> np.ndarray:
         """
         The acceleration direction (noramlised vector)
         """
@@ -289,10 +331,9 @@ class Acceleration(BoundaryCondition):
         from numpy import linalg
         self.dir = v / linalg.norm(v)
 
-
     def writeInput(self) -> str:
         bCondStr = '*DLOAD\n'
-        bCondStr += '{:s},GRAV,{:d}, {:.3f},{:.3f},{:.3f}\n'.format(self.getBoundaryElements(), self.mag,*self.dir)
+        bCondStr += '{:s},GRAV,{:.5f}, {:.3f},{:.3f},{:.3f}\n'.format(self.target.name, self.mag, *self.dir)
         return bCondStr
 
 
@@ -305,9 +346,10 @@ class Pressure(BoundaryCondition):
 
         self.mag = 0.0
         self.faces = faces
+
         super().__init__(model, faces)
 
-    def type(self) -> int:
+    def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
 
     @property
@@ -331,6 +373,7 @@ class Pressure(BoundaryCondition):
             
         return bCondStr
 
+
 class Force(BoundaryCondition):
     """
     The Force Boundary applies a uniform force directly to nodes. This BC may be used in thermal and
@@ -341,9 +384,10 @@ class Force(BoundaryCondition):
 
         self.mag = 0.0
         self.dir = np.array([0.0,0.0,1.0])
+
         super().__init__(model, target)
 
-    def type(self) -> int:
+    def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
 
     def setVector(self, v) -> None:
@@ -369,7 +413,7 @@ class Force(BoundaryCondition):
         self.mag = magVal
 
     @property
-    def direction(self) -> float:
+    def direction(self) -> np.ndarray:
         """
         The normalised vector of the force direction
         """
@@ -383,10 +427,10 @@ class Force(BoundaryCondition):
     def writeInput(self) -> str:
 
         bCondStr = '*CLOAD\n'
-        nodeset = self.getBoundaryNodes()
+        nodesetName = self.getTargetName()
 
         for i in range(3):
             compMag = self.mag * self.dir[i]
-            bCondStr += '{:s},{:d}\n'.format(nodeset, i, compMag)
+            bCondStr += '{:s},{:d}\n'.format(nodesetName, i, compMag)
 
         return bCondStr
