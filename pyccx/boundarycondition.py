@@ -1,6 +1,6 @@
 import abc
 from enum import Enum, Flag, auto
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
 
@@ -55,7 +55,7 @@ class BoundaryCondition(abc.ABC):
 
     def getBoundaryNodes(self):
 
-        if isinstance(self.target,NodeSet):
+        if isinstance(self.target, NodeSet):
             return self.target.nodes
 
         return None
@@ -80,12 +80,12 @@ class Film(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target, h:float = 0.0, TAmbient:float  = 0.0):
+    def __init__(self, target, h: float = 0.0, TAmbient: float = 0.0):
 
         self.h = h
         self.T_amb = TAmbient
 
-        if not isinstance(self.target,SurfaceSet):
+        if not isinstance(self.target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Film Boundary Condition')
 
         super().__init__(target)
@@ -112,7 +112,7 @@ class Film(BoundaryCondition):
         return self.T_amb
 
     @ambientTemperature.setter
-    def ambientTemperature(self, Tamb:float) -> None:
+    def ambientTemperature(self, Tamb: float) -> None:
         self.T_amb = Tamb
 
     def writeInput(self) -> str:
@@ -133,7 +133,7 @@ class HeatFlux(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self,target, flux: float = 0.0):
+    def __init__(self, target, flux: float = 0.0):
 
         self._flux = flux
 
@@ -176,7 +176,7 @@ class Radiation(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target, epsilon = 1.0, TAmbient: float = 0.0):
+    def __init__(self, target, epsilon=1.0, TAmbient: float = 0.0):
 
         self.T_amb = TAmbient
         self._epsilon = epsilon
@@ -229,7 +229,7 @@ class Fixed(BoundaryCondition):
     the analysis type.
     """
 
-    def __init__(self, target, dof : List[DOF] = [], values = None):
+    def __init__(self, target: Any, dof: List[DOF] = [], values=None):
 
         if not isinstance(target, NodeSet):
             raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
@@ -281,7 +281,7 @@ class Fixed(BoundaryCondition):
         for i in range(len(self._dof)):
             if self._values:
                 # inhomogenous boundary conditions
-                bCondStr += '{:s},{:d},, {:e}\n'.format(nodesetName, self._dof[i],self._values[i])
+                bCondStr += '{:s},{:d},, {:e}\n'.format(nodesetName, self._dof[i], self._values[i])
             else:
                 # Fixed boundary condition
                 bCondStr += '{:s},{:d}\n'.format(nodesetName, self._dof[i])
@@ -295,14 +295,14 @@ class Acceleration(BoundaryCondition):
     analysis. This is provided as magnitude, direction of the acceleration on the body.
     """
 
-    def __init__(self, target, dir = None, mag = 1.0):
+    def __init__(self, target, dir=None, mag=1.0):
 
         self.mag = 1.0
 
         if dir:
             self.dir = dir
         else:
-            self.dir = np.array([0.0,0.0,1.0])
+            self.dir = np.array([0.0, 0.0, 1.0])
 
         super().__init__(target)
 
@@ -385,7 +385,7 @@ class Pressure(BoundaryCondition):
 
         for i in range(len(bfaces)):
             bCondStr += '{:d},P{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.mag)
-            
+
         return bCondStr
 
 
@@ -396,9 +396,8 @@ class Force(BoundaryCondition):
     """
 
     def __init__(self, target):
-
         self.mag = 0.0
-        self.dir = np.array([0.0,0.0,1.0])
+        self.dir = np.array([0.0, 0.0, 1.0])
 
         super().__init__(target)
 
@@ -440,7 +439,6 @@ class Force(BoundaryCondition):
         self.dir = v / linalg.norm(v)
 
     def writeInput(self) -> str:
-
         bCondStr = '*CLOAD\n'
         nodesetName = self.getTargetName()
 

@@ -7,6 +7,7 @@ import pyccx
 
 from pyccx.mesh import ElementType, Mesher
 
+from pyccx.boundarycondition import Fixed, HeatFlux
 from pyccx.core import DOF, ElementSet, NodeSet, SurfaceSet, Simulation
 from pyccx.results import ElementResult, NodalResult, ResultProcessor
 from pyccx.loadcase import  LoadCase, LoadCaseType
@@ -85,14 +86,25 @@ analysis.setWorkingDirectory('.')
 
 print('Calculix version: {:d}. {:d}'.format(*analysis.version()))
 
-# Add the Node Sets For Attaching Boundary Conditions#
-analysis.nodeSets.append(NodeSet('surface1Nodes', surface1Nodes))
-analysis.nodeSets.append(NodeSet('surface2Nodes', surface2Nodes))
-analysis.nodeSets.append(NodeSet('surface4Nodes', surface4Nodes))
-analysis.nodeSets.append(NodeSet('surface5Nodes', surface5Nodes))
-analysis.nodeSets.append(NodeSet('surface6Nodes', surface6Nodes))
-analysis.nodeSets.append(NodeSet('bottomFaceNodes', bottomFaceNodes))
-analysis.nodeSets.append(NodeSet('VolumeNodeSet', volumeNodes))
+# Add the Node Sets For Attaching Boundary Conditions #
+# Note a unique name must be provided
+surface1NodeSet = NodeSet('surface1Nodes', surface1Nodes)
+surface2NodeSet = NodeSet('surface2Nodes', surface2Nodes)
+surface4NodeSet = NodeSet('surface4Nodes', surface4Nodes)
+surface5NodeSet = NodeSet('surface5Nodes', surface5Nodes)
+surface6NodeSet = NodeSet('surface6Nodes', surface6Nodes)
+bottomFaceNodeSet = NodeSet('bottomFaceNodes', bottomFaceNodes)
+volNodeSet = NodeSet('VolumeNodeSet', volumeNodes)
+
+# Create an element set using a concise approach
+partElSet = ElementSet('PartAElSet', myMeshModel.getElements((3,1)))
+
+# Create a surface set
+bottomFaceSet = SurfaceSet('bottomSurface', bottomFaces)
+
+# Add the userdefined nodesets to the analysis
+analysis.nodeSets = [surface1NodeSet, surface2NodeSet,surface4NodeSet, surface5NodeSet, surface6NodeSet,
+                     bottomFaceNodeSet, volNodeSet]
 
 
 # ===============  Initial Conditions =============== #
@@ -113,24 +125,19 @@ thermalLoadCase.setTimeStep(5.0, 5.0, 5.0)
 
 # Attach the nodal and element result options to each loadcase
 # Set the nodal and element variables to record in the results (.frd) file
-nodeThermalPostResult = NodalResult('VolumeNodeSet')
+nodeThermalPostResult = NodalResult(volNodeSet)
 nodeThermalPostResult.useNodalTemperatures = True
 
-elThermalPostResult = ElementResult('Volume1')
+elThermalPostResult = ElementResult(partElSet)
 elThermalPostResult.useHeatFlux = True
 
 thermalLoadCase.resultSet = [nodeThermalPostResult, elThermalPostResult]
 
-# Set thermal boundary conditions for the loadcase(Current Version)
 
-thermalLoadCase.boundaryConditions.append(
-    {'type': 'fixed', 'nodes': 'surface6Nodes', 'dof': [DOF.T], 'value': [60]})
-
-thermalLoadCase.boundaryConditions.append(
-    {'type': 'fixed', 'nodes': 'surface1Nodes', 'dof': [DOF.T], 'value': [20]})
-
-
-thermalLoadCase.boundaryConditions.append({'type': 'faceflux', 'faces':  bottomFaces, 'flux':50})
+# Set thermal boundary conditions for the loadcase
+thermalLoadCase.boundaryConditions = [Fixed(surface6NodeSet, [DOF.T], [60.0]),
+                                      Fixed(surface1NodeSet, dof=[DOF.T], values = [20.0]),
+                                      HeatFlux(bottomFaceSet,flux=50.0)]
 
 # ====================== Material  ====================== #
 # Add a elastic material and assign it to the volume.
