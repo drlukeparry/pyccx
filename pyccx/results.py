@@ -398,6 +398,7 @@ class ResultProcessor:
                 continue
 
             # store stress results
+            [TODO]
             self.readElStress(line, rfstr, time)
 
         infile.close()

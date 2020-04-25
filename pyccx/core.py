@@ -6,16 +6,15 @@ import os
 import sys
 import subprocess  # used to check ccx version
 from enum import Enum, auto
-from typing import List, Tuple
+from typing import List, Tuple, Type
 import logging
 
 from .boundarycondition import BoundaryCondition
 from .loadcase import LoadCase
-from .matrial import Material
+from .material import Material
 from .mesh import Mesher
 from .results import ElementResult, NodalResult, ResultProcessor
 
-import gmsh
 import numpy as np
 
 
@@ -48,7 +47,7 @@ class MeshSet:
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, name):
         self._name = name
 
 
@@ -122,10 +121,10 @@ class SurfaceSet(MeshSet):
         Elements with the associated face orientations are specified as Nx2 numpy array, with the first column being
         the element Id, and the second column the chosen face orientation
         """
-        return self._els
+        return self._elSurfacePairs
 
     @surfacePairs.setter
-    def els(self, surfacePairs):
+    def surfacePairs(self, surfacePairs):
         self._elSurfacePairs = surfacePairs
 
     def writeInput(self) -> str:
@@ -135,7 +134,7 @@ class SurfaceSet(MeshSet):
         for i in range(self._elSurfacePairs.shape[0]):
             out += '{:d},S{:d}\n'.format(self._elSurfacePairs[i,0], self._elSurfacePairs[i,1])
 
-        out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
+        #out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
 
@@ -176,13 +175,12 @@ class Connector:
         else:
             raise ValueError('Invalid type for nodes passed to Connector()')
 
-
     def writeInput(self) -> str:
         # A nodeset is automatically created from the name of the connector
         strOut = '*RIGIDBODY, NSET={:s}'.format(self.nodeset.name)
 
         # A reference node is optional
-        if isinstance(self.redNode, int):
+        if isinstance(self.refNode, int):
             strOut += ',REF NODE={:d}\n'.format(self.refNode)
         else:
             strOut += '\n'
@@ -219,6 +217,9 @@ class Simulation:
         self._workingDirectory = ''
         self._analysisCompleted = False
 
+        self._name = ''
+        self.initialConditions = []  # 'dict of node set names,
+        self._loadCases = []
         self._mpcSets = []
         self._connectors = []
         self._materials = []
@@ -234,17 +235,11 @@ class Simulation:
         self.SIGMAB = 5.669E-8
         self._numThreads = 1
 
-        self.initialConditions = []  # 'dict of node set names,
-        self._loadCases = []
-
         # Private sets are used for the storage of additional user defined sets
         self._surfaceSets = []
         self._nodeSets = []
-        self._elSets = []
+        self._elementSets = []
 
-        self.nodeSets = []
-        self.elSets = []
-        self.surfaceSets = []
         self.includes = []
 
     def init(self):
@@ -302,9 +297,9 @@ class Simulation:
     def name(self):
         return self._name
 
-    def getBoundaryConditions(self) -> List(BoundaryCondition):
+    def getBoundaryConditions(self) -> List[BoundaryCondition]:
         """
-        Collects all boundary conditions which are attached to load cases
+        Collects all boundary conditions which are attached to loadcases in the analysis
         """
         bcs = []
         for loadcase in self._loadCases:
@@ -315,13 +310,12 @@ class Simulation:
     @property
     def loadCases(self) -> List[LoadCase]:
         """
-        The loadcases for the analysis
+        The Loadcases for the analysis
         """
-
         return self._loadCases
 
     @loadCases.setter
-    def loadCases(self, loadCases: List[Loadcases]):
+    def loadCases(self, loadCases: List[LoadCase]):
         self._loadCases = loadCases
 
     @property
@@ -362,7 +356,7 @@ class Simulation:
     def materialAssignments(self, matAssignments):
         self._materialAssignments = matAssignments
 
-    def _collectSets(self, setType = None):
+    def _collectSets(self, setType: Type[MeshSet] = None):
         """
         Private function returns a unique set of Element, Nodal, Surface sets which are used by the analysis during writing.
         This reduces the need to explicitly attach them to an analysis.
@@ -372,8 +366,8 @@ class Simulation:
         nodeSets = {}
         surfaceSets = {}
 
-        # Iterate through all userdefined sets
-        for elSet in self._elSets:
+        # Iterate through all user defined sets
+        for elSet in self._elementSets:
             elementSets[elSet.name] = elSet
 
         for nodeSet in self._nodeSets:
@@ -382,7 +376,8 @@ class Simulation:
         for surfSet in self._surfaceSets:
             surfaceSets[surfSet.name] = surfSet
 
-        # Iterate through all loadcases and boundary conditions.and find unique values. This is greedy so will override any with same name
+        # Iterate through all loadcases and boundary conditions.and find unique values. This is greedy so will override
+        # any with same name.
         for loadcase in self.loadCases:
 
             # Collect result sets node and element sets automatically
@@ -390,24 +385,24 @@ class Simulation:
                 if isinstance(resultSet, ElementResult):
                     elementSets[resultSet.elSet.name] = resultSet.elSet
                 elif isinstance(resultSet, NodalResult):
-                    nodeSet[resultSet.nodeSet.name] = resultSet.nodeSet
+                    nodeSets[resultSet.nodeSet.name] = resultSet.nodeSet
 
-            for bc in self.loadcase.boundaryConditions:
-                if isistance(bc.target, ElementSet)
+            for bc in loadcase.boundaryConditions:
+                if isinstance(bc.target, ElementSet):
                     elementSets[bc.target.name] = bc.target
 
-                if isistance(bc.target, NodeSet)
+                if isinstance(bc.target, NodeSet):
                     nodeSets[bc.target.name] = bc.target
 
-                if isistance(bc.target, SurfaceSet)
+                if isinstance(bc.target, SurfaceSet):
                     surfaceSets[bc.target.name] = bc.target
 
         for con in self.connectors:
-            nodeSet[con.nodeset.name] = con.nodeset
+            nodeSets[con.nodeset.name] = con.nodeset
 
         if setType is ElementSet:
             return list(elementSets.values())
-        elif setType is NodalSet:
+        elif setType is NodeSet:
             return list(nodeSets.values())
         elif setType is SurfaceSet:
             return list(surfaceSets.values())
@@ -460,20 +455,19 @@ class Simulation:
         """
         Returns all the element sets used and generated in the analysis
         """
-        return self._collecteSets(setType = ElementSet)
+        return self._collectSets(setType = ElementSet)
 
     def getNodeSets(self) -> List[NodeSet]:
         """
         Returns all the element sets used and generated in the analysis
         """
-        return self._collecteSets(setType = NodeSet)
+        return self._collectSets(setType = NodeSet)
 
     def getSurfaceSets(self) -> List[SurfaceSet]:
         """
         Returns all the element sets used and generated in the analysis
         """
-        return self._collecteSets(setType=SurfaceSet)
-
+        return self._collectSets(setType=SurfaceSet)
 
     def writeHeaders(self):
 
@@ -552,7 +546,7 @@ class Simulation:
         for connector in self.connectors:
 
             # A nodeset is automatically created from the name of the connector
-            self.input += connector.writeInput()
+            self._input += connector.writeInput()
 
     def writeMPCs(self):
 
@@ -563,13 +557,13 @@ class Simulation:
         self._input += '{:*^125}\n'.format(' MPCS ')
 
         for mpcSet in self.mpcSets:
-            self.input += '*EQUATION\n'
-            self.input += '{:d}\n'.format(len(mpcSet['numTerms']))  # Assume each line constrains two nodes and one dof
+            self._input += '*EQUATION\n'
+            self._input += '{:d}\n'.format(len(mpcSet['numTerms']))  # Assume each line constrains two nodes and one dof
             for mpc in mpcSet['equations']:
                 for i in range(len(mpc['eqn'])):
                     self._input += '{:d},{:d},{:d}'.format(mpc['node'][i], mpc['dof'][i], mpc['eqn'][i])
 
-                self.input += os.linesep
+                self._input += os.linesep
 
     #        *EQUATION
     #        2 # number of terms in equation # typically two
@@ -694,7 +688,6 @@ class Simulation:
                 os.remove(filePath)
         except:
             pass
-
 
     def run(self):
         """

@@ -5,14 +5,13 @@ import os
 from .boundarycondition import BoundaryCondition, BoundaryConditionType
 from .results import Result
 from enum import Enum, auto
-from typing import List, Tuple
+from typing import List, Tuple, Type
 
 
 class LoadCaseType(Enum):
     """
     Enum Class specifies the Load Case Type
     """
-
     STATIC = auto()
     """Linear Static structural analysis"""
     THERMAL = auto()
@@ -35,22 +34,30 @@ class LoadCase:
     specified using :meth:`pyccx.loadcase.Loadcase.setLoadCaseType`. Depending on the analysis type the steady-state solution
     may instead be calculated.
     """
-    def __init__(self, loadCaseName, resultSets = None):
+    def __init__(self, loadCaseName, loadCaseType: LoadCaseType = None, resultSets = None):
 
         self._input = ''
         self._loadcaseName = loadCaseName
-
+        self._loadCaseType = None
         self.isSteadyState = False
-        self._loadCaseType = False
         self.initialTimeStep = 0.1
         self.defaultTimeStep = 0.1
         self.totalTime = 1.0
         self._resultSet = []
         self._boundaryConditions = []
 
+        if loadCaseType:
+            if loadCaseType is LoadCaseType:
+                self._loadCaseType = loadCaseType
+            else:
+                raise  ValueError('Loadcase type must valid')
+
         if resultSets:
             self.resultSet = resultSets
 
+    @property
+    def loadCaseType(self) -> LoadCaseType:
+        return self._loadCaseType
 
     @property
     def boundaryConditions(self) -> List[BoundaryCondition]:
@@ -72,7 +79,7 @@ class LoadCase:
         return self._resultSet
 
     @resultSet.setter
-    def resultSet(self, rSet):
+    def resultSet(self, rSet: Type[Result]):
         if not any(isinstance(rSet, Result)):
             raise ValueError('Loadcase ResultSets must be of type Result')
         else:
@@ -119,17 +126,17 @@ class LoadCase:
         """
         Set the loadcase type based on the analysis types available in :class:`pyccx.loadcase.LoadCasetype`.
 
-        :param loadCaseType: Set the loadcase type using the enum LoadCaseType
+        :param loadCaseType: Set the loadcase type using the enum :class:`pyccx.loadcase.LoadCasetype`
         """
 
         if isinstance(loadCaseType):
-            self.loadCaseType = loadCaseType
+            self._loadCaseType = loadCaseType
         else:
             raise ValueError('Load case type is not supported')
 
     def writeBoundaryCondition(self) -> str:
         """
-        Generates the outStrin for bcond in self.boundaryConditions:g containing all the attached boundary conditions.
+        Generates the string for Boundary Conditions in self.boundaryConditions containing all the attached boundary conditions.
         Calculix cannot share existing boundary conditions and therefore has to be explicitly created per load case.
 
         :return: outStr
@@ -181,7 +188,7 @@ class LoadCase:
                                                                bcond['value'][i])  # inhomogenous boundary conditions
                         else:
                             bcondStr += '{:s},{:d}\n'.format(nodeset, bcond['dof'][i])
-resultSet
+
                 elif bcond['type'] == 'accel':
 
                     bcondStr += '*DLOAD\n'
@@ -211,12 +218,14 @@ resultSet
         outStr += '*STEP\n'
         # Write the thermal analysis loadstep
 
-        if self.loadCaseType == LoadCaseType.STATIC:
+        if self._loadCaseType == LoadCaseType.STATIC:
             outStr += '*STATIC'
-        elif self.loadCaseType == LoadCaseType.THERMAL:
+        elif self._loadCaseType == LoadCaseType.THERMAL:
             outStr += '*HEAT TRANSFER'
-        elif self.loadCaseType == LoadCaseType.UNCOUPLEDTHERMOMECHANICAL:
+        elif self._loadCaseType == LoadCaseType.UNCOUPLEDTHERMOMECHANICAL:
             outStr += '*UNCOUPLED TEMPERATURE-DISPLACEMENT'
+        else:
+            raise ValueError('Loadcase type ({:s} is not currently supported in PyCCX'.format(self._loadCaseType))
 
         if self.isSteadyState:
             outStr += ', STEADY STATE'
