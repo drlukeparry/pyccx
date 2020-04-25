@@ -31,10 +31,9 @@ class BoundaryCondition(abc.ABC):
     Base class for all boundary conditions
     """
 
-    def __init__(self, model, target):
+    def __init__(self, target):
 
         self.init = True
-        self.model  = model
         self.target = target
 
     def getTargetName(self) -> str:
@@ -81,7 +80,7 @@ class Film(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, model, target):
+    def __init__(self, target):
 
         self.h = 0.0
         self.T_amb = 0.0
@@ -89,7 +88,7 @@ class Film(BoundaryCondition):
         if not isinstance(self.target,SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Film Boundary Condition')
 
-        super().__init__(model, target)
+        super().__init__(target)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
@@ -134,15 +133,14 @@ class HeatFlux(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, model, target):
+    def __init__(self,target):
 
         self.flux = 0.0
-        self.target = target
 
         if not isinstance(self.target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Heat Flux Boundary Condition')
 
-        super().__init__(model, target)
+        super().__init__(target)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
@@ -178,7 +176,7 @@ class Radiation(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, model, target):
+    def __init__(self, target):
 
         self.T_amb = 0.0
         self.epsilon = 1.0
@@ -186,7 +184,7 @@ class Radiation(BoundaryCondition):
         if not isinstance(self.target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Radiation Boundary Condition')
 
-        super().__init__(model, target)
+        super().__init__(target)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
@@ -231,7 +229,7 @@ class Fixed(BoundaryCondition):
     the analysis type.
     """
 
-    def __init__(self, model, target, dof : List[DOF] = [], values = None):
+    def __init__(self, target, dof : List[DOF] = [], values = None):
 
         if not isinstance(target, NodeSet):
             raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
@@ -239,7 +237,7 @@ class Fixed(BoundaryCondition):
         self._dof = []
         self._values = values
 
-        super().__init__(model, target)
+        super().__init__(target)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.ANY
@@ -286,12 +284,12 @@ class Acceleration(BoundaryCondition):
     analysis. This is provided as magnitude, direction of the acceleration on the body.
     """
 
-    def __init__(self, model, target):
+    def __init__(self, target):
 
         self.mag = 1.0
         self.dir = np.array([0.0,0.0,1.0])
 
-        super().__init__(model, target)
+        super().__init__(target)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
@@ -342,7 +340,7 @@ class Pressure(BoundaryCondition):
     The Pressure Boundary Condition applies a uniform pressure to faces across an element boundary.
     """
 
-    def __init__(self, model, faces):
+    def __init__(self, faces):
 
         self.mag = 0.0
         self.faces = faces
@@ -380,12 +378,12 @@ class Force(BoundaryCondition):
     coupled thermo-mechanical analyses provided the DOF is applicable to the analysis type.
     """
 
-    def __init__(self, model, target):
+    def __init__(self, target):
 
         self.mag = 0.0
         self.dir = np.array([0.0,0.0,1.0])
 
-        super().__init__(model, target)
+        super().__init__(target)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
