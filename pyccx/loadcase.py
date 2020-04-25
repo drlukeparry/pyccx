@@ -1,10 +1,18 @@
 import numpy as np
 import abc
 import os
+
+from .boundarycondition import BoundaryCondition, BoundaryConditionType
+from .results import Result
 from enum import Enum, auto
+from typing import List, Tuple
 
 
 class LoadCaseType(Enum):
+    """
+    Enum Class specifies the Load Case Type
+    """
+
     STATIC = auto()
     """Linear Static structural analysis"""
     THERMAL = auto()
@@ -16,36 +24,72 @@ class LoadCaseType(Enum):
     MODAL = auto()
     """Modal analysis of a structure"""
     DYNAMIC = auto()
-    """Dynamic analyis of a structure"""
+    """Dynamic analysis of a structure"""
 
 
 class LoadCase:
     """
     A unique Load case defines a set of simulation analysis conditions and a set of boundary conditions to apply to the domain.
     The default and initial timestep provide an estimate for the solver should be specified  along with the total duration
-    of the load case using :func:`~pyccx.loadcase.LoadCase.setTimeStep`. The analysis type for the loadcase should be
-    specified using :func:`~pyccx.loadcase.Loadcase.setLoadCaseType`. Depending on the analysis type the steady-state solution
+    of the load case using :meth:`pyccx.loadcase.LoadCase.setTimeStep`. The analysis type for the loadcase should be
+    specified using :meth:`pyccx.loadcase.Loadcase.setLoadCaseType`. Depending on the analysis type the steady-state solution
     may instead be calculated.
     """
-    def __init__(self, loadCaseName):
+    def __init__(self, loadCaseName, resultSets = None):
 
         self._input = ''
-        self.name = loadCaseName
+        self._loadcaseName = loadCaseName
 
         self.isSteadyState = False
-        self.loadCaseType = False
+        self._loadCaseType = False
         self.initialTimeStep = 0.1
         self.defaultTimeStep = 0.1
         self.totalTime = 1.0
-
-        self.resultSet = []
+        self._resultSet = []
         self.boundaryConditions = []
+
+        if resultSets:
+            self.resultSet = resultSets
+
+
+    @property
+    def boundaryConditions(self) -> List[BoundaryCondition]:
+        """
+        The list of boundary conditions to be applied in the LoadCase
+        """
+        return self._boundaryConditions
+
+    @boundaryConditions.setter
+    def boundaryConditions(self, bConds: List[BoundaryCondition]):
+        self._boundaryConditions = bConds
+
+    @property
+    def resultSet(self) -> List[Result]:
+        """
+        The result outputs (:class:`pyccx.results.ElementResult`, :class:`pyccx.results.NodalResult`) to generate the set
+        of results from this loadcase.
+        """
+        return self._resultSet
+
+    @resultSet.setter
+    def resultSet(self, rSet):
+        if not any(isinstance(rSet, Result)):
+            raise ValueError('Loadcase results sets must be of type Result')
+        else:
+            self._resultSet = rSet
+
+    @property
+    def name(self) -> str:
+        return self._loadcaseName
+
+    @name.setter
+    def name(self, loadCaseName):
+        self._loadcaseName = loadCaseName
 
     @property
     def steadyState(self) -> bool:
         """
-        If the loadcase should be run as steadystate
-        :return: bool
+        Returns True if the loadcase is a steady-state analysis
         """
         return self.isSteadyState
 
@@ -71,92 +115,93 @@ class LoadCase:
         if totalTime is not None:
             self.totalTime = totalTime
 
-    def setLoadCaseType(self, lType) -> None:
+    def setLoadCaseType(self, loadCaseType) -> None:
         """
-        Set the loadcase type
+        Set the loadcase type based on the analysis types available in :class:`pyccx.loadcase.LoadCasetype`.
 
-        :param lType: Set the loadcase type using the enum LoadCaseType
+        :param loadCaseType: Set the loadcase type using the enum LoadCaseType
         """
-        if lType == LoadCaseType.STATIC:
-            self.loadCaseType = LoadCaseType.STATIC
-        elif lType == LoadCaseType.THERMAL:
-            self.loadCaseType = LoadCaseType.THERMAL
-        elif lType == LoadCaseType.UNCOUPLEDTHERMOMECHANICAL:
-            self.loadCaseType = LoadCaseType.UNCOUPLEDTHERMOMECHANICAL
+
+        if isinstance(loadCaseType):
+            self.loadCaseType = loadCaseType
         else:
             raise ValueError('Load case type is not supported')
 
     def writeBoundaryCondition(self) -> str:
         """
-        Generates the outString containing all the attached boundary conditions. Calculix cannot share existing boundary
-        conditions and therefore has to be explicitly referenced per loadcase
+        Generates the outStrin for bcond in self.boundaryConditions:g containing all the attached boundary conditions.
+        Calculix cannot share existing boundary conditions and therefore has to be explicitly created per load case.
 
         :return: outStr
         """
         bcondStr = ''
 
         for bcond in self.boundaryConditions:
+            bcondStr += bcond
 
-            if bcond['type'] == 'film':
+        if False:
+            for bcond in self.boundaryConditions:
 
-                bcondStr += '*FILM\n'
-                bfaces = bcond['faces']
-                for i in len(bfaces):
-                    bcondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['tsink'], bcond['h'])
+                if bcond['type'] == 'film':
 
-            elif bcond['type'] == 'bodyflux':
+                    bcondStr += '*FILM\n'
+                    bfaces = bcond['faces']
+                    for i in len(bfaces):
+                        bcondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['tsink'], bcond['h'])
 
-                bcondStr += '*DFLUX\n'
-                bcondStr += '{:s},BF,{:e}\n'.format(bcond['el'], bcond['flux'])  # use element set
+                elif bcond['type'] == 'bodyflux':
 
-            elif bcond['type'] == 'faceflux':
+                    bcondStr += '*DFLUX\n'
+                    bcondStr += '{:s},BF,{:e}\n'.format(bcond['el'], bcond['flux'])  # use element set
 
-                bcondStr += '*DFLUX\n'
-                bfaces = bcond['faces']
-                for i in range(len(bfaces)):
-                    bcondStr += '{:d},S{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['flux'])
+                elif bcond['type'] == 'faceflux':
 
-            elif bcond['type'] == 'radiation':
+                    bcondStr += '*DFLUX\n'
+                    bfaces = bcond['faces']
+                    for i in range(len(bfaces)):
+                        bcondStr += '{:d},S{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['flux'])
 
-                bcondStr += '*RADIATE\n'
-                bfaces = bcond['faces']
-                for i in len(bfaces):
-                    bcondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['tsink'],
-                                                           bcond['emmisivity'])
+                elif bcond['type'] == 'radiation':
 
-            elif bcond['type'] == 'fixed':
+                    bcondStr += '*RADIATE\n'
+                    bfaces = bcond['faces']
+                    for i in len(bfaces):
+                        bcondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['tsink'],
+                                                               bcond['emmisivity'])
 
-                bcondStr += '*BOUNDARY\n'
-                nodeset = bcond['nodes']
-                # 1-3 U, 4-6, rotational DOF, 11 = Temp
+                elif bcond['type'] == 'fixed':
 
-                for i in range(len(bcond['dof'])):
-                    if 'value' in bcond.keys():
-                        bcondStr += '{:s},{:d},,{:e}\n'.format(nodeset, bcond['dof'][i],
-                                                           bcond['value'][i])  # inhomogenous boundary conditions
-                    else:
-                        bcondStr += '{:s},{:d}\n'.format(nodeset, bcond['dof'][i])
+                    bcondStr += '*BOUNDARY\n'
+                    nodeset = bcond['nodes']
+                    # 1-3 U, 4-6, rotational DOF, 11 = Temp
 
-            elif bcond['type'] == 'accel':
+                    for i in range(len(bcond['dof'])):
+                        if 'value' in bcond.keys():
+                            bcondStr += '{:s},{:d},,{:e}\n'.format(nodeset, bcond['dof'][i],
+                                                               bcond['value'][i])  # inhomogenous boundary conditions
+                        else:
+                            bcondStr += '{:s},{:d}\n'.format(nodeset, bcond['dof'][i])
 
-                bcondStr += '*DLOAD\n'
-                bcondStr += '{:s},GRAV,{:.3f}, {:.3f},{:.3f},{:.3f}\n'.format(bcond['el'], bcond['mag'], bcond['dir'][0],
-                                                                       bcond['dir'][1], bcond['dir'][2])
+                elif bcond['type'] == 'accel':
 
-            elif bcond['type'] == 'force':
+                    bcondStr += '*DLOAD\n'
+                    bcondStr += '{:s},GRAV,{:.3f}, {:.3f},{:.3f},{:.3f}\n'.format(bcond['el'], bcond['mag'], bcond['dir'][0],
+                                                                           bcond['dir'][1], bcond['dir'][2])
 
-                bcondStr += '*CLOAD\n'
-                nodeset = bcond['nodes']
+                elif bcond['type'] == 'force':
 
-                for i in bcond['dof']:
-                    bcondStr += '{:s},{:d}\n'.format(nodeset, i, bcond['mag'])
+                    bcondStr += '*CLOAD\n'
+                    nodeset = bcond['nodes']
 
-            elif bcond['type'] == 'pressure':
+                    for i in bcond['dof']:
+                        bcondStr += '{:s},{:d}\n'.format(nodeset, i, bcond['mag'])
 
-                bcondStr += '*DLOAD\n'
-                bfaces = bcond['faces']
-                for i in range(len(bfaces)):
-                    bcondStr += '{:d},P{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['mag'])
+                elif bcond['type'] == 'pressure':
+
+                    bcondStr += '*DLOAD\n'
+                    bfaces = bcond['faces']
+                    for i in range(len(bfaces)):
+                        bcondStr += '{:d},P{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], bcond['mag'])
 
         return bcondStr
 
