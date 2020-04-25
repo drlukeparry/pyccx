@@ -9,6 +9,8 @@ from enum import Enum, auto
 from typing import List, Tuple
 import logging
 
+from .core import LoadCase
+from .matrial import Material
 from .mesh import Mesher
 from .results import ResultProcessor
 
@@ -35,13 +37,27 @@ class AnalysisType(Enum):
     FLUID = auto()
 
 
-class NodeSet:
+class MeshSet:
+
+    def __init__(self, name):
+        self._name = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = name
+
+
+class NodeSet(MeshSet):
     """
      An node set is basic entity for storing node set lists. The set remains constant without any dynamic referencing
      to any underlying geometric entities.
      """
     def __init__(self, name, nodes):
-        self.name = name
+        super().__init__(name)
         self._nodes = nodes
 
     @property
@@ -61,13 +77,13 @@ class NodeSet:
         return out
 
 
-class ElementSet:
+class ElementSet(MeshSet):
     """
     An element set is basic entity for storing element set lists.The set remains constant without any dynamic referencing
      to any underlying geometric entities.
     """
     def __init__(self, name, els):
-        self.name =  name
+        super().__init__(name)
         self._els = els
 
     @property
@@ -88,14 +104,15 @@ class ElementSet:
         return out
 
 
-class SurfaceSet:
+class SurfaceSet(MeshSet):
     """
     A surface-set set is basic entity for storing element face lists, typically for setting directional fluxes onto
     surface elements based on the element ordering. The set remains constant without any dynamic referencing
      to any underlying geometric entities.
     """
     def __init__(self, name, surfacePairs):
-        self.name =  name
+
+        super().__init__(name)
         self._elSurfacePairs = surfacePairs
 
     @property
@@ -201,10 +218,10 @@ class Simulation:
         self._workingDirectory = ''
         self._analysisCompleted = False
 
-        self.mpcSets = []
-        self.connectors = []
-        self.materials = []
-        self.materialAssignments = []
+        self._mpcSets = []
+        self._connectors = []
+        self._materials = []
+        self._materialAssignments = []
         self.model = meshModel
 
         self.initialTimeStep = 0.1
@@ -217,20 +234,21 @@ class Simulation:
         self._numThreads = 1
 
         self.initialConditions = []  # 'dict of node set names,
-        self.loadCases = []
+        self._loadCases = []
 
+        # Private sets are used for the storage of additional user defined sets
+        self._surfaceSets = []
         self._nodeSets = []
         self._elSets = []
 
         self.nodeSets = []
         self.elSets = []
+        self.surfaceSets = []
         self.includes = []
 
     def init(self):
 
         self._input = ''
-        self._nodeSets = self.nodeSets
-        self._elSets = self.elSets
 
     @classmethod
     def setNumThreads(cls, numThreads: int):
@@ -283,6 +301,160 @@ class Simulation:
     def name(self):
         return self._name
 
+    @property
+    def loadCases(self) -> List[LoadCase]:
+        """
+        The loadcases for the analysis
+        """
+
+        return self._loadCases
+
+    @loadCases.setter
+    def loadCases(self, loadCases: List[Loadcases]):
+        self._loadCases = loadCases
+
+    @property
+    def connectors(self) -> List[Connector]:
+        """
+        List of connectors used in the simulation
+        """
+        return self._connectors
+
+    @connectors.setter
+    def connectors(self, connectors):
+        self._connectors = connectors
+
+    @property
+    def mpcSets(self):
+        return self._mpcSets
+
+    @mpcSets.setter
+    def mpcSets(self, value):
+        self._mpcSets = value
+
+    @property
+    def materials(self) -> List[Material]:
+        return self._materials
+
+    @materials.setter
+    def materials(self, materials):
+        self._materials = materials
+
+    @property
+    def materialAssignments(self):
+        """
+        Material Assignment applied to a set of elements
+        """
+        return self._materialAssignments
+
+    @materialAssignments.setter
+    def materialAssignments(self, matAssignments):
+        self._materialAssignments = matAssignments
+
+    def _collectSets(self, setType = None):
+        """
+        Private function returns a unique set of Element, Nodal, Surface sets which are used by the analysis during writing.
+        This reduces the need to explicitly attach them to an analysis.
+        :return:
+        """
+        elementSets = {}
+        nodeSets = {}
+        surfaceSets = {}
+
+        # Iterate through all userdefined sets
+        for elSet in self._elSets:
+            elementSets[elSet.name] = elSet
+
+        for nodeSet in self._nodeSets:
+            nodeSets[nodeSet.name] = nodeSet
+
+        for surfSet in self._surfaceSets:
+            surfaceSets[surfSet.name] = surfSet
+
+        # Iterate through all boundary conditions.and find unique values. This is greedy so will override any with same name
+        for bc in self.boundaryConditions:
+            if isistance(bc.target, ElementSet)
+                elementSets[bc.target.name] = bc.target
+
+            if isistance(bc.target, NodeSet)
+                nodeSets[bc.target.name] = bc.target
+
+            if isistance(bc.target, SurfaceSet)
+                surfaceSets[bc.target.name] = bc.target
+
+        for con in self.connectors:
+            nodeSet[con.nodeset.name] = con.nodeset
+
+        if setType is ElementSet:
+            return list(elementSets.values())
+        elif setType is NodalSet:
+            return list(nodeSets.values())
+        elif setType is SurfaceSet:
+            return list(surfaceSets.values())
+        else:
+            return list(elementSets.values()), list(nodeSets.values()), list(surfaceSets.values())
+
+    @property
+    def elementSets(self) -> List[ElementSet]:
+        """
+        User-defined element sets manually added to the analysis
+        """
+        return self._elementSets
+
+    @elementSets.setter
+    def elementSets(self, val = List[ElementSet]):
+        """
+        User-defined element sets manually added to the analysis
+        """
+        self._elementSets = val
+
+    @property
+    def nodeSets(self) -> List[NodeSet]:
+        """
+        User-defined node sets manually added to the analysis
+        """
+        return self._nodeSets
+
+    @nodeSets.setter
+    def nodeSets(self, val=List[NodeSet]):
+        """
+        User-defined element sets manually added to the analysis
+        """
+        nodeSets = val
+
+    @property
+    def surfaceSets(self) -> List[SurfaceSet]:
+        """
+        User-defined element sets manually added to the analysis
+        """
+        return self._nodeSets
+
+    @surfaceSets.setter
+    def surfaceSets(self, val=List[SurfaceSet]):
+        """
+        User-defined element sets manually added to the analysis
+        """
+        surfaceSets = val
+
+    def getElementSets(self) -> List[ElementSet]:
+        """
+        Returns all the element sets used and generated in the analysis
+        """
+        return self._collecteSets(setType = ElementSet)
+
+    def getNodeSets(self) -> List[NodeSet]:
+        """
+        Returns all the element sets used and generated in the analysis
+        """
+        return self._collecteSets(setType = NodeSet)
+
+    def getSurfaceSets(self) -> List[SurfaceSet]:
+        """
+        Returns all the element sets used and generated in the analysis
+        """
+        return self._collecteSets(setType=SurfaceSet)
+
+
     def writeHeaders(self):
 
         self._input += os.linesep
@@ -291,29 +463,12 @@ class Simulation:
         for filename in self.includes:
             self._input += '*include,input={:s}'.format(filename)
 
-    def prepareConnectors(self):
-        """
-        Creates node sets for any RBE connectors used in the simulation
-        """
-        # Kinematic Connectors require creating node sets
-        # These are created and added to the node set collection prior to writing
-
-        numConnectors = 1
-
-        for connector in self.connectors:
-            # Node are created and are an attribute of a Connector
-            self._nodeSets.append(connector.nodeset)
-
-            numConnectors += 1
-
     def writeInput(self) -> str:
         """
         Writes the input deck for the simulation
         """
 
         self.init()
-
-        self.prepareConnectors()
 
         self.writeHeaders()
         self.writeMesh()
@@ -329,30 +484,37 @@ class Simulation:
 
         return self._input
 
-    def writeElementSets(self):
 
-        if len(self._elSets) == 0:
+    def writeElementSets(self):
+        """
+        Functions writes element sets
+        """
+
+        # Collect all sets
+        elementSets = self._collectSets(setType = ElementSet)
+
+        if len(elementSets) == 0:
             return
 
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' ELEMENT SETS ')
 
-        for elSet in self._elSets:
+        for elSet in self.elementSets:
             self._input += os.linesep
             self._input += elSet.writeInput()
 
-            #self._input += '*ELSET,ELSET={:s\n}'.format(elSet['name'])
-            #self._input += np.array2string(elSet['els'], precision=2, separator=', ', threshold=9999999999)[1:-1]
-
     def writeNodeSets(self):
 
-        if len(self._nodeSets) == 0:
+        # Collect all sets
+        nodeSets = self._collectSets(setType=NodeSet)
+
+        if len(nodeSets) == 0:
             return
 
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' NODE SETS ')
 
-        for nodeSet in self._nodeSets:
+        for nodeSet in nodeSets:
             self._input += os.linesep
             self._input += nodeSet.writeInput()
             #self._input += '*NSET,NSET={:s}\n'.format(nodeSet['name'])
