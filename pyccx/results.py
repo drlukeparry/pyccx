@@ -1,6 +1,9 @@
 import abc
 import re
 import os
+
+from .core import ElementSet, NodeSet
+
 import numpy as np
 
 
@@ -21,9 +24,9 @@ class Result(abc.ABC):
 
 class NodalResult(Result):
 
-    def __init__(self, nodeSet):
+    def __init__(self, nodeSet: NodeSet):
 
-        self.nodeSet = nodeSet
+        self._nodeSet = nodeSet
 
         self.useNodalDisplacements = False
         self.useNodalTemperatures = False
@@ -34,6 +37,17 @@ class NodalResult(Result):
         self.useNodalStrain = False
 
         super().__init__()
+
+    @property
+    def nodeSet(self) -> NodeSet:
+        """
+        The elementset to obtain values for post-processing.
+        """
+        return self._nodeSet
+
+    @nodeSet.setter
+    def nodeSet(self, nodeSet: NodeSet):
+        self._nodeSet = nodeSet
 
     def writeInput(self):
         inputStr = ''
@@ -76,7 +90,7 @@ class NodalResult(Result):
 
 
 class ElementResult(Result):
-    def __init__(self, elSet):
+    def __init__(self, elSet: ElementSet):
 
         self.elSet = elSet
         self.useElasticStrain = False
@@ -85,6 +99,17 @@ class ElementResult(Result):
         self.useESE = False
 
         super().__init__()
+
+    @property
+    def elementSet(self) -> ElementSet:
+        """
+        The elementset to obtain values for post-processing.
+        """
+        return self._elSet
+
+    @elementSet.setter
+    def elementSet(self, elSet: ElementSet):
+        self._elSet = elSet
 
     def writeInput(self):
         str = ''

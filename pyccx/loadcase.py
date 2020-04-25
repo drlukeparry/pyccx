@@ -46,7 +46,7 @@ class LoadCase:
         self.defaultTimeStep = 0.1
         self.totalTime = 1.0
         self._resultSet = []
-        self.boundaryConditions = []
+        self._boundaryConditions = []
 
         if resultSets:
             self.resultSet = resultSets
@@ -74,7 +74,7 @@ class LoadCase:
     @resultSet.setter
     def resultSet(self, rSet):
         if not any(isinstance(rSet, Result)):
-            raise ValueError('Loadcase results sets must be of type Result')
+            raise ValueError('Loadcase ResultSets must be of type Result')
         else:
             self._resultSet = rSet
 
@@ -181,7 +181,7 @@ class LoadCase:
                                                                bcond['value'][i])  # inhomogenous boundary conditions
                         else:
                             bcondStr += '{:s},{:d}\n'.format(nodeset, bcond['dof'][i])
-
+resultSet
                 elif bcond['type'] == 'accel':
 
                     bcondStr += '*DLOAD\n'

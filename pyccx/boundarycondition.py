@@ -49,7 +49,7 @@ class BoundaryCondition(abc.ABC):
     def getBoundaryFaces(self):
 
         if isinstance(self.target, SurfaceSet):
-            return self.target.nodes
+            return self.target.surfacePairs
 
         return None
 
@@ -80,10 +80,10 @@ class Film(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target):
+    def __init__(self, target, h:float = 0.0, TAmbient:float  = 0.0):
 
-        self.h = 0.0
-        self.T_amb = 0.0
+        self.h = h
+        self.T_amb = TAmbient
 
         if not isinstance(self.target,SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Film Boundary Condition')
@@ -133,9 +133,9 @@ class HeatFlux(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self,target):
+    def __init__(self,target, flux: float = 0.0):
 
-        self.flux = 0.0
+        self._flux = flux
 
         if not isinstance(self.target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Heat Flux Boundary Condition')
@@ -150,11 +150,11 @@ class HeatFlux(BoundaryCondition):
         """
         The flux value :math:`q` used for the Heat Flux Boundary Condition
         """
-        return self.flux
+        return self._flux
 
     @flux.setter
     def flux(self, fluxVal: float) -> None:
-        self.flux = fluxVal
+        self._flux = fluxVal
 
     def writeInput(self) -> str:
 
@@ -162,7 +162,7 @@ class HeatFlux(BoundaryCondition):
         bfaces = self.getBoundaryFaces()
 
         for i in range(len(bfaces)):
-            bCondStr += '{:d},S{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.flux)
+            bCondStr += '{:d},S{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self._flux)
 
         return bCondStr
 
@@ -176,10 +176,10 @@ class Radiation(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target):
+    def __init__(self, target, epsilon = 1.0, TAmbient: float = 0.0):
 
-        self.T_amb = 0.0
-        self.epsilon = 1.0
+        self.T_amb = TAmbient
+        self._epsilon = epsilon
 
         if not isinstance(self.target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Radiation Boundary Condition')
@@ -194,11 +194,11 @@ class Radiation(BoundaryCondition):
         """
         The emmisivity value :math:`\\epsilon` used for the Radiation Boundary Condition
         """
-        return self.epsilon
+        return self._epsilon
 
     @emmisivity.setter
     def emmisivity(self, val: float):
-        self.epsilon = val
+        self._epsilon = val
 
     @property
     def ambientTemperature(self) -> float:
@@ -217,7 +217,7 @@ class Radiation(BoundaryCondition):
         bfaces = self.getBoundaryFaces()
 
         for i in range(len(bfaces)):
-            bCondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.T_amb, self.epsilon)
+            bCondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.T_amb, self._epsilon)
 
         return bCondStr
 
@@ -234,7 +234,11 @@ class Fixed(BoundaryCondition):
         if not isinstance(target, NodeSet):
             raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
 
-        self._dof = []
+        for d in dof:
+            if not d in DOF:
+                raise ValueError('Degree of freedom must be specified')
+
+        self._dof = dof
         self._values = values
 
         super().__init__(target)
@@ -244,6 +248,9 @@ class Fixed(BoundaryCondition):
 
     @property
     def dof(self):
+        """
+        Degree of Freedoms to be fixed
+        """
         return self._dof
 
     @dof.setter
@@ -251,7 +258,10 @@ class Fixed(BoundaryCondition):
         self._dof = vals
 
     @property
-    def values(self):
+    def values(self) -> Any:
+        """
+        Values to assign to the selected DOF to be fixed
+        """
         return self._dof
 
     @values.setter
@@ -266,6 +276,7 @@ class Fixed(BoundaryCondition):
 
         if len(self.dof) != len(self._values):
             raise ValueError('DOF and Prescribed DOF must have a matching size')
+
         # 1-3 U, 4-6, rotational DOF, 11 = Temp
         for i in range(len(self._dof)):
             if self._values:
@@ -284,10 +295,14 @@ class Acceleration(BoundaryCondition):
     analysis. This is provided as magnitude, direction of the acceleration on the body.
     """
 
-    def __init__(self, target):
+    def __init__(self, target, dir = None, mag = 1.0):
 
         self.mag = 1.0
-        self.dir = np.array([0.0,0.0,1.0])
+
+        if dir:
+            self.dir = dir
+        else:
+            self.dir = np.array([0.0,0.0,1.0])
 
         super().__init__(target)
 
@@ -340,12 +355,14 @@ class Pressure(BoundaryCondition):
     The Pressure Boundary Condition applies a uniform pressure to faces across an element boundary.
     """
 
-    def __init__(self, faces):
+    def __init__(self, target, magnitude: float = 0.0):
 
-        self.mag = 0.0
-        self.faces = faces
+        self.mag = magnitude
 
-        super().__init__(model, faces)
+        if not isinstance(target, SurfaceSet):
+            raise ValueError('A surface set must be assigned to a Presure boundary condition.')
+
+        super().__init__(target)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
@@ -353,7 +370,7 @@ class Pressure(BoundaryCondition):
     @property
     def magnitude(self) -> float:
         """
-        The pressure magnitude applied onto the surface
+        The magnitude of pressure applied onto the surface
         """
         return self.mag
 

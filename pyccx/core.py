@@ -9,10 +9,11 @@ from enum import Enum, auto
 from typing import List, Tuple
 import logging
 
-from .core import LoadCase
+from .boundarycondition import BoundaryCondition
+from .loadcase import LoadCase
 from .matrial import Material
 from .mesh import Mesher
-from .results import ResultProcessor
+from .results import ElementResult, NodalResult, ResultProcessor
 
 import gmsh
 import numpy as np
@@ -301,6 +302,16 @@ class Simulation:
     def name(self):
         return self._name
 
+    def getBoundaryConditions(self) -> List(BoundaryCondition):
+        """
+        Collects all boundary conditions which are attached to load cases
+        """
+        bcs = []
+        for loadcase in self._loadCases:
+            bcs += loadcase.boundaryConditions
+
+        return bcs
+
     @property
     def loadCases(self) -> List[LoadCase]:
         """
@@ -371,16 +382,25 @@ class Simulation:
         for surfSet in self._surfaceSets:
             surfaceSets[surfSet.name] = surfSet
 
-        # Iterate through all boundary conditions.and find unique values. This is greedy so will override any with same name
-        for bc in self.boundaryConditions:
-            if isistance(bc.target, ElementSet)
-                elementSets[bc.target.name] = bc.target
+        # Iterate through all loadcases and boundary conditions.and find unique values. This is greedy so will override any with same name
+        for loadcase in self.loadCases:
 
-            if isistance(bc.target, NodeSet)
-                nodeSets[bc.target.name] = bc.target
+            # Collect result sets node and element sets automatically
+            for resultSet in loadcase.resultSet:
+                if isinstance(resultSet, ElementResult):
+                    elementSets[resultSet.elSet.name] = resultSet.elSet
+                elif isinstance(resultSet, NodalResult):
+                    nodeSet[resultSet.nodeSet.name] = resultSet.nodeSet
 
-            if isistance(bc.target, SurfaceSet)
-                surfaceSets[bc.target.name] = bc.target
+            for bc in self.loadcase.boundaryConditions:
+                if isistance(bc.target, ElementSet)
+                    elementSets[bc.target.name] = bc.target
+
+                if isistance(bc.target, NodeSet)
+                    nodeSets[bc.target.name] = bc.target
+
+                if isistance(bc.target, SurfaceSet)
+                    surfaceSets[bc.target.name] = bc.target
 
         for con in self.connectors:
             nodeSet[con.nodeset.name] = con.nodeset
