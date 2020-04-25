@@ -153,6 +153,14 @@ class ResultProcessor:
         idx = sorted(list(self.increments.keys()))[-1]
         return self.increments[idx]
 
+    def findIncrementByTime(self, incTime) -> int:
+
+        for inc in self.increments:
+            if abs(inc['time'] - incTime) < 1e-9:
+                return inc
+        else:
+            raise ValueError('Increment could not be found at time <{:.5f}>s'.format(incTime))
+
     @staticmethod
     def __get_vals(fstr: str, line: str):
         """
@@ -246,6 +254,21 @@ class ResultProcessor:
     def readNodeStrain(self, line, rfstr) -> tuple:
         nid, exx, eyy, ezz, exy, eyz, ezx = self.__get_vals(rfstr, line)[1:]
         return nid, exx, eyy, ezz, exy, eyz, ezx
+
+    def readElFlux(self, line, rfstr, time):
+        """Saves element integration point stresses"""
+
+        elId, intp, qx, qy, qz = self.__get_vals(rfstr, line)[1:]
+
+        return elId, intp, qx, qy, qz
+
+    def readElStress(self, line, rfstr, time):
+        """Saves element integration point stresses"""
+
+        elId, intp, sxx, syy, szz, sxy, syz, szx = self.__get_vals(rfstr, line)[1:]
+
+        return elId, intp, sxx, syy, szz, sxy, syz, szx
+
 
     def readElResultBlock(self, infile, line):
 
@@ -348,7 +371,6 @@ class ResultProcessor:
         infile.close()
 
         # Process the nodal blocks
-
         for inc in self.increments.values():
             inc['disp'] = self.orderNodes(np.array(inc['disp']))
             inc['stress'] = self.orderNodes(np.array(inc['stress']))
@@ -366,6 +388,13 @@ class ResultProcessor:
 
         return nodeVals[nodeVals[:, 0].argsort(), :]
 
+    @staticmethod
+    def orderElements(elVals):
+        if elVals.size == 0:
+            return elVals
+
+        return elVals[elVals[:, 0].argsort(), :]
+
     def readDat(self):
 
         fname = '{:s}.dat'.format(self.jobName)
@@ -379,7 +408,7 @@ class ResultProcessor:
 
         mode = None
         rfstr = ''
-        time = 0.0
+        incTime = 0.0
         while True:
             line = infile.readline()
             if not line:
@@ -389,7 +418,19 @@ class ResultProcessor:
             # we call __modearr_estrsresults
             if 'stress' in line:
                 arr = self.readElResultBlock(infile, line)
-                line, mode, rfstr, time = arr
+                line, mode, rfstr, incTime = arr
+
+                # store stress results
+                inc = self.findIncrementByTime(incTime)
+                self.increments[inc]['elStress'].append(self.readElStress(line, rfstr, incTime))
+            elif 'heat flux' in line:
+                arr = self.readElResultBlock(infile, line)
+                line, mode, rfstr, incTime = arr
+
+                # store stress results
+                inc = self.findIncrementByTime(incTime)
+                self.increments[inc]['elHeatFlux'].append(self.readElFlux(line, rfstr, incTime))
+
 
             # reset the read type if we hit a blank line
             if line.strip() == '':
@@ -397,8 +438,8 @@ class ResultProcessor:
             if not mode:
                 continue
 
-            # store stress results
-            [TODO]
-            self.readElStress(line, rfstr, time)
+        for inc in self.increments.values():
+            inc['elStress'] = self.orderElements(np.array(inc['elStress']))
+            inc['elHeatFlux'] = self.orderElements(np.array(inc['elHeatFlux']))
 
         infile.close()
