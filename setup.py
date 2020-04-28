@@ -1,8 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Learn more: https://github.com/lukeparry/pyccx/setup.py
-
+import os
 from setuptools import setup, find_packages
+
+# load __version__ without importing anything
+version_file = os.path.join(
+    os.path.dirname(__file__),
+    'pyccx/version.py')
+with open(version_file, 'r') as f:
+    # use eval to get a clean string of version from file
+    __version__ = eval(f.read().strip().split('=')[-1])
+
+# load README.md as long_description
+long_description = ''
+if os.path.exists('README.rst'):
+    with open('README.rst', 'r') as f:
+        long_description = f.read()
 
 # minimal requirements for installing pyccx
 # note that `pip` requires setuptools itself
@@ -35,13 +48,15 @@ with open('LICENSE') as f:
 
 setup(
     name='PyCCX',
-    version='0.1.0',
-    description='Simulation FEA enviornment for Python built upon Calculix and GMSH',
-    long_description=readme,
+    version=__version__,
+    description='Simulation FEA environment for Python built upon Calculix and GMSH',
+    long_description_content_type = 'text/x-rst',
+    long_description=long_description,
     author='Luke Parry',
     author_email='dev@lukeparry.uk',
     url='https://github.com/drlukeparry/pyccx',
     keywords='FEA, Finite Element Analysis, Simulation, Calculix, GMSH',
+    python_requires='>=3.5',
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python',
@@ -54,7 +69,15 @@ setup(
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=list(requirements_default),
     extras_require={'easy': list(requirements_easy),
-                    'docs': list(requirements_docs)}
+                    'docs': list(requirements_docs)},
+
+    project_urls={
+        'Documentation': 'https://pyccx.readthedocs.io/en/latest/',
+        'Source': 'https://github.com/drylukeparry/pyccx/pyccx/',
+        'Tracker': 'https://github.com/drlukeparry/pyccx/issues'
+    }
+
+
 )
 
 
