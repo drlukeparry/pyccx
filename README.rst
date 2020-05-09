@@ -6,6 +6,8 @@ PyCCX - Python Library for Calculix
 .. image:: https://readthedocs.org/projects/pyccx/badge/?version=latest
     :target: https://pyccx.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
+.. image:: https://badge.fury.io/py/PyCCX.svg
+    :target: https://badge.fury.io
 .. image:: https://badges.gitter.im/pyccx/community.svg
     :target: https://gitter.im/pyccx/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge
     :alt: Chat on Gitter
