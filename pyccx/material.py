@@ -2,6 +2,7 @@ import numpy as np
 import abc
 from enum import Enum, auto
 
+
 class Material(abc.ABC):
     """
     Base class for all material model definitions
