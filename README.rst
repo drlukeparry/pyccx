@@ -1,5 +1,6 @@
-PyCCX - Python Calculix
-========================
+PyCCX - Python Library for Calculix
+=======================================
+
 .. image:: https://github.com/drlukeparry/pyccx/workflows/Python%20application/badge.svg
     :target: https://github.com/drlukeparry/pyccx/actions
 .. image:: https://readthedocs.org/projects/pyccx/badge/?version=latest
@@ -28,7 +29,7 @@ An interface that built upon GMSH was required to avoid the use of the GUI, and 
 `Learn more <http://lukeparry.uk/>`_.
 
 Structure
-###########
+##############
 
 PyCCX framework consists of classes for specifying common components on the pre-processing phase, including the following
 common operations:
@@ -136,7 +137,7 @@ of an existing mesh generated using the pyccx.mesh.mesher class.
     thermalLoadCase.boundaryConditions.append(
         {'type': 'fixed', 'nodes': 'surface1Nodes', 'dof': [DOF.T], 'value': [20]})
 
-    # ====================== Material  ====================== #
+    # Material
     # Add a elastic material and assign it to the volume.
     # Note ensure that the units correctly correspond with the geometry length scales
     steelMat = ElastoPlasticMaterial('Steel')
@@ -152,7 +153,7 @@ of an existing mesh generated using the pyccx.mesh.mesher class.
     # Set the loadcases used in sequential order
     analysis.loadCases = [thermalLoadCase]
 
-    # ====================== Analysis Run  ====================== #
+    # Analysis Run #
     # Run the analysis
     analysis.run()
 

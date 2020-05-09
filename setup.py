@@ -7,6 +7,7 @@ from setuptools import setup, find_packages
 version_file = os.path.join(
     os.path.dirname(__file__),
     'pyccx/version.py')
+
 with open(version_file, 'r') as f:
     # use eval to get a clean string of version from file
     __version__ = eval(f.read().strip().split('=')[-1])
@@ -50,8 +51,8 @@ setup(
     name='PyCCX',
     version=__version__,
     description='Simulation FEA environment for Python built upon Calculix and GMSH',
-    long_description_content_type = 'text/x-rst',
     long_description=long_description,
+    long_description_content_type = 'text/x-rst',
     author='Luke Parry',
     author_email='dev@lukeparry.uk',
     url='https://github.com/drlukeparry/pyccx',
@@ -65,7 +66,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Natural Language :: English',
         'Topic :: Scientific/Engineering'],
-    license=license,
+    license="",
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=list(requirements_default),
     extras_require={'easy': list(requirements_easy),
