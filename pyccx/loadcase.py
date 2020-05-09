@@ -79,11 +79,11 @@ class LoadCase:
         return self._resultSet
 
     @resultSet.setter
-    def resultSet(self, rSet: Type[Result]):
-        if not any(isinstance(rSet, Result)):
-            raise ValueError('Loadcase ResultSets must be of type Result')
+    def resultSet(self, rSets: Type[Result]):
+        if not any(isinstance(x, Result) for x in rSets):
+            raise ValueError('Loadcase ResultSets must be derived from a Result class')
         else:
-            self._resultSet = rSet
+            self._resultSet = rSets
 
     @property
     def name(self) -> str:
@@ -122,14 +122,14 @@ class LoadCase:
         if totalTime is not None:
             self.totalTime = totalTime
 
-    def setLoadCaseType(self, loadCaseType) -> None:
+    def setLoadCaseType(self, loadCaseType: LoadCaseType) -> None:
         """
         Set the loadcase type based on the analysis types available in :class:`pyccx.loadcase.LoadCasetype`.
 
         :param loadCaseType: Set the loadcase type using the enum :class:`pyccx.loadcase.LoadCasetype`
         """
 
-        if isinstance(loadCaseType):
+        if isinstance(loadCaseType, LoadCaseType):
             self._loadCaseType = loadCaseType
         else:
             raise ValueError('Load case type is not supported')
@@ -144,7 +144,7 @@ class LoadCase:
         bcondStr = ''
 
         for bcond in self.boundaryConditions:
-            bcondStr += bcond
+            bcondStr += bcond.writeInput()
 
         if False:
             for bcond in self.boundaryConditions:

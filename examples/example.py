@@ -8,7 +8,8 @@ import pyccx
 from pyccx.mesh import ElementType, Mesher
 
 from pyccx.boundarycondition import Fixed, HeatFlux
-from pyccx.core import DOF, ElementSet, NodeSet, SurfaceSet, Simulation
+from pyccx.analysis import Simulation
+from pyccx.core import DOF, ElementSet, NodeSet, SurfaceSet
 from pyccx.results import ElementResult, NodalResult, ResultProcessor
 from pyccx.loadcase import  LoadCase, LoadCaseType
 from pyccx.material import ElastoPlasticMaterial
@@ -50,9 +51,6 @@ myMeshModel.setMeshSize(geomPoints, 0.5)  # MM
 # Generate the mesh
 myMeshModel.generateMesh()
 
-# To preview the mesh call the command in the inbuilt GMSH Gui
-# myMeshModel.showGui()
-
 # Obtain the surface faces (normals facing outwards) for surface
 surfFaces2 = myMeshModel.getSurfaceFacesFromSurfId(1) # MySurface1
 bottomFaces = myMeshModel.getSurfaceFacesFromSurfId(3) # ('Bottom_Face
@@ -73,7 +71,7 @@ surface5Nodes = myMeshModel.getNodesByEntityName('MySurface5') # MySurface5
 volumeNodes = myMeshModel.getNodesFromVolumeByName('PartA')
 
 # The generated mesh can be interactively viewed natively within gmsh by calling the following
-myMeshModel.showGui()
+#myMeshModel.showGui()
 
 """ Create the analysis"""
 # Set the number of simulation threads to be used by Calculix Solver across all analyses

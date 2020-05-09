@@ -10,7 +10,7 @@ from .core import ElementSet, NodeSet, SurfaceSet, DOF
 class BoundaryConditionType(Flag):
     """
     Boundary condition type specifies which type of analyses the boundary condition may be applied to. Flags may be mixed
-    when coupled analyses are performed (e.g.  thermomechanical analysis: STRUCTURAL | THERMAL)
+    when coupled analyses are performed (e.g.  thermo-mechanical analysis: STRUCTURAL | THERMAL)
     """
 
     ANY = auto()
@@ -85,7 +85,7 @@ class Film(BoundaryCondition):
         self.h = h
         self.T_amb = TAmbient
 
-        if not isinstance(self.target, SurfaceSet):
+        if not isinstance(target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Film Boundary Condition')
 
         super().__init__(target)
@@ -137,7 +137,7 @@ class HeatFlux(BoundaryCondition):
 
         self._flux = flux
 
-        if not isinstance(self.target, SurfaceSet):
+        if not isinstance(target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Heat Flux Boundary Condition')
 
         super().__init__(target)
@@ -172,7 +172,7 @@ class Radiation(BoundaryCondition):
     The radiation boundary condition applies Black-body radiation using the Stefan-Boltzmann Law,
     :math:`q_{rad} = \\epsilon \\sigma_b\\left(T-T_{amb}\\right)^4`, which is imposed on the faces of
     boundaries elements (correctly ordered according to Calculix's requirements). Ensure that the Stefan-Boltzmann constant :math:
-    `\\sigma_b`, has consistent units, which is set in the :attribute:`~pyccx.core.Simulation.SIGMAB`. This BC may be used in thermal and
+    `\\sigma_b`, has consistent units, which is set in the :attr:`~pyccx.analysis.Simulation.SIGMAB`. This BC may be used in thermal and
     coupled thermo-mechanical analyses.
     """
 
@@ -181,7 +181,7 @@ class Radiation(BoundaryCondition):
         self.T_amb = TAmbient
         self._epsilon = epsilon
 
-        if not isinstance(self.target, SurfaceSet):
+        if not isinstance(target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Radiation Boundary Condition')
 
         super().__init__(target)
@@ -234,9 +234,9 @@ class Fixed(BoundaryCondition):
         if not isinstance(target, NodeSet):
             raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
 
-        for d in dof:
-            if not d in DOF:
-                raise ValueError('Degree of freedom must be specified')
+        # for d in dof:
+        #     if not d in DOF:
+        #         raise ValueError('Degree of freedom must be specified')
 
         self._dof = dof
         self._values = values
@@ -280,7 +280,7 @@ class Fixed(BoundaryCondition):
         # 1-3 U, 4-6, rotational DOF, 11 = Temp
         for i in range(len(self._dof)):
             if self._values:
-                # inhomogenous boundary conditions
+                # Inhomogeneous boundary conditions
                 bCondStr += '{:s},{:d},, {:e}\n'.format(nodesetName, self._dof[i], self._values[i])
             else:
                 # Fixed boundary condition
@@ -298,6 +298,9 @@ class Acceleration(BoundaryCondition):
     def __init__(self, target, dir=None, mag=1.0):
 
         self.mag = 1.0
+
+        if not isinstance(target, NodeSet) or not isinstance(target, ElementSet):
+            raise ValueError('The target for an Acceleration BC should be a node or element set.')
 
         if dir:
             self.dir = dir
@@ -335,7 +338,7 @@ class Acceleration(BoundaryCondition):
     @property
     def direction(self) -> np.ndarray:
         """
-        The acceleration direction (noramlised vector)
+        The acceleration direction (normalised vector)
         """
         return self.dir
 
@@ -360,7 +363,7 @@ class Pressure(BoundaryCondition):
         self.mag = magnitude
 
         if not isinstance(target, SurfaceSet):
-            raise ValueError('A surface set must be assigned to a Presure boundary condition.')
+            raise ValueError('A surface set must be assigned to a Pressure boundary condition.')
 
         super().__init__(target)
 

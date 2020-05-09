@@ -72,8 +72,7 @@ class NodalResult(Result):
         return inputStr
 
     def writeElementInput(self):
-        str = ''
-        str += '*EL FILE, NSET={:s}, FREQUENCY={:d}\n'.format(self.nodeSet, self.frequency)
+        str = '*EL FILE, NSET={:s}, FREQUENCY={:d}\n'.format(self._nodeSet.name, self.frequency)
 
         if self.useCauchyStress:
             str += 'S\n'
@@ -92,7 +91,7 @@ class NodalResult(Result):
 class ElementResult(Result):
     def __init__(self, elSet: ElementSet):
 
-        self.elSet = elSet
+        self._elSet = elSet
         self.useElasticStrain = False
         self.useCauchyStress = False
         self.useHeatFlux = False
@@ -113,7 +112,7 @@ class ElementResult(Result):
 
     def writeInput(self):
         str = ''
-        str += '*EL PRINT, ELSET={:s}, FREQUENCY={:d}\n'.format(self.elSet, self.frequency)
+        str += '*EL PRINT, ELSET={:s}, FREQUENCY={:d}\n'.format(self._elSet.name, self.frequency)
 
         if self.useCauchyStress:
             str += 'S\n'

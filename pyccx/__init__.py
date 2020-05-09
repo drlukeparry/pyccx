@@ -1,8 +1,10 @@
-from .boundarycondition import BoundaryConditionType, BoundaryCondition, Acceleration, Film, Fixed, HeatFlux, Pressure, Radiation
 from . import material
-from . import mesh
+from . import mesh#
+from . import analysis
 
-from .core import Simulation, ElementSet, SurfaceSet,  MeshSet, NodeSet, DOF, Connector, AnalysisError, AnalysisType
+from .core import ElementSet, SurfaceSet,  MeshSet, NodeSet, DOF, Connector
+
+from .boundarycondition import BoundaryConditionType, BoundaryCondition, Acceleration, Film, Fixed, HeatFlux, Pressure, Radiation
 from .loadcase import LoadCaseType, LoadCase
 #from .model import Model
 from .results import ElementResult, NodalResult, ResultProcessor
