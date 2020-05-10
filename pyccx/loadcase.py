@@ -30,8 +30,8 @@ class LoadCase:
     """
     A unique Load case defines a set of simulation analysis conditions and a set of boundary conditions to apply to the domain.
     The default and initial timestep provide an estimate for the solver should be specified  along with the total duration
-    of the load case using :meth:`pyccx.loadcase.LoadCase.setTimeStep`. The analysis type for the loadcase should be
-    specified using :meth:`pyccx.loadcase.Loadcase.setLoadCaseType`. Depending on the analysis type the steady-state solution
+    of the load case using :meth:`~pyccx.loadcase.LoadCase.setTimeStep`. The analysis type for the loadcase should be
+    specified using :meth:`~pyccx.loadcase.Loadcase.setLoadCaseType`. Depending on the analysis type the steady-state solution
     may instead be calculated.
     """
     def __init__(self, loadCaseName, loadCaseType: LoadCaseType = None, resultSets = None):
@@ -73,8 +73,8 @@ class LoadCase:
     @property
     def resultSet(self) -> List[Result]:
         """
-        The result outputs (:class:`pyccx.results.ElementResult`, :class:`pyccx.results.NodalResult`) to generate the set
-        of results from this loadcase.
+        The result outputs (:class:`~pyccx.results.ElementResult`, :class:`~pyccx.results.NodeResult`) to generate
+        the set of results from this loadcase.
         """
         return self._resultSet
 
@@ -124,9 +124,9 @@ class LoadCase:
 
     def setLoadCaseType(self, loadCaseType: LoadCaseType) -> None:
         """
-        Set the loadcase type based on the analysis types available in :class:`pyccx.loadcase.LoadCasetype`.
+        Set the loadcase type based on the analysis types available in :class:`~pyccx.loadcase.LoadCaseType`.
 
-        :param loadCaseType: Set the loadcase type using the enum :class:`pyccx.loadcase.LoadCasetype`
+        :param loadCaseType: Set the loadcase type using the enum :class:`~pyccx.loadcase.LoadCaseType`
         """
 
         if isinstance(loadCaseType, LoadCaseType):
@@ -136,8 +136,9 @@ class LoadCase:
 
     def writeBoundaryCondition(self) -> str:
         """
-        Generates the string for Boundary Conditions in self.boundaryConditions containing all the attached boundary conditions.
-        Calculix cannot share existing boundary conditions and therefore has to be explicitly created per load case.
+        Generates the string for Boundary Conditions in self.boundaryConditions containing all the attached boundary
+        conditions. Calculix cannot share existing boundary conditions and therefore has to be explicitly
+        created per load case.
 
         :return: outStr
         """

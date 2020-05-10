@@ -251,7 +251,7 @@ class Mesher:
         # Set the name of the volume
         # This automatically done to ensure that are all exported. This may change to parse through all volumes following
         # merged and be recreated
-        print(len(self.geoms))
+
         gmsh.model.setEntityName(3, len(self.geoms), name)
         gmsh.model.addPhysicalGroup(3, [len(self.geoms)], len(self.geoms))
         gmsh.model.setPhysicalName(3, len(self.geoms), name)
@@ -262,7 +262,7 @@ class Mesher:
         avgDim = np.mean(extents)
         meshSize = avgDim * meshFactor
 
-        print('Avg dim', avgDim, ' mesh size: ', meshSize)
+        print('GMSH: Avg dim', avgDim, ' mesh size: ', meshSize)
         geomPoints = self.getPointsFromVolume(len(self.geoms))
 
         # Set the geometry volume size
@@ -440,18 +440,15 @@ class Mesher:
         cls.Initialised = False
 
     @classmethod
-    def initialise(cls):
+    def initialise(cls) -> None:
         """
         Initialises the GMSH runtime and sets default options. This is called automatically once.
-        :return:
         """
-
-        print(cls.Initialised)
 
         if cls.Initialised:
             return
 
-        print('\033[1;34;47m Initialising GMSH \n')
+        print('Initialising GMSH \n')
 
         gmsh.initialize()
 
@@ -874,7 +871,7 @@ class Mesher:
 
         self.setAsCurrentModel()
 
-        print('\033[1;34;47m Generating GMSH \n')
+        print('Generating GMSH \n')
 
         gmsh.model.mesh.generate(1)
         gmsh.model.mesh.generate(2)
@@ -882,7 +879,7 @@ class Mesher:
         try:
             gmsh.model.mesh.generate(3)
         except:
-            print('\033[1;34;47m Meshing Failed \n')
+            print('Meshing Failed \n')
 
         self._isMeshGenerated = True
         self._isDirty = False

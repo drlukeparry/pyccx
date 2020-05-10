@@ -1,5 +1,12 @@
+.. automodapi:: pyccx.analysis
+    :allowed-package-names: Simulation
+    :no-inheritance-diagram:
+    :no-inherited-members:
+    :toctree: api
+    :skip: Enum, auto
+
 .. automodapi:: pyccx.core
-    :allowed-package-names: AnalysisError, AnalysisType, ElementSet, NodeSet, SurfaceSet, Simulation
+    :allowed-package-names: AnalysisError, AnalysisType, ElementSet, NodeSet, SurfaceSet
     :no-inheritance-diagram:
     :no-inherited-members:
     :toctree: api
