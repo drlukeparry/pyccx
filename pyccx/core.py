@@ -154,10 +154,21 @@ class Connector:
 
 
 class DOF:
+    """
+    Provides a reference to the typical DOF used for setting boundary conditions and displaying output in Calculix.
+    """
+
     UX = 1
+    """ Translation in the X direction """
     UY = 2
+    """ Translation in the Y direction """
     UZ = 3
+    """ Translation in the Z direction """
     RX = 4
+    """ Rotation about the X-axis"""
     RY = 5
+    """ Rotation about the Y-axis"""
     RZ = 6
+    """ Rotation about the Z-axis"""
     T = 11
+    """ Temperature """
