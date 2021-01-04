@@ -1,7 +1,9 @@
 sphinx
 numpy
-gmsh-sdk
+gmsh>=4.7
 autodocsumm
 pypandoc
 sphinx-automodapi
 sphinx-autodoc-typehints
+sphinx-autodoc-typehints==1.10.3
+sphinx-paramlinks

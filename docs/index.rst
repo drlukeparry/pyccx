@@ -16,8 +16,6 @@ Install
 .. toctree::
    :maxdepth: 2
 
-   install
-
 Module Reference
 ==================
 .. toctree::
@@ -26,7 +24,7 @@ Module Reference
    modules
 
 
-==================
+=====================
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
