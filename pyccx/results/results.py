@@ -2,7 +2,7 @@ import abc
 import re
 import os
 
-from .core import ElementSet, NodeSet
+from ..core import ElementSet, NodeSet
 
 import numpy as np
 

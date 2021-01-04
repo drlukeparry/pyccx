@@ -2,16 +2,18 @@ import numpy as np
 import abc
 import os
 
-from .boundarycondition import BoundaryCondition, BoundaryConditionType
-from .results import Result
 from enum import Enum, auto
 from typing import List, Tuple, Type
+
+from ..bc import BoundaryCondition, BoundaryConditionType
+from ..results import Result
 
 
 class LoadCaseType(Enum):
     """
     Enum Class specifies the Load Case Type
     """
+
     STATIC = auto()
     """Linear Static structural analysis"""
     THERMAL = auto()
@@ -30,8 +32,8 @@ class LoadCase:
     """
     A unique Load case defines a set of simulation analysis conditions and a set of boundary conditions to apply to the domain.
     The default and initial timestep provide an estimate for the solver should be specified  along with the total duration
-    of the load case using :meth:`~pyccx.loadcase.LoadCase.setTimeStep`. The analysis type for the loadcase should be
-    specified using :meth:`~pyccx.loadcase.Loadcase.setLoadCaseType`. Depending on the analysis type the steady-state solution
+    of the load case using :meth:`setTimeStep`. The analysis type for the loadcase should be
+    specified using :meth:`setLoadCaseType`. Depending on the analysis type the steady-state solution
     may instead be calculated.
     """
     def __init__(self, loadCaseName, loadCaseType: LoadCaseType = None, resultSets = None):

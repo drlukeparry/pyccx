@@ -6,12 +6,12 @@ from enum import Enum, auto
 from typing import List, Tuple, Type
 import logging
 
-from .boundarycondition import BoundaryCondition
-from .core import MeshSet, ElementSet, SurfaceSet, NodeSet, Connector
-from .loadcase import LoadCase
-from .material import Material
-from .mesh import Mesher
-from .results import ElementResult, NodalResult, ResultProcessor
+from ..bc import BoundaryCondition
+from ..core import MeshSet, ElementSet, SurfaceSet, NodeSet, Connector
+from ..loadcase import LoadCase
+from ..material import Material
+from ..mesh import Mesher
+from ..results import ElementResult, NodalResult, ResultProcessor
 
 
 class AnalysisError(Exception):
@@ -130,7 +130,7 @@ class Simulation:
         """
         Sets the working directory used during the analysis.
 
-        :param workDir: An accessible working directy path
+        :param workDir: An accessible working directory path
 
         """
         if os.path.isdir(workDir) and os.access(workDir, os.W_OK):
@@ -139,12 +139,15 @@ class Simulation:
             raise ValueError('Working directory ({:s}) is not accessible or writable'.format(workDir))
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     def getBoundaryConditions(self) -> List[BoundaryCondition]:
         """
-        Collects all :class:`~pyccx.boundarycondition.BoundaryCondition` which are attached to loadcases in the analysis
+        Collects all :class:`~pyccx.boundarycondition.BoundaryCondition` which are attached to :class:`LoadCase` in
+        the analysis
+
+        :return:  All the boundary conditions in the analysis
         """
         bcs = []
         for loadcase in self._loadCases:
@@ -155,7 +158,7 @@ class Simulation:
     @property
     def loadCases(self) -> List[LoadCase]:
         """
-        List of :class:`pyccx.loadcase.LoadCase` used in the analysis
+        List of :class:`~pyccx.loadcase.LoadCase` used in the analysis
         """
         return self._loadCases
 
@@ -166,12 +169,12 @@ class Simulation:
     @property
     def connectors(self) -> List[Connector]:
         """
-        List of :class:`pyccx.core.Connector` used in the analysis
+        List of :class:`~pyccx.core.Connector` used in the analysis
         """
         return self._connectors
 
     @connectors.setter
-    def connectors(self, connectors):
+    def connectors(self, connectors: List[Connector]):
         self._connectors = connectors
 
     @property
@@ -264,7 +267,7 @@ class Simulation:
         return self._elementSets
 
     @elementSets.setter
-    def elementSets(self, val = List[ElementSet]):
+    def elementSets(self, val: List[ElementSet]):
         self._elementSets = val
 
     @property
@@ -275,7 +278,7 @@ class Simulation:
         return self._nodeSets
 
     @nodeSets.setter
-    def nodeSets(self, val=List[NodeSet]):
+    def nodeSets(self, val: List[NodeSet]):
         nodeSets = val
 
     @property
@@ -490,20 +493,23 @@ class Simulation:
             raise NotImplemented(' Platform is not currently supported')
 
     def results(self) -> ResultProcessor:
-        """ Returns the results obtained after running an analysis """
+        """
+        The results obtained after running an analysis
+         """
         if self.isAnalysisCompleted():
             return ResultProcessor('input')
         else:
             raise ValueError('Results were not available')
 
     def isAnalysisCompleted(self) -> bool:
-        """ Returns if the analysis was completed successfully. """
+        """ Returns if the analysis was completed successfully """
         return self._analysisCompleted
 
-    def clearAnalysis(self, includeResults:bool = False) -> None:
-        """ Clears any files generated from the analysis
+    def clearAnalysis(self, includeResults: bool = False) -> None:
+        """
+        Clears any previous files generated from the analysis
 
-        :param includeResults:  If set True will also delete the result files generated from the analysis
+        :param includeResults:  If set `True` will also delete the result files generated from the analysis
         """
 
         filename = 'input' # Base filename for the analysis

@@ -270,7 +270,7 @@ class ElastoPlasticMaterial(Material):
         lineStr = '*{:s}'.format(matPropName)
 
         if (tempVal.ndim == 1 and tempVal.shape[0] == 1) or (tempVal.ndim == 2 and tempVal.shape[1] == 1):
-            lineStr += ',type=iso\n'
+            lineStr +=  '\n' #',type=iso\n'
         elif (tempVal.ndim == 1 and tempVal.shape[0] == 3) or (tempVal.ndim == 2 and tempVal.shape[1] == 4):
             lineStr += ',type=ortho\n'
         else:
