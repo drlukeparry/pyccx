@@ -1,4 +1,4 @@
 sphinx
 numpy
-gmsh-sdk
+gmsh>=4.7
 
