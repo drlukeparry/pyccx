@@ -64,7 +64,7 @@ class ElementSet(MeshSet):
 
     def writeInput(self) -> str:
 
-        out = '*ELSET,ELSET={:s\n}'.format(self.name)
+        out = '*ELSET,ELSET={:s}\n'.format(self.name)
         out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
