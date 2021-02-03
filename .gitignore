@@ -6,6 +6,17 @@ __pycache__/
 # C extensions
 *.so
 
+# Calculix input, log and output files
+*.cvg
+*.inp
+*.frd
+*.out
+*.spool
+*.sta
+
+# Inspection profiles
+.idea/
+
 # Distribution / packaging
 .Python
 env/
