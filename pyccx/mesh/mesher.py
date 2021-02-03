@@ -632,16 +632,18 @@ class Mesher:
 
         if entityId:
             # return all the elements for the entity
-            return gmsh.model.mesh.getElements(entityId[0], entityId[1])[0]
+            result =  gmsh.model.mesh.getElements(entityId[0], entityId[1])
+            return np.hstack(result[1])
         else:
             # Return all the elements in the model
-            return gmsh.model.mesh.getElements()[0]
+            result =  gmsh.model.mesh.getElements()
+            return np.hstack(result[1])
 
 
     def getElementsByType(self, elType) -> np.ndarray:
         """
         Returns all elements of type (elType) from the GMSH model, within class ElementTypes. Note: the element ids are returned with
-        an index starting from 0 - internally GMSH uses an index starting from 1, like most FEA pre-processors
+        an index starting from 1 - internally GMSH uses an index starting from 1, like most FEA pre-processors
 
         :return: List of element Ids.
         """
