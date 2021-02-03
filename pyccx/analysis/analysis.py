@@ -350,7 +350,7 @@ class Simulation:
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' ELEMENT SETS ')
 
-        for elSet in self.elementSets:
+        for elSet in elementSets:
             self._input += os.linesep
             self._input += elSet.writeInput()
 
