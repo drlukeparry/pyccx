@@ -1,29 +1,34 @@
-.. automodapi:: pyccx.core
-    :allowed-package-names: AnalysisError, AnalysisType, ElementSet, NodeSet, SurfaceSet, Simulation
+.. automodapi:: pyccx.analysis
     :no-inheritance-diagram:
     :no-inherited-members:
     :toctree: api
 
+.. automodapi:: pyccx.bc
+    :toctree: api
+    :no-inheritance-diagram:
+    :no-inherited-members:
+
+.. automodapi:: pyccx.core
+    :toctree: api
+    :no-inheritance-diagram:
+    :no-inherited-members:
+
 .. automodapi:: pyccx.loadcase
-    :allowed-package-names: LoadCase, LoadCaseType
     :no-inheritance-diagram:
     :no-inherited-members:
     :toctree: api
 
 .. automodapi:: pyccx.material
-    :allowed-package-names: Material, ElastoPlasticMaterial
     :no-inheritance-diagram:
     :no-inherited-members:
     :toctree: api
 
 .. automodapi:: pyccx.results
-    :allowed-package-names: ElementResult, NodalResult, ResultProcessor
     :no-inheritance-diagram:
     :no-inherited-members:
     :toctree: api
 
-.. automodapi:: pyccx.mesh.mesher
-    :allowed-package-names: ElementType, Mesher, MeshingAlgorithm
+.. automodapi:: pyccx.mesh
     :no-inheritance-diagram:
     :no-inherited-members:
     :toctree: api

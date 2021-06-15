@@ -3,7 +3,8 @@ import os
 import numpy as np
 import gmsh
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Optional, Tuple
+
 
 class MeshingAlgorithm(Enum):
     DELAUNAY = 1
@@ -21,7 +22,7 @@ class ElementType:
     """
 
     class NODE:
-        """ A single node element s"""
+        """ A single node element"""
         id = 15
         name = 'Node'
         nodes = 1
@@ -95,7 +96,7 @@ class Mesher:
     ElementOrder = 1
     NumThreads = 4
     OptimiseNetgen = True
-    Units = 'mm'
+    Units = ''
     Initialised = False
 
     # Instance methods
@@ -125,7 +126,7 @@ class Mesher:
     @classmethod
     def showGui(cls):
         """
-        Opens up the native GMSH gui to inspect the geometry in the model and the mesh. This will block the Python script
+        Opens up the native GMSH Gui to inspect the geometry in the model and the mesh. This will block the Python script
         until the GUI is exited.
         """
         if cls.Initialised:
@@ -134,6 +135,7 @@ class Mesher:
     def maxPhysicalGroupId(self, dim: int) -> int:
         """
         Returns the highest physical group id in the GMSH model
+
         :param dim: int: The chosen dimension
         :return: int: The highest group id used
         """
@@ -147,7 +149,7 @@ class Mesher:
         :param volId: int: Volume id of a region
         """
         self.setAsCurrentModel()
-        return gmsh.model.getPhysicalName(3,volId)
+        return gmsh.model.getEntityName(3,volId)
 
     def getEntityName(self, id: Tuple[int, int]) -> str:
         """
@@ -157,11 +159,11 @@ class Mesher:
 
         """
         self.setAsCurrentModel()
-        return gmsh.model.getPhysicalName(id[0],id[1])
+        return gmsh.model.getEntityName(id[0],id[1])
 
-    def setEntityName(self, id: Tuple[int, int], name:str) -> None:
+    def setEntityName(self, id: Tuple[int, int], name: str) -> None:
         """
-        Set the geometrical entity name - useful only as reference when vieiwing in the GMSH GUI
+        Set the geometrical entity name - useful only as reference when viewing in the GMSH GUI
 
         :param id: Entity Dimension and Entity Id
         :param name: The entity name
@@ -228,7 +230,7 @@ class Mesher:
 
         self._isDirty = state
 
-    def addGeometry(self, filename: str, name: str, meshFactor: float = 0.03):
+    def addGeometry(self, filename: str, name: str, meshFactor: Optional[float] = 0.03):
         """
         Adds CAD geometry into the GMSH kernel. The filename of compatiable model files along with the mesh factor
         should be used to specify a target mesh size.
@@ -251,7 +253,7 @@ class Mesher:
         # Set the name of the volume
         # This automatically done to ensure that are all exported. This may change to parse through all volumes following
         # merged and be recreated
-        print(len(self.geoms))
+
         gmsh.model.setEntityName(3, len(self.geoms), name)
         gmsh.model.addPhysicalGroup(3, [len(self.geoms)], len(self.geoms))
         gmsh.model.setPhysicalName(3, len(self.geoms), name)
@@ -262,7 +264,7 @@ class Mesher:
         avgDim = np.mean(extents)
         meshSize = avgDim * meshFactor
 
-        print('Avg dim', avgDim, ' mesh size: ', meshSize)
+        print('GMSH: Avg dim', avgDim, ' mesh size: ', meshSize)
         geomPoints = self.getPointsFromVolume(len(self.geoms))
 
         # Set the geometry volume size
@@ -440,18 +442,15 @@ class Mesher:
         cls.Initialised = False
 
     @classmethod
-    def initialise(cls):
+    def initialise(cls) -> None:
         """
         Initialises the GMSH runtime and sets default options. This is called automatically once.
-        :return:
         """
-
-        print(cls.Initialised)
 
         if cls.Initialised:
             return
 
-        print('\033[1;34;47m Initialising GMSH \n')
+        print('Initialising GMSH \n')
 
         gmsh.initialize()
 
@@ -459,7 +458,7 @@ class Mesher:
         # 3D mesh algorithm (1: Delaunay, 4: Frontal, 5: Frontal Delaunay, 6: Frontal Hex, 7: MMG3D, 9: R-tree, 10: HXT)
         # Default value: 1#
 
-        gmsh.option.setNumber("Mesh.Algorithm", 5);
+        gmsh.option.setNumber("Mesh.Algorithm", MeshingAlgorithm.FRONTAL_DELAUNAY.value);
         #        gmsh.option.setNumber("Mesh.Algorithm3D", 10);
 
         gmsh.option.setNumber("Mesh.ElementOrder", Mesher.ElementOrder)
@@ -541,7 +540,7 @@ class Mesher:
         :return: list(int) - List of Point Ids
         """
         self.setAsCurrentModel()
-        pnts = gmsh.model.getBoundary((3, id), recursive=True)
+        pnts = gmsh.model.getBoundary([(3, id)], recursive=True)
         return [x[1] for x in pnts]
 
     def getPointsFromEntity(self, id: Tuple[int,int]) -> List[int]:
@@ -552,7 +551,7 @@ class Mesher:
         :return: List of Point Ids
         """
         self.setAsCurrentModel()
-        pnts = gmsh.model.getBoundary(id, recursive=True)
+        pnts = gmsh.model.getBoundary([id], recursive=True)
         return [x[1] for x in pnts]
 
     def getChildrenFromEntities(self, id: Tuple[int,int]) -> List[int]:
@@ -563,7 +562,7 @@ class Mesher:
         :return: List of Ids
         """
         self.setAsCurrentModel()
-        entities = gmsh.model.getBoundary(id, recursive=False)
+        entities = gmsh.model.getBoundary([id], recursive=False)
         return [x[1] for x in entities]
 
     def getSurfacesFromVolume(self, id: int) -> List[int]:
@@ -573,9 +572,9 @@ class Mesher:
         :param id:  Volume Id
         :return: List of surface Ids
         """
-        raise NotImplementedError()
+
         self.setAsCurrentModel()
-        surfs = gmsh.model.getBoundary((3, id), recursive=False)
+        surfs = gmsh.model.getBoundary( [(3, id)], recursive=False)
         return [x[1] for x in surfs]
 
     def getPointsFromVolumeByName(self, volumeName: str):
@@ -633,16 +632,18 @@ class Mesher:
 
         if entityId:
             # return all the elements for the entity
-            return gmsh.model.mesh.getElements(entityId[0], entityId[1])[0]
+            result =  gmsh.model.mesh.getElements(entityId[0], entityId[1])
+            return np.hstack(result[1])
         else:
             # Return all the elements in the model
-            return gmsh.model.mesh.getElements()[0]
+            result =  gmsh.model.mesh.getElements()
+            return np.hstack(result[1])
 
 
     def getElementsByType(self, elType) -> np.ndarray:
         """
         Returns all elements of type (elType) from the GMSH model, within class ElementTypes. Note: the element ids are returned with
-        an index starting from 0 - internally GMSH uses an index starting from 1, like most FEA pre-processors
+        an index starting from 1 - internally GMSH uses an index starting from 1, like most FEA pre-processors
 
         :return: List of element Ids.
         """
@@ -874,7 +875,7 @@ class Mesher:
 
         self.setAsCurrentModel()
 
-        print('\033[1;34;47m Generating GMSH \n')
+        print('Generating GMSH \n')
 
         gmsh.model.mesh.generate(1)
         gmsh.model.mesh.generate(2)
@@ -882,7 +883,7 @@ class Mesher:
         try:
             gmsh.model.mesh.generate(3)
         except:
-            print('\033[1;34;47m Meshing Failed \n')
+            print('Meshing Failed \n')
 
         self._isMeshGenerated = True
         self._isDirty = False

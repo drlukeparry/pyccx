@@ -4,7 +4,7 @@ from typing import Any, List, Tuple
 
 import numpy as np
 
-from .core import ElementSet, NodeSet, SurfaceSet, DOF
+from ..core import ElementSet, NodeSet, SurfaceSet, DOF
 
 
 class BoundaryConditionType(Flag):

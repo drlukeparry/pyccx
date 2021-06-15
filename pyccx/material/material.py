@@ -68,7 +68,7 @@ class ElastoPlasticMaterial(Material):
         self._nu = 0.33
         self._density = 7.85e-9
         self._alpha_CTE = 12e-6
-        self.k = 50.0
+        self._k = 50.0
         self._cp = 50.0
 
         # Plastic Behavior
@@ -77,7 +77,13 @@ class ElastoPlasticMaterial(Material):
 
     @property
     def E(self):
-        """Elastic Modulus :math:`E`"""
+        """Elastic Modulus :math:`E`
+
+        The Young's Modulus :math:`E` can be both isotropic by setting as a scalar value, or orthotropic by
+        setting to an (1x3) array corresponding to :math:`E_{ii}, E_{jj}, E_{kk}` for each direction. Temperature dependent
+        Young's Modulus can be set by providing an nx4 array, where the 1st column is the temperature :math:`T`
+        and the remaining columns are the orthotropic values of :math:`E`.
+        """
         return self._E
 
     @E.setter
@@ -104,7 +110,13 @@ class ElastoPlasticMaterial(Material):
 
     @property
     def alpha_CTE(self):
-        """Thermal Expansion Coefficient :math:`\\alpha_{cte}`"""
+        """Thermal Expansion Coefficient :math:`\\alpha_{cte}`
+
+        The thermal conductivity :math:`alpha_{cte}` can be both isotropic by setting as a scalar value, or orthotropic by
+        setting to an (1x3) array corresponding to :math:`\alpha_{cte}` for each direction. Temperature dependent thermal
+        expansion coefficient can be set by providing an nx4 array, where the 1st column is the temperature :math:`T`
+        and the remaining columns are the orthotropic values of :math:`\alpha_{cte}`.
+        """
         return self._alpha_CTE
 
     @alpha_CTE.setter
@@ -113,7 +125,13 @@ class ElastoPlasticMaterial(Material):
 
     @property
     def k(self):
-        """Thermal conductivity :math:`k`"""
+        """Thermal conductivity :math:`k`
+
+        The thermal conductivity :math:`k` can be both isotropic by setting as a scalar value, or orthotropic by setting to an (1x3) array corresponding
+        to :math:`k_{ii}, k_{jj}, k_{kk}` for each direction. Temperature dependent thermal conductivity eat can be set
+        by providing an nx4 array, where the 1st column is the temperature :math:`T` and the remaining columns are the
+        orthotropic values of :math:`k`.
+        """
         return self._k
 
     @k.setter
@@ -122,7 +140,12 @@ class ElastoPlasticMaterial(Material):
 
     @property
     def cp(self):
-        """Specific Heat :math:`c_p`"""
+        """Specific Heat :math:`c_p`
+
+        The specific heat :math:`c_p` can be both isotropic by setting as a scalar value, or orthotropic by setting to an (1x3) array corresponding
+        to :math:`c_p` for each direction. Temperature dependent specific heat can be set by providing an nx4 array,
+        where the 1st column is the temperature :math:`T` and the remaining columns are the orthotropic values of :math:`c_p`.
+        """
         return self._cp
 
     @cp.setter
@@ -131,7 +154,7 @@ class ElastoPlasticMaterial(Material):
 
     def isPlastic(self) -> bool:
         """
-        Returns True if the material has a plastic behaviour
+        Returns True if the material exhibits a plastic behaviour
         """
         return self._workHardeningMode is not ElastoPlasticMaterial.WorkHardeningType.NONE
 
@@ -150,7 +173,8 @@ class ElastoPlasticMaterial(Material):
     @property
     def hardeningCurve(self) -> np.ndarray:
         """
-        Sets the work hardening stress-strain curve with an nx3 array (curve) set with each row entry to (stress :math:`\\sigma`, plastic strain :math:`\\varepsilon_p`, Temperature :math:`T`). The first row
+        Sets the work hardening stress-strain curve with an nx3 array (curve) set with each row entry to
+        (stress :math:`\\sigma`, plastic strain :math:`\\varepsilon_p`, Temperature :math:`T`. The first row
         of a temperature group describes the yield point :math:`\\sigma_y` for the onset of the plastic regime.
         """
         return self._hardeningCurve
@@ -179,14 +203,14 @@ class ElastoPlasticMaterial(Material):
 
         return tempVal
 
-    def writeElasticProp(self) -> str:
+    def _writeElasticProp(self) -> str:
 
         lineStr = '*elastic'
         nu = self.cast2Numpy(self.nu)
         E = self.cast2Numpy(self.E)
 
         if nu.ndim != E.ndim:
-            raise ValueError("Both Poissons ratio and Young's modulus must be temperature dependent or constant")
+            raise ValueError("Both Poisson's ratio and Young's modulus must be temperature dependent or constant")
 
         if nu.shape[0] == 1:
             if nu.shape[0] != E.shape[0]:
@@ -201,10 +225,9 @@ class ElastoPlasticMaterial(Material):
         else:
             raise ValueError('Not currently support elastic mode')
 
-
         return lineStr
 
-    def writePlasticProp(self):
+    def _writePlasticProp(self):
 
         if not self.isPlastic():
             return ''
@@ -225,7 +248,7 @@ class ElastoPlasticMaterial(Material):
                                                  self._hardeningCurve[i, 1], # Plastic Strain
                                                  self._hardeningCurve[i, 2]) # Temperature
 
-    def writeMaterialProp(self, matPropName: str, tempVals) -> str:
+    def _writeMaterialProp(self, matPropName: str, tempVals) -> str:
         """
         Helper method to write the material property name and formatted values depending on the anisotropy of the material
         and if non-linear parameters are used.
@@ -247,7 +270,7 @@ class ElastoPlasticMaterial(Material):
         lineStr = '*{:s}'.format(matPropName)
 
         if (tempVal.ndim == 1 and tempVal.shape[0] == 1) or (tempVal.ndim == 2 and tempVal.shape[1] == 1):
-            lineStr += ',type=iso\n'
+            lineStr +=  '\n' #',type=iso\n'
         elif (tempVal.ndim == 1 and tempVal.shape[0] == 3) or (tempVal.ndim == 2 and tempVal.shape[1] == 4):
             lineStr += ',type=ortho\n'
         else:
@@ -276,21 +299,21 @@ class ElastoPlasticMaterial(Material):
         inputStr = '*material, name={:s}\n'.format(self._name)
         inputStr += '*{:s}\n'.format(self.materialModel)
 
-        inputStr += self.writeElasticProp()
+        inputStr += self._writeElasticProp()
 
-        if self.density:
-            inputStr += self.writeMaterialProp('density', self.density)
+        if self._density:
+            inputStr += self._writeMaterialProp('density', self._density)
 
-        if self.cp:
-            inputStr += self.writeMaterialProp('specific heat', self.cp)
+        if self._cp:
+            inputStr += self._writeMaterialProp('specific heat', self._cp)
 
-        if self.alpha_CTE:
-            inputStr += self.writeMaterialProp('expansion', self.alpha_CTE)
+        if self._alpha_CTE:
+            inputStr += self._writeMaterialProp('expansion', self._alpha_CTE)
 
-        if self.k:
-            inputStr += self.writeMaterialProp('conductivity', self.k)
+        if self._k:
+            inputStr += self._writeMaterialProp('conductivity', self._k)
 
         # Write the plastic mode
-        inputStr += self.writePlasticProp()
+        inputStr += self._writePlasticProp()
 
         return inputStr

@@ -22,7 +22,7 @@ if os.path.exists('README.rst'):
 # note that `pip` requires setuptools itself
 requirements_default = set([
     'numpy',     # all data structures
-    'gmsh-sdk',  # Required for meshing geometry
+    'gmsh',  # Required for meshing geometry
     'setuptools'  # used for packaging
 ])
 

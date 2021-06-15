@@ -6,12 +6,12 @@ from enum import Enum, auto
 from typing import List, Tuple, Type
 import logging
 
-from .boundarycondition import BoundaryCondition
-from .core import MeshSet, ElementSet, SurfaceSet, NodeSet, Connector
-from .loadcase import LoadCase
-from .material import Material
-from .mesh import Mesher
-from .results import ElementResult, NodalResult, ResultProcessor
+from ..bc import BoundaryCondition
+from ..core import MeshSet, ElementSet, SurfaceSet, NodeSet, Connector
+from ..loadcase import LoadCase
+from ..material import Material
+from ..mesh import Mesher
+from ..results import ElementResult, NodalResult, ResultProcessor
 
 
 class AnalysisError(Exception):
@@ -28,6 +28,9 @@ class AnalysisError(Exception):
 
 
 class AnalysisType(Enum):
+    """
+    The analysis types available for use.
+    """
     STRUCTURAL = auto()
     THERMAL = auto()
     FLUID = auto()
@@ -123,19 +126,28 @@ class Simulation:
 
         cls.VERBOSE_OUTPUT = state
 
-    def setWorkingDirectory(self, workDir):
+    def setWorkingDirectory(self, workDir) -> None:
+        """
+        Sets the working directory used during the analysis.
+
+        :param workDir: An accessible working directory path
+
+        """
         if os.path.isdir(workDir) and os.access(workDir, os.W_OK):
             self._workingDirectory = workDir
         else:
             raise ValueError('Working directory ({:s}) is not accessible or writable'.format(workDir))
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     def getBoundaryConditions(self) -> List[BoundaryCondition]:
         """
-        Collects all boundary conditions which are attached to loadcases in the analysis
+        Collects all :class:`~pyccx.boundarycondition.BoundaryCondition` which are attached to :class:`LoadCase` in
+        the analysis
+
+        :return:  All the boundary conditions in the analysis
         """
         bcs = []
         for loadcase in self._loadCases:
@@ -146,7 +158,7 @@ class Simulation:
     @property
     def loadCases(self) -> List[LoadCase]:
         """
-        The Loadcases for the analysis
+        List of :class:`~pyccx.loadcase.LoadCase` used in the analysis
         """
         return self._loadCases
 
@@ -157,12 +169,12 @@ class Simulation:
     @property
     def connectors(self) -> List[Connector]:
         """
-        List of connectors used in the simulation
+        List of :class:`~pyccx.core.Connector` used in the analysis
         """
         return self._connectors
 
     @connectors.setter
-    def connectors(self, connectors):
+    def connectors(self, connectors: List[Connector]):
         self._connectors = connectors
 
     @property
@@ -175,6 +187,9 @@ class Simulation:
 
     @property
     def materials(self) -> List[Material]:
+        """
+        User defined :class:`~pyccx.material.Material` used in the analysis
+        """
         return self._materials
 
     @materials.setter
@@ -196,7 +211,6 @@ class Simulation:
         """
         Private function returns a unique set of Element, Nodal, Surface sets which are used by the analysis during writing.
         This reduces the need to explicitly attach them to an analysis.
-        :return:
         """
         elementSets = {}
         nodeSets = {}
@@ -248,70 +262,53 @@ class Simulation:
     @property
     def elementSets(self) -> List[ElementSet]:
         """
-        User-defined element sets manually added to the analysis
+        User-defined :class:`~pyccx.core.ElementSet` manually added to the analysis
         """
         return self._elementSets
 
     @elementSets.setter
-    def elementSets(self, val = List[ElementSet]):
-        """
-        User-defined element sets manually added to the analysis
-        """
+    def elementSets(self, val: List[ElementSet]):
         self._elementSets = val
 
     @property
     def nodeSets(self) -> List[NodeSet]:
         """
-        User-defined node sets manually added to the analysis
+        User-defined :class:`~pyccx.core.NodeSet` manually added to the analysis
         """
         return self._nodeSets
 
     @nodeSets.setter
-    def nodeSets(self, val=List[NodeSet]):
-        """
-        User-defined element sets manually added to the analysis
-        """
+    def nodeSets(self, val: List[NodeSet]):
         nodeSets = val
 
     @property
     def surfaceSets(self) -> List[SurfaceSet]:
         """
-        User-defined element sets manually added to the analysis
+        User-defined :class:`pyccx.core.SurfaceSet`  manually added to the analysis
         """
         return self._nodeSets
 
     @surfaceSets.setter
     def surfaceSets(self, val=List[SurfaceSet]):
-        """
-        User-defined element sets manually added to the analysis
-        """
         surfaceSets = val
 
     def getElementSets(self) -> List[ElementSet]:
         """
-        Returns all the element sets used and generated in the analysis
+        Returns **all** the :class:`~pyccx.core.ElementSet` used and generated in the analysis
         """
         return self._collectSets(setType = ElementSet)
 
     def getNodeSets(self) -> List[NodeSet]:
         """
-        Returns all the element sets used and generated in the analysis
+        Returns **all** the :class:`pyccx.core.NodeSet` used and generated in the analysis
         """
         return self._collectSets(setType = NodeSet)
 
     def getSurfaceSets(self) -> List[SurfaceSet]:
         """
-        Returns all the element sets used and generated in the analysis
+        Returns **all** the :class:`pyccx.core.SurfaceSet` used and generated in the analysis
         """
         return self._collectSets(setType=SurfaceSet)
-
-    def writeHeaders(self):
-
-        self._input += os.linesep
-        self._input += '{:*^125}\n'.format(' INCLUDES ')
-
-        for filename in self.includes:
-            self._input += '*include,input={:s}'.format(filename)
 
     def writeInput(self) -> str:
         """
@@ -320,25 +317,29 @@ class Simulation:
 
         self.init()
 
-        self.writeHeaders()
-        self.writeMesh()
-        self.writeNodeSets()
-        self.writeElementSets()
-        self.writeKinematicConnectors()
-        self.writeMPCs()
-        self.writeMaterials()
-        self.writeMaterialAssignments()
-        self.writeInitialConditions()
-        self.writeAnalysisConditions()
-        self.writeLoadSteps()
+        self._writeHeaders()
+        self._writeMesh()
+        self._writeNodeSets()
+        self._writeElementSets()
+        self._writeKinematicConnectors()
+        self._writeMPCs()
+        self._writeMaterials()
+        self._writeMaterialAssignments()
+        self._writeInitialConditions()
+        self._writeAnalysisConditions()
+        self._writeLoadSteps()
 
         return self._input
 
+    def _writeHeaders(self):
 
-    def writeElementSets(self):
-        """
-        Functions writes element sets
-        """
+        self._input += os.linesep
+        self._input += '{:*^125}\n'.format(' INCLUDES ')
+
+        for filename in self.includes:
+            self._input += '*include,input={:s}'.format(filename)
+
+    def _writeElementSets(self):
 
         # Collect all sets
         elementSets = self._collectSets(setType = ElementSet)
@@ -349,11 +350,11 @@ class Simulation:
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' ELEMENT SETS ')
 
-        for elSet in self.elementSets:
+        for elSet in elementSets:
             self._input += os.linesep
             self._input += elSet.writeInput()
 
-    def writeNodeSets(self):
+    def _writeNodeSets(self):
 
         # Collect all sets
         nodeSets = self._collectSets(setType=NodeSet)
@@ -371,7 +372,7 @@ class Simulation:
             #self._input += '*NSET,NSET={:s}\n'.format(nodeSet['name'])
             #self._input += np.array2string(nodeSet['nodes'], precision=2, separator=', ', threshold=9999999999)[1:-1]
 
-    def writeKinematicConnectors(self):
+    def _writeKinematicConnectors(self):
 
         if len(self.connectors) < 1:
             return
@@ -384,7 +385,7 @@ class Simulation:
             # A nodeset is automatically created from the name of the connector
             self._input += connector.writeInput()
 
-    def writeMPCs(self):
+    def _writeMPCs(self):
 
         if len(self.mpcSets) < 1:
             return
@@ -405,20 +406,20 @@ class Simulation:
     #        2 # number of terms in equation # typically two
     #        28,2,1.,22,2,-1. # node a id, dof, node b id, dof b
 
-    def writeMaterialAssignments(self):
+    def _writeMaterialAssignments(self):
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' MATERIAL ASSIGNMENTS ')
 
         for matAssignment in self.materialAssignments:
             self._input += '*solid section, elset={:s}, material={:s}\n'.format(matAssignment[0], matAssignment[1])
 
-    def writeMaterials(self):
+    def _writeMaterials(self):
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' MATERIALS ')
         for material in self.materials:
             self._input += material.writeInput()
 
-    def writeInitialConditions(self):
+    def _writeInitialConditions(self):
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' INITIAL CONDITIONS ')
 
@@ -430,7 +431,7 @@ class Simulation:
         # Write the Physical Constants
         self._input += '*PHYSICAL CONSTANTS,ABSOLUTE ZERO={:e},STEFAN BOLTZMANN={:e}\n'.format(self.TZERO, self.SIGMAB)
 
-    def writeAnalysisConditions(self):
+    def _writeAnalysisConditions(self):
 
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' ANALYSIS CONDITIONS ')
@@ -438,7 +439,7 @@ class Simulation:
         # Write the Initial Timestep
         self._input += '{:.3f}, {:.3f}\n'.format(self.initialTimeStep, self.defaultTimeStep)
 
-    def writeLoadSteps(self):
+    def _writeLoadSteps(self):
 
         self._input += os.linesep
         self._input += '{:*^125}\n'.format(' LOAD STEPS ')
@@ -446,7 +447,7 @@ class Simulation:
         for loadCase in self.loadCases:
             self._input += loadCase.writeInput()
 
-    def writeMesh(self):
+    def _writeMesh(self):
 
         # TODO make a unique auto-generated name for the mesh
         meshFilename = 'mesh.inp'
@@ -492,20 +493,23 @@ class Simulation:
             raise NotImplemented(' Platform is not currently supported')
 
     def results(self) -> ResultProcessor:
-        """ Returns the results obtained after running an analysis """
+        """
+        The results obtained after running an analysis
+         """
         if self.isAnalysisCompleted():
             return ResultProcessor('input')
         else:
             raise ValueError('Results were not available')
 
     def isAnalysisCompleted(self) -> bool:
-        """ Returns if the analysis was completed successfully. """
+        """ Returns if the analysis was completed successfully """
         return self._analysisCompleted
 
-    def clearAnalysis(self, includeResults:bool = False) -> None:
-        """ Clears any files generated from the analysis
+    def clearAnalysis(self, includeResults: bool = False) -> None:
+        """
+        Clears any previous files generated from the analysis
 
-        :param includeResults:  If set True will also delete the result files generated from the analysis
+        :param includeResults:  If set `True` will also delete the result files generated from the analysis
         """
 
         filename = 'input' # Base filename for the analysis
@@ -567,7 +571,7 @@ class Simulation:
             if return_code:
                 raise subprocess.CalledProcessError(return_code, cmd)
 
-            # Analysis was completed successfully
+            # A        :return:nalysis was completed successfully
             self._analysisCompleted = True
 
         elif sys.platform == 'linux':

@@ -2,7 +2,7 @@ import abc
 import re
 import os
 
-from .core import ElementSet, NodeSet
+from ..core import ElementSet, NodeSet
 
 import numpy as np
 
@@ -154,14 +154,14 @@ class ResultProcessor:
 
     def findIncrementByTime(self, incTime) -> int:
 
-        for inc in self.increments:
-            if abs(inc['time'] - incTime) < 1e-9:
-                return inc
+        for inc, increment in self.increments.items():
+            if abs(increment['time'] - incTime) < 1e-9:
+                return inc, increment
         else:
             raise ValueError('Increment could not be found at time <{:.5f}>s'.format(incTime))
 
     @staticmethod
-    def __get_vals(fstr: str, line: str):
+    def _getVals(fstr: str, line: str):
         """
         Returns a list of typed items based on an input format string. Credit for
         the processing of the .dat file is based from the PyCalculix project.
@@ -231,40 +231,41 @@ class ResultProcessor:
                 return line
 
     def readNodeDisp(self, line, rfstr) -> tuple:
-        nid, ux, uy, uz = self.__get_vals(rfstr, line)[1:]
+        nid, ux, uy, uz = self._getVals(rfstr, line)[1:]
         return nid, ux, uy, uz
 
     def readNodeForce(self, line, rfstr):
-        nid, f_x, f_y, f_z = self.__get_vals(rfstr, line)[1:]
+        nid, f_x, f_y, f_z = self._getVals(rfstr, line)[1:]
         return nid, f_x, f_y, f_z
 
     def readNodeFlux(self, line, rfstr) -> tuple:
-        nid, f_x, f_y, f_z = self.__get_vals(rfstr, line)[1:]
+        nid, f_x, f_y, f_z = self._getVals(rfstr, line)[1:]
         return nid, f_x, f_y, f_z
 
     def readNodeTemp(self, line, rfstr) -> tuple:
-        nid, temp = self.__get_vals(rfstr, line)[1:]
+        nid, temp = self._getVals(rfstr, line)[1:]
         return nid, temp
 
     def readNodeStress(self, line, rfstr) -> tuple:
-        nid, sxx, syy, szz, sxy, syz, szx = self.__get_vals(rfstr, line)[1:]
+        nid, sxx, syy, szz, sxy, syz, szx = self._getVals(rfstr, line)[1:]
         return nid, sxx, syy, szz, sxy, syz, szx
 
     def readNodeStrain(self, line, rfstr) -> tuple:
-        nid, exx, eyy, ezz, exy, eyz, ezx = self.__get_vals(rfstr, line)[1:]
+        nid, exx, eyy, ezz, exy, eyz, ezx = self._getVals(rfstr, line)[1:]
         return nid, exx, eyy, ezz, exy, eyz, ezx
 
     def readElFlux(self, line, rfstr, time):
         """Saves element integration point stresses"""
+        elFlux = self._getVals(rfstr, line)[1:]
 
-        elId, intp, qx, qy, qz = self.__get_vals(rfstr, line)[1:]
+        elId, intp, qx, qy, qz = self._getVals(rfstr, line)
 
         return elId, intp, qx, qy, qz
 
     def readElStress(self, line, rfstr, time):
         """Saves element integration point stresses"""
 
-        elId, intp, sxx, syy, szz, sxy, syz, szx = self.__get_vals(rfstr, line)[1:]
+        elId, intp, sxx, syy, szz, sxy, syz, szx = self._getVals(rfstr, line)
 
         return elId, intp, sxx, syy, szz, sxy, syz, szx
 
@@ -278,7 +279,6 @@ class ResultProcessor:
 
         # set mode
         rfstr = "I10,2X,I2,6E14.2"
-        tmp = self.__get_vals(rfstr, line)
 
         mode = 'stress'
         infile.readline()
@@ -290,7 +290,7 @@ class ResultProcessor:
         """Returns an array of line, mode, rfstr, time"""
         line = infile.readline()
         fstr = "1X,' 100','C',6A1,E12.5,I12,20A1,I2,I5,10A1,I2"
-        tmp = self.__get_vals(fstr, line)
+        tmp = self._getVals(fstr, line)
         # [key, code, setname, value, numnod, text, ictype, numstp, analys, format_]
         time, format_ = tmp[3], tmp[9]
 
@@ -311,7 +311,7 @@ class ResultProcessor:
         line = infile.readline()
         fstr = "1X,I2,2X,8A1,2I5"
         # [key, name, ncomps, irtype]
-        ar2 = self.__get_vals(fstr, line)
+        ar2 = self._getVals(fstr, line)
         name = ar2[1]
         iteration = tmp[7]
         line = self.__get_first_dataline(infile)
@@ -369,6 +369,8 @@ class ResultProcessor:
 
         infile.close()
 
+        self.readDat()
+
         # Process the nodal blocks
         for inc in self.increments.values():
             inc['disp'] = self.orderNodes(np.array(inc['disp']))
@@ -408,10 +410,15 @@ class ResultProcessor:
         mode = None
         rfstr = ''
         incTime = 0.0
+        inc = -1
         while True:
             line = infile.readline()
+
             if not line:
                 break
+
+            if line.strip() == '':
+                mode = None
 
             # check for stress, we skip down to the line data when
             # we call __modearr_estrsresults
@@ -420,25 +427,29 @@ class ResultProcessor:
                 line, mode, rfstr, incTime = arr
 
                 # store stress results
-                inc = self.findIncrementByTime(incTime)
+                inc, increment = self.findIncrementByTime(incTime)
                 self.increments[inc]['elStress'].append(self.readElStress(line, rfstr, incTime))
             elif 'heat flux' in line:
                 arr = self.readElResultBlock(infile, line)
                 line, mode, rfstr, incTime = arr
 
-                # store stress results
-                inc = self.findIncrementByTime(incTime)
-                self.increments[inc]['elHeatFlux'].append(self.readElFlux(line, rfstr, incTime))
+                print(incTime)
+                print(self.increments)
+                # store the heatlufx results
+                inc, increment = self.findIncrementByTime(incTime)
 
+                mode = 'elHeatFlux'
+                self.increments[inc][mode] = []
 
-            # reset the read type if we hit a blank line
-            if line.strip() == '':
-                mode = None
-            if not mode:
-                continue
+            if mode and inc > -1:
+                self.increments[inc][mode].append(self.readElFlux(line, rfstr, incTime))
 
         for inc in self.increments.values():
-            inc['elStress'] = self.orderElements(np.array(inc['elStress']))
-            inc['elHeatFlux'] = self.orderElements(np.array(inc['elHeatFlux']))
+
+            if 'elStress' in inc:
+                inc['elStress'] = self.orderElements(np.array(inc['elStress']))
+
+            if 'elHeatFlux' in inc:
+                inc['elHeatFlux'] = self.orderElements(np.array(inc['elHeatFlux']))
 
         infile.close()
