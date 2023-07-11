@@ -1,19 +1,14 @@
-# -*- coding: utf-8 -*-
-"""
-@author: Luke Parry
-nod"""
 
 import pyccx
 
 from pyccx.mesh import ElementType, Mesher
 
-from pyccx.boundarycondition import Fixed, HeatFlux
+from pyccx.bc import Fixed, HeatFlux
 from pyccx.analysis import Simulation
 from pyccx.core import DOF, ElementSet, NodeSet, SurfaceSet
 from pyccx.results import ElementResult, NodalResult, ResultProcessor
 from pyccx.loadcase import  LoadCase, LoadCaseType
 from pyccx.material import ElastoPlasticMaterial
-
 
 # Create a Mesher object to interface with GMSH. Provide a unique name. Multiple instance of this can be created.
 myMeshModel = Mesher('myModel')

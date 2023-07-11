@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 from setuptools import setup, find_packages
 
@@ -21,8 +19,8 @@ if os.path.exists('README.rst'):
 # minimal requirements for installing pyccx
 # note that `pip` requires setuptools itself
 requirements_default = set([
-    'numpy',     # all data structures
-    'gmsh',  # Required for meshing geometry
+    'numpy',      # all data structures
+    'gmsh',       # Required for meshing geometry
     'setuptools'  # used for packaging
 ])
 
@@ -50,7 +48,7 @@ with open('LICENSE') as f:
 setup(
     name='PyCCX',
     version=__version__,
-    description='Simulation FEA environment for Python built upon Calculix and GMSH',
+    description='Simulation and FEA environment for Python built upon Calculix and GMSH',
     long_description=long_description,
     long_description_content_type = 'text/x-rst',
     author='Luke Parry',
@@ -64,6 +62,10 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Natural Language :: English',
         'Topic :: Scientific/Engineering'],
     license="",
