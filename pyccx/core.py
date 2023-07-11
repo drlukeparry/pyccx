@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-
 class MeshSet:
 
     def __init__(self, name):
