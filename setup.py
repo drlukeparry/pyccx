@@ -79,8 +79,6 @@ setup(
         'Source': 'https://github.com/drylukeparry/pyccx/pyccx/',
         'Tracker': 'https://github.com/drlukeparry/pyccx/issues'
     }
-
-
 )
 
 

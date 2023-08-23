@@ -1,4 +1,4 @@
-sphinx
 numpy
-gmsh>=4.7
+matpotlib
+gmsh>=4.11
 
