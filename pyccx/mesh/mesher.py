@@ -90,6 +90,74 @@ class Mesher:
         if cls.Initialised:
             gmsh.fltk.run()
 
+    def clearMeshAssignments(self, elType = None) -> None:
+        """
+        Clears the mesh assignments for the model
+
+        :param elType: The element type to clear the assignments
+        """
+        if elType is None:
+            self._meshAssignments = {}
+        else:
+            self._meshAssignments[elType] = []
+
+
+    def setMeshAssignmentsById(self, elIds, elType: elements.BaseElementType) -> None:
+        """
+        Set the element type and concatenate elements to this
+
+        :param elType:
+        :param el:
+        :return:
+        """
+        if not self._isMeshGenerated:
+            logging.error('Mesh is currently not generated')
+            return
+
+        # Iterate across existing mesh assignments and remove duplicate elements
+        for key, value in self._meshAssignments.items():
+            self._meshAssignments[key] = np.delete(value, np.argwhere(np.isin(value, elIds).ravel()))
+
+        elSet = {}
+        for eId, eType in zip(elIds, elType):
+            eList = elSet.get(eType,[])
+            eList.append(eId)
+
+        for eType, eIds in elSet.items():
+            # Obtain a list of elements
+            elSet = self._meshAssignments.get(eType, [])
+            elSet = np.unique(np.hstack([elSet, eIds])).astype(np.int64)
+
+            self._meshAssignments[elType] = elSet
+
+        return
+
+
+    def setMeshAssignmentsByType(self, elIds: np.array, elType: elements.BaseElementType) -> None:
+        """
+        Set the element type and concatenate elements to this
+
+        :param elType:
+        :param el:
+        :return:
+        """
+        if not self._isMeshGenerated:
+            logging.error('Mesh is currently not generated')
+            return
+
+        el = np.asanyarray(elIds)
+        # Iterate across existing mesh assignments and remove duplicate elements
+        for key, value in self._meshAssignments.items():
+            self._meshAssignments[key] = np.delete(value, np.argwhere(np.isin(value, el).ravel()))
+
+        # Obtain a list of elements
+        if elType:
+            elSet = self._meshAssignments.get(elType, [])
+            elSet = np.unique(np.hstack([elSet, el])).astype(np.int64)
+
+            self._meshAssignments[elType] = elSet
+
+        return
     def maxPhysicalGroupId(self, dim: int) -> int:
         """
         Returns the highest physical group id in the GMSH model
