@@ -349,11 +349,11 @@ class Simulation:
         """
         User-defined :class:`pyccx.core.SurfaceSet`  manually added to the analysis
         """
-        return self._nodeSets
+        return self._surfaceSets
 
     @surfaceSets.setter
     def surfaceSets(self, val=List[SurfaceSet]):
-        surfaceSets = val
+        self._surfaceSets = val
 
     def getElementSets(self) -> List[ElementSet]:
         """
