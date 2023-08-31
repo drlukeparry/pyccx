@@ -260,14 +260,14 @@ class Simulation:
         self._materials = materials
 
     @property
-    def materialAssignments(self):
+    def materialAssignments(self) -> List[MaterialAssignment]:
         """
         Material Assignment applied to a set of elements
         """
         return self._materialAssignments
 
     @materialAssignments.setter
-    def materialAssignments(self, matAssignments):
+    def materialAssignments(self, matAssignments: List[MaterialAssignment]):
         self._materialAssignments = matAssignments
 
     def _collectSets(self, setType: Type[MeshSet] = None):
@@ -474,7 +474,7 @@ class Simulation:
         self._input += '{:*^125}\n'.format(' MATERIAL ASSIGNMENTS ')
 
         for matAssignment in self.materialAssignments:
-            self._input += '*solid section, elset={:s}, material={:s}\n'.format(matAssignment[0], matAssignment[1])
+            self._input += matAssignment.writeInput()
 
     def _writeMaterials(self):
         self._input += os.linesep
