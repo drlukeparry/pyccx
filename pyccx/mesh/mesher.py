@@ -940,6 +940,79 @@ class Mesher:
 
         return mask
 
+    def writeMesh(self):
+        """
+        Generates the current mesh format as an abaqus (cal2culix) .inp representation format
+
+        :return: THe mesh string format
+        """
+        # Print the nodes
+
+        self.setAsCurrentModel()
+
+        txt = ''
+
+        txt += '*node\n'
+
+        nodeVals = gmsh.model.mesh.getNodes()
+        nids = nodeVals[0]
+        invNid = np.argsort(nids)
+        nodeCoords = nodeVals[1].reshape(-1, 3)
+        nodeCoords = nodeCoords[invNid]
+        nids = np.sort(nids)
+
+        for nid, nCoords in zip(nids, nodeCoords):
+            ncoords = nodeCoords[int(nid) - 1]
+            txt += "{:d}, {:.7f}, {:.7f}, {:.7f}/n".format(nid, *ncoords)
+
+        # Obtain the surface-element physical groups and their associative element ids
+        surfPhysicalGrps = gmsh.model.getPhysicalGroups(Ent.Surface)
+        surfEntTags = [gmsh.model.getEntitiesForPhysicalGroup(x[0], x[1]) for x in surfPhysicalGrps]
+
+        # Obtain the volume-element physical groups and their associative element ids
+        volPhysicalGrps = gmsh.model.getPhysicalGroups(Ent.Volume)
+        volEntTags = [gmsh.model.getEntitiesForPhysicalGroup(x[0], x[1]) for x in volPhysicalGrps]
+
+        # Construct a type lookup index across all elements
+        typeIdx = {}
+        elNodeIdx = {}
+
+        self.getNodesFromEntity((Ent.Surface, Ent.All))
+
+        if len(volEntTags):
+
+            # Collect all the surface ids from phyiscal volume tags
+            for volEntTag in np.hstack(volEntTags):
+                volEls = self.getElements((Ent.Volume, volEntTag))
+
+                for elTyp, idx, nodes in zip(volEls[0], volEls[1], volEls[2]):
+                    nodes = nodes.reshape(len(idx), -1)
+                    for elId, elNodes in zip(idx, nodes):
+                        typeIdx[elId] = elTyp
+                        elNodeIdx[elId] = elNodes
+
+        if len(surfEntTags):
+
+            # Collect all the  ids from phyiscal surface tags
+            for surfEntTag in np.hstack(surfEntTags):
+                surfEls = self.getElements((2, surfEntTag))
+
+                for elTyp, idx, nodes in zip(surfEls[0], surfEls[1], surfEls[2]):
+                    nodes = nodes.reshape(len(idx), -1)
+                    for elId, elNodes in zip(idx, nodes):
+                        typeIdx[elId] = elTyp
+                        elNodeIdx[elId] = elNodes
+
+        for elTyp, elIds in self._meshAssignments.items():
+
+            txt += "*ELEMENT, type = {:s}, ELSET = Surface1\n".format(elTyp.name)
+
+            for elId in elIds:
+                if elTyp.id != typeIdx[elId]:
+                    raise Exception('Incompatible elements selected (id: {:d} - {:s})'.format(elId, elTyp.name))
+                txt += "{:d} ".format(elId) + str(elNodeIdx[elId])[1:-1] + "\n"
+
+        return txt
 
     def getSurfaceFacesFromSurfId(self, surfTagId):
 
