@@ -2,7 +2,7 @@ import re  # used to get info from frd file
 import os
 import sys
 import subprocess  # used to check ccx version
-from enum import Enum, auto
+from enum import Enum, IntEnum, auto
 from typing import List, Tuple, Type
 import logging
 
@@ -27,9 +27,9 @@ class AnalysisError(Exception):
         self.message = message
 
 
-class AnalysisType(Enum):
+class AnalysisType(IntEnum):
     """
-    The analysis types available for use.
+    The analysis types available in Calculix that may be used for analyses
     """
     STRUCTURAL = auto()
     THERMAL = auto()
