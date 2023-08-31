@@ -674,7 +674,7 @@ class Mesher:
         for tag in tags:
             # Remove all tri group surfaces
             print('removing surface {:s}'.format(gmsh.model.getPhysicalName(2, tag[1])))
-            gmsh.model.removePhysicalGroups(tag)
+            gmsh.model.removePhysicalGroups([tag])
 
         self.setModelChanged()
 
@@ -733,7 +733,7 @@ class Mesher:
         return self.getPointsFromVolume(self.getIdBySurfaceName(volumeName))
 
     # Mesh methods
-    def getNodeIds(self):
+    def getNodeIds(self) -> np.array:
         """
         Returns the nodal ids from the entire GMSH model
         :return:
@@ -741,29 +741,57 @@ class Mesher:
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
-            raise ValueError('Mesh is not generated')
+            raise Exception('Mesh is not generated')
 
-        nodeList = gmsh.model.mesh.getNodes()
-        return nodeList[0]
+        nodeIds = gmsh.model.mesh.getNodes()[0]
+        nodeIds = np.sort(nodeIds)
+        return nodeIds
 
     def getNodes(self):
         """
-        Returns the nodal coordinates from the entire GMSH model
+        Returns the nodal coordinates from the entire GMSH model. These are sorted automatically by the node-id
 
-        :return:
+        :return: The nodal coordinates to the correspodning node ids
         """
         self.setAsCurrentModel()
 
+        if not self._isMeshGenerated:
+            raise Exception('Mesh is not generated')
+
+        nodeVals= gmsh.model.mesh.getNodes()
+
+        nodeCoords = nodeVals[1].reshape(-1, 3)
+
+        nodeCoordsSrt = nodeCoords[np.argsort(nodeVals[0]-1)]
+        return nodeCoordsSrt
+
+
+    def getElementIds(self, entityId: Tuple[int,int] = None, merge = True):
+        """
+        Returns the elements for the entire model or optionally a specific entity.
+        :param entityId: The entity id to obtain elements for
+        :return: A Tuple of  element types, element ids and corresponding node ids
+        """
+        self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
-            raise ValueError('Mesh is not generated')
+            raise Exception('Mesh is not generated')
 
-        nodeList = gmsh.model.mesh.getNodes()
+        result = None
+        if entityId:
+            # return all the elements for the entity
+            result = gmsh.model.mesh.getElements(entityId[0], entityId[1])
 
-        nodeCoords = nodeList[1].reshape(-1, 3)
+        else:
+            # Return all the elements in the model
+            result = gmsh.model.mesh.getElements()
 
-        nodeCoordsSrt = nodeCoords[np.sort(nodeList[0]) - 1]
-        return nodeCoordsSrt  # , np.sort(nodeList[0])-1
+
+        if merge:
+            return np.hstack(result[1]).ravel()
+        else:
+            return result[1]
+
 
 
     def getElements(self, entityId: Tuple[int,int] = None):
@@ -779,34 +807,37 @@ class Mesher:
 
         if entityId:
             # return all the elements for the entity
-            result =  gmsh.model.mesh.getElements(entityId[0], entityId[1])
-            return np.hstack(result[1])
+            result = gmsh.model.mesh.getElements(entityId[0], entityId[1])
+            return result
         else:
             # Return all the elements in the model
-            result =  gmsh.model.mesh.getElements()
-            return np.hstack(result[1])
+            result = gmsh.model.mesh.getElements()
+            return result
 
-
-    def getElementsByType(self, elType) -> np.ndarray:
+    def getElementsByType(self, elType: elements.BaseElementType, returnElIds: Optional[bool] = False) -> np.ndarray:
         """
         Returns all elements of type (elType) from the GMSH model, within class ElementTypes. Note: the element ids are returned with
         an index starting from 1 - internally GMSH uses an index starting from 1, like most FEA pre-processors
 
-        :return: List of element Ids.
+        :param elType: Element type
+        :return: List of Element Ids
         """
 
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
-            raise ValueError('Mesh is not generated')
+            raise Exception('Mesh is not generated')
 
         elVar = gmsh.model.mesh.getElementsByType(elType.id)
-        elements = elVar[1].reshape(-1, elType.nodes) # TODO check if necessary - 1
 
-        return elements
+        elements = elVar[1].reshape(-1, elType.nodes)
 
+        if returnElIds:
+            return elVar[0], elements
+        else:
+            return elements
 
-    def getNodesFromEntity(self, entityId: Tuple[int,int]) -> np.ndarray:
+    def getNodesFromEntity(self, entityId: Tuple[int,int]) -> np.array:
         """
         Returns all node ids from a selected entity in the GMSH model.
 
@@ -915,18 +946,17 @@ class Mesher:
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
-            raise ValueError('Mesh is not generated')
-
+            raise Exception('Mesh is not generated')
 
         mesh = gmsh.model.mesh
 
-        surfNodeList2 = mesh.getNodes(2, surfTagId, True)[0]
+        surfNodeList2 = mesh.getNodes(Ent.Surface, surfTagId, True)[0]
 
         #surfNodeList2 = mesh.getNodesForEntity(2, surfTagId)[0]
 
         # Get tet elements
-        tet4ElList = mesh.getElementsByType(ElementType.TET4.id)
-        tet10ElList = mesh.getElementsByType(ElementType.TET10.id)
+        tet4ElList = mesh.getElementsByType(elements.TET4.id)
+        tet10ElList = mesh.getElementsByType(elements.TET10.id)
 
         tet4Nodes = tet4ElList[1].reshape(-1, 4)
         tet10Nodes = tet10ElList[1].reshape(-1, 10)
@@ -938,7 +968,7 @@ class Mesher:
         tetElList = np.hstack([tet4ElList[0]  -1,
                                tet10ElList[0] -1])
 
-        print(ElementType.TET4.id)
+        print(elements.TET4.id)
         tetMinEl = np.min(tetElList)
 
         mask = np.isin(tetNodes, surfNodeList2)  # Mark nodes which are on boundary
@@ -958,7 +988,7 @@ class Mesher:
         surfFaces = np.zeros((len(elIdx), 2), dtype=np.uint32)
         surfFaces[:, 0] = elIdx.flatten()
 
-        fMask = self._getFaceOrderMask(ElementType.TET4)
+        fMask = self._getFaceOrderMask(elements.TET4)
 
         # Iterate across each face of the element and apply mask across the elements
         for i in np.arange(fMask.shape[0]):
@@ -1011,12 +1041,13 @@ class Mesher:
         Private method for initialising any additional options for individual models within GMSH which are not global.
         """
         self.setAsCurrentModel()
-        gmsh.option.setNumber("Mesh.Algorithm", self._meshingAlgorithm.value)
 
 
-    def generateMesh(self) -> None:
+    def generateMesh(self, generate3DMesh = True) -> None:
         """
-        Initialises the GMSH Meshing Proceedure.
+        Initialises the GMSH Meshing Proceedure
+
+        :param generate3DMesh: Generates the 3D Mesh -
         """
         self._isMeshGenerated = False
 
