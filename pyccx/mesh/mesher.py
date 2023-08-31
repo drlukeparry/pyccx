@@ -1,10 +1,14 @@
+from abc import ABC, abstractmethod
+from enum import Enum, IntEnum
+from typing import Any, List, Optional, Tuple
+
 import logging
 import os
 import numpy as np
 import gmsh
-from enum import Enum
-from typing import List, Optional, Tuple
 
+from . import elements
+from .utils import *
 
 
 class MeshingAlgorithm2D(IntEnum):
@@ -33,75 +37,9 @@ class MeshingAlgorithm3D(IntEnum):
     RTREE = 9
     HXT = 10
 
-
-class ElementType:
-    """
-    Element types information used via GMSH and Calculix
-    """
-
-    class NODE:
-        """ A single node element"""
-        id = 15
-        name = 'Node'
-        nodes = 1
-        faces = None
-
-    class TET4:
-        """ 1st order linear Tet Element (C3D4) """
-        id = 4
-        name =  'C3D4'
-        nodes = 4
-        faces = np.array([[1,2,3], [1,4,2], [2,4,3], [3,4,1]])
-
-    class TET10:
-        """ 2nd order Quadratic Tet Element (C3D10) consisting of 10 nodes """
-        id = 11
-        name = 'C3D10'
-        nodes = 4
-        faces = np.array([[1,2,3], [1,4,2], [2,4,3], [3,4,1]])
-
-    class HEX8:
-        """ Linear Hex Element (C3D8) """
-        id = 5
-        name = 'C3D8'
-        nodes = 8
-        faces = np.array([[1,2,3,4], [5,8,7,6], [1,5,6,2], [2,6,7,3], [3,7,8,4], [4,8,5,1]])
-
-    class HEX8R:
-        """Linear Hex Element (C3D8R) with reduced order integration """
-        id = 5
-        name = 'C3D8R'
-        nodes = 8
-        faces = np.array([[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]])
-
-    class HEX8R:
-        """
-        Linear Hex Element (C3D8I) with reformulation to reduce the effects of shear and
-        volumetric locking and hourglass effects under some extreme situations
-        """
-        id = 5
-        name = 'C3D8I'
-        nodes = 8
-        faces = np.array([[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]])
-
-    class HEX8R:
-        """
-        Quadratic Hex Element (C3D20) consisting of 20 Nodes
-        """
-        id = 17
-        name = 'C3D20'
-        nodes = 20
-        faces = np.array([[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]])
-
-
-    class WEDGE6:
-        """ Wedge or Prism Element (C3D6) """
-        id = 6
-        name = 'C3D6'
-        nodes = 6
-        faces = np.array([[1,2,3], [4,5,6], [1,2,5,4], [2,3,6,5], [3,1,4,6]])
-
-
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
 
 class Mesher:
     """
