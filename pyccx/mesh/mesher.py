@@ -6,7 +6,25 @@ from enum import Enum
 from typing import List, Optional, Tuple
 
 
-class MeshingAlgorithm(Enum):
+
+class MeshingAlgorithm2D(IntEnum):
+    MESHADAPT    = 1
+    AUTO         = 2
+    INITIAL_ONLY = 3
+    DELAUNAY     = 5
+    FRONTAL      = 6
+    BAMG         = 7
+    FRONTAL_QUAD = 8
+    PACK_PRLGRMS = 9
+    PACK_PRLGRMS_CSTR = 10
+    QUAD_QUASI_STRUCT = 11
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
+
+class MeshingAlgorithm3D(IntEnum):
     DELAUNAY = 1
     FRONTAL = 4
     FRONTAL_DELAUNAY = 5
@@ -118,7 +136,9 @@ class Mesher:
         self._isMeshGenerated = False
         self._isDirty = False # Flag to indicate model hasn't been generated and is dirty
         self._isGeometryDirty = False
-        self._meshingAlgorithm = MeshingAlgorithm.DELAUNAY
+
+        self._meshingAlgorithm2D = MeshingAlgorithm2D.DELAUNAY
+        self._meshingAlgorithm3D = MeshingAlgorithm3D.DELAUNAY
 
         # Set the model name for this instance
         gmsh.model.add(self._modelName)
@@ -357,16 +377,26 @@ class Mesher:
 
         self.setModelChanged()
 
-    def setMeshingAlgorithm(self, meshingAlgorithm) -> None:
+    def set3DMeshingAlgorithm(self, meshingAlgorithm: MeshingAlgorithm3D) -> None:
         """
         Sets the meshing algorithm to use by GMSH for the model
         
-        :param meshingAlgorithm: MeshingAlgorith
+        :param meshingAlgorithm: The selected 3D Meshing Algorithm used
         """
 
         # The meshing algorithm is applied before generation, as this may be model specific
-        print(meshingAlgorithm)
-        self._meshingAlgorithm = meshingAlgorithm
+        self._meshingAlgorithm3D = meshingAlgorithm
+        self.setModelChanged()
+
+    def set2DMeshingAlgorithm(self, meshingAlgorithm: MeshingAlgorithm2D) -> None:
+        """
+        Sets the meshing algorithm to use by GMSH for the model
+
+        :param meshingAlgorithm: The selected 2D Meshing Algorithm used
+        """
+
+        # The meshing algorithm is applied before generation, as this may be model specific
+        self._meshingAlgorithm2D = meshingAlgorithm
         self.setModelChanged()
 
     ## Class Methods
@@ -454,10 +484,9 @@ class Mesher:
 
         gmsh.initialize()
 
-        # Mesh.Algorithm3D
-        # 3D mesh algorithm (1: Delaunay, 4: Frontal, 5: Frontal Delaunay, 6: Frontal Hex, 7: MMG3D, 9: R-tree, 10: HXT)
+        # Mesh.Algorithm3
         # Default value: 1#
-
+        gmsh.option.setNumber("Mesh.Algorithm", MeshingAlgorithm3D.FRONTAL_DELAUNAY)
         gmsh.option.setNumber("Mesh.Algorithm", MeshingAlgorithm.FRONTAL_DELAUNAY.value);
         #        gmsh.option.setNumber("Mesh.Algorithm3D", 10);
 
