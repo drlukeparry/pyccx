@@ -1,8 +1,15 @@
-# -*- coding: utf-8 -*-
+
+from typing import Any, List, Optional, Tuple
+
 import numpy as np
 
-class MeshSet:
 
+
+class MeshSet:
+    """
+    The Mesh set is a basic entity for storing node and element set lists that are used for creating sets across
+    both node and element types.
+    """
     def __init__(self, name):
         self._name = name
 
@@ -104,7 +111,7 @@ class SurfaceSet(MeshSet):
 
 class Connector:
     """
-     A Connector ir a rigid connector between a set of nodes and an (optional) reference node.
+     A Connector is a rigid connector between a set of nodes and an (optional) reference node.
      """
     def __init__(self, name, nodes, refNode = None):
         self.name = name
@@ -137,7 +144,7 @@ class Connector:
         elif isinstance(nodes,NodeSet):
             self._nodeset = nodes
         else:
-            raise ValueError('Invalid type for nodes passed to Connector()')
+            raise Exception('Invalid type for nodes passed to Connector()')
 
     def writeInput(self) -> str:
         # A nodeset is automatically created from the name of the connector
@@ -154,20 +161,28 @@ class Connector:
 
 class DOF:
     """
-    Provides a reference to the typical DOF used for setting boundary conditions and displaying output in Calculix.
+    Provides a reference to the typical degrees-of-freedom (DOF) used for setting boundary conditions and displaying
+    the required output in Calculix.
     """
 
     UX = 1
     """ Translation in the X direction """
+
     UY = 2
     """ Translation in the Y direction """
+
     UZ = 3
     """ Translation in the Z direction """
+
     RX = 4
     """ Rotation about the X-axis"""
+
     RY = 5
     """ Rotation about the Y-axis"""
+
     RZ = 6
     """ Rotation about the Z-axis"""
+
     T = 11
     """ Temperature """
+
