@@ -599,31 +599,37 @@ class Mesher:
         # Mesh.Algorithm3
         # Default value: 1#
         gmsh.option.setNumber("Mesh.Algorithm", MeshingAlgorithm3D.FRONTAL_DELAUNAY)
-        gmsh.option.setNumber("Mesh.Algorithm", MeshingAlgorithm.FRONTAL_DELAUNAY.value);
         #        gmsh.option.setNumber("Mesh.Algorithm3D", 10);
 
         gmsh.option.setNumber("Mesh.ElementOrder", Mesher.ElementOrder)
         #        gmsh.option.setNumber("Mesh.OptimizeNetgen",1)
+        gmsh.option.setNumber("Mesh.MaxNumThreads2D", Mesher.NumThreads)
         gmsh.option.setNumber("Mesh.MaxNumThreads3D", Mesher.NumThreads)
+
+        # Set to use incomplete 2nd order elements
+        gmsh.option.setNumber('Mesh.SecondOrderIncomplete', 1)
 
         # gmsh.option.setNumber("Mesh.SaveGroupsOfNodes", 1);
         # gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 15);
 
-        gmsh.option.setNumber("Mesh.CharacteristicLengthFromCurvature", 0);
-        gmsh.option.setNumber("Mesh.CharacteristicLengthFromPoints", 1);
-        gmsh.option.setNumber("Mesh.SaveAll", 0);
+        gmsh.option.setNumber("Mesh.CharacteristicLengthFromCurvature", 0)
+        gmsh.option.setNumber("Mesh.CharacteristicLengthFromPoints", 1)
+        gmsh.option.setNumber("Mesh.SaveAll", 0)
 
         # OCC Options
-        gmsh.option.setNumber("Geometry.OCCFixDegenerated", 1);
-        gmsh.option.setString("Geometry.OCCTargetUnit", Mesher.Units);
+        gmsh.option.setNumber("Geometry.OCCFixDegenerated", 1)
+        gmsh.option.setString("Geometry.OCCTargetUnit", Mesher.Units)
 
         # General Options
-        gmsh.option.setString("General.ErrorFileName", 'error.log');
+        gmsh.option.setString("General.ErrorFileName", 'error.log')
         gmsh.option.setNumber("General.Terminal", 1)
 
         ########## Gui Options ############
         gmsh.option.setNumber("General.Antialiasing", 1)
         gmsh.option.setNumber("Geometry.SurfaceType", 2)
+
+        # Discretisation for high-order elements when visualised
+        gmsh.option.setNumber("Mesh.NumSubEdges", 4)
 
         # The following GMSH options do not appear to change anything
         # Import labels is required inorder to correctly reference geometric entities and their associated mesh entities
