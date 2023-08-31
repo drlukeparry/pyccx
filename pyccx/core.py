@@ -29,7 +29,7 @@ class NodeSet(MeshSet):
      """
     def __init__(self, name, nodes):
         super().__init__(name)
-        self._nodes = nodes
+        self._nodes = np.asanyarray(nodes, dtype=np.int64)
 
     @property
     def nodes(self):
@@ -40,11 +40,11 @@ class NodeSet(MeshSet):
 
     @nodes.setter
     def nodes(self, nodes):
-        self._nodes = nodes
+        self._nodes = np.asanyarray(nodes, dtype=np.int64)
 
     def writeInput(self) -> str:
         out = '*NSET,NSET={:s}\n'.format(self.name)
-        out += np.array2string(self.nodes, precision=2, separator=', ', threshold=9999999999)[1:-1]
+        out += np.array2string(self.nodes.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
 
@@ -55,7 +55,7 @@ class ElementSet(MeshSet):
     """
     def __init__(self, name, els):
         super().__init__(name)
-        self._els = els
+        self._els = np.asanyarray(els)
 
     @property
     def els(self):
@@ -65,13 +65,13 @@ class ElementSet(MeshSet):
         return self._els
 
     @els.setter
-    def els(self, elements):
-        self._els = elements
+    def els(self, elements: np.array):
+        self._els = np.asanyarray(elements, dtype=np.int64)
 
     def writeInput(self) -> str:
 
         out = '*ELSET,ELSET={:s}\n'.format(self.name)
-        out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
+        out += np.array2string(self.els.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
 
@@ -84,10 +84,10 @@ class SurfaceSet(MeshSet):
     def __init__(self, name, surfacePairs):
 
         super().__init__(name)
-        self._elSurfacePairs = surfacePairs
+        self._elSurfacePairs = np.asanyarray(surfacePairs, dtype=np.int64)
 
     @property
-    def surfacePairs(self):
+    def surfacePairs(self) -> np.array:
         """
         Elements with the associated face orientations are specified as Nx2 numpy array, with the first column being
         the element Id, and the second column the chosen face orientation
@@ -96,7 +96,7 @@ class SurfaceSet(MeshSet):
 
     @surfacePairs.setter
     def surfacePairs(self, surfacePairs):
-        self._elSurfacePairs = surfacePairs
+        self._elSurfacePairs = np.asanyarray(surfacePairs, dtype=np.int64)
 
     def writeInput(self) -> str:
 
