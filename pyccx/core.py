@@ -75,11 +75,45 @@ class ElementSet(MeshSet):
         return out
 
 
+class SurfaceNodeSet(MeshSet):
+    """
+    A surface-node set set is basic entity for storing element face lists, typically for setting directional fluxes onto
+    surface elements based on the element ordering. The set remains constant without any dynamic referencing
+    to any underlying geometric entities. This approach requires explicitly assigning the list of nodal ids that
+    define the surface.
+    """
+    def __init__(self, name, nodalSet):
+
+        super().__init__(name)
+        self._surfaceNodes = np.asanyarray(nodalSet)
+
+    @property
+    def surfacePairs(self) -> np.array:
+        """
+        Elements with the associated face orientations are specified as Nx2 numpy array, with the first column being
+        the element Id, and the second column the chosen face orientation
+        """
+        return self._elSurfacePairs
+
+    @surfacePairs.setter
+    def surfacePairs(self, surfacePairs):
+        self._elSurfacePairs = np.asanyarray(surfacePairs, dtype=np.int64)
+
+    def writeInput(self) -> str:
+
+        out = '*SURFACE,NAME={:s}, TYPE=NODE\n'.format(self.name)
+
+        for i in range(self._elSurfacePairs.shape[0]):
+            out += '{:d},S{:d}\n'.format(self._elSurfacePairs[i,0], self._elSurfacePairs[i,1])
+
+        #out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
+        return out
+
 class SurfaceSet(MeshSet):
     """
     A surface-set set is basic entity for storing element face lists, typically for setting directional fluxes onto
     surface elements based on the element ordering. The set remains constant without any dynamic referencing
-     to any underlying geometric entities.
+    to any underlying geometric entities.
     """
     def __init__(self, name, surfacePairs):
 
