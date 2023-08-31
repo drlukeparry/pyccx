@@ -552,6 +552,11 @@ class Simulation:
             version = re.search(r"(\d+).(\d+)", stdout)
             return int(version.group(1)), int(version.group(2))
 
+        elif sys.platform == 'darwin':
+            p = subprocess.Popen([self.CALCULIX_PATH, '-v'], stdout=subprocess.PIPE, universal_newlines=True )
+            stdout, stderr = p.communicate()
+            version = re.search(r"(\d+).(\d+)", stdout)
+            return int(version.group(1)), int(version.group(2))
         else:
             raise NotImplemented(' Platform is not currently supported')
 
@@ -613,6 +618,7 @@ class Simulation:
         # Set environment variables for performing multi-threaded
         os.environ["CCX_NPROC_STIFFNESS"] = '{:d}'.format(Simulation.NUMTHREADS)
         os.environ["CCX_NPROC_EQUATION_SOLVER"] = '{:d}'.format(Simulation.NUMTHREADS)
+        os.environ["NUMBER_OF_PROCESSORS"] = '{:d}'.format(Simulation.NUMTHREADS)
         os.environ["OMP_NUM_THREADS"] = '{:d}'.format(Simulation.NUMTHREADS)
 
         print('\n{:=^60}\n'.format(' RUNNING CALCULIX '))
@@ -642,6 +648,26 @@ class Simulation:
             filename = 'input'
 
             cmdSt = ['ccx', '-i', filename]
+
+            popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True)
+
+            if self.VERBOSE_OUTPUT:
+                for stdout_line in iter(popen.stdout.readline, ""):
+                    print(stdout_line, end='')
+
+            popen.stdout.close()
+            return_code = popen.wait()
+            if return_code:
+                raise subprocess.CalledProcessError(return_code, cmdSt)
+
+            # Analysis was completed successfully
+            self._analysisCompleted = True
+
+        elif sys.platform == 'darwin':
+
+            filename = 'input'
+
+            cmdSt = [self.CALCULIX_PATH, '-i', filename]
 
             popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True)
 
