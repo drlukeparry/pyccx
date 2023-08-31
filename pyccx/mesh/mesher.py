@@ -850,9 +850,12 @@ class Mesher:
         if not self._isMeshGenerated:
             raise Exception('Mesh is not generated')
 
-        return gmsh.model.mesh.getNodes(entityId[0], entityId[1], True)[0]
+        nodeIds = gmsh.model.mesh.getNodes(entityId[0], entityId[1], True)[0]
+        nodeIds = np.sort(nodeIds)
 
-    def getNodesByEntityName(self, entityName: str) -> np.ndarray:
+        return nodeIds
+
+    def getNodesByEntityName(self, entityName: str) -> np.array:
         """
         Returns all nodes for a selected surface region
 
@@ -866,9 +869,12 @@ class Mesher:
 
         tagId = self.getIdByEntityName(entityName)
 
-        return gmsh.model.mesh.getNodes(tagId[0], tagId[1], True)[0]
+        nodeIds = gmsh.model.mesh.getNodes(tagId[0], tagId[1], True)[0]
+        nodeIds = np.sort(nodeIds)
 
-    def getNodesFromVolumeByName(self, volumeName: str):
+        return nodeIds
+
+    def getNodesFromVolumeByName(self, volumeName: str) -> np.array:
         """
         Returns all node ids from a selected volume domain in the GMSH model.
 
@@ -902,8 +908,7 @@ class Mesher:
 
         edgeTagId = self.getIdByEdgeName(edgeName)
 
-        return gmsh.model.mesh.getNodes(1, edgeTagId, True)[0]
-
+        return gmsh.model.mesh.getNodes(Ent.Curve, edgeTagId, True)[0]
 
     def getNodesFromSurfaceByName(self, surfaceRegionName: str):
         """
