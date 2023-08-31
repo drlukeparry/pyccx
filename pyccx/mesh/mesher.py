@@ -70,6 +70,7 @@ class Mesher:
         self.geoms = []
         self.surfaceSets = []
         self.edgeSets = []
+        self._meshAssignments = []
 
         self._isMeshGenerated = False
         self._isDirty = False # Flag to indicate model hasn't been generated and is dirty
@@ -158,6 +159,20 @@ class Mesher:
             self._meshAssignments[elType] = elSet
 
         return
+    def identifyUnassignedElements(self):
+
+        self.setAsCurrentModel()
+
+        # Obtain the current list of elements across the entire model
+        elIds = self.getAllPhysicalGroupElements()
+        fndElIds = np.sort(elIds)
+
+        # Concatenate all the list of assigned elements
+        assignedElIds = np.hstack([x for x in self._meshAssignments.values()])
+
+        # Identify the elements that have not been assigned
+        out = fndElIds[np.isin(fndElIds, assignedElIds, invert=True)]
+        return out
     def maxPhysicalGroupId(self, dim: int) -> int:
         """
         Returns the highest physical group id in the GMSH model
@@ -337,6 +352,10 @@ class Mesher:
         self.setAsCurrentModel()
         tags = gmsh.model.getEntities(0)
         return [(x[1]) for x in tags]
+
+    @property
+    def meshAssignments(self):
+        return self._meshAssignments
 
     def mergeGeometry(self) -> None:
         """
