@@ -2,14 +2,14 @@ import numpy as np
 import abc
 import os
 
-from enum import Enum, auto
+from enum import Enum, IntEnum, auto
 from typing import List, Tuple, Type
 
 from ..bc import BoundaryCondition, BoundaryConditionType
 from ..results import Result
 
 
-class LoadCaseType(Enum):
+class LoadCaseType(IntEnum):
     """
     Enum Class specifies the Load Case Type
     """
