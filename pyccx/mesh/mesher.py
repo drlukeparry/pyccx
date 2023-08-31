@@ -159,6 +159,30 @@ class Mesher:
             self._meshAssignments[elType] = elSet
 
         return
+
+    def getAllPhysicalGroupElements(self):
+
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise Exception('Mesh is not generated')
+
+        tags = gmsh.model.getPhysicalGroups()
+        entTags = []
+        for x in tags:
+            eTags = gmsh.model.getEntitiesForPhysicalGroup(x[0], x[1])
+            for eTag in eTags:
+                entTags.append((x[0], eTag))
+
+        elIdList = []
+
+        for eTag in entTags:
+            elIdList.append(self.getElements((eTag[0], eTag[1]))[1])
+
+        elIdList = np.hstack(elIdList)
+
+        return elIdList
+
     def identifyUnassignedElements(self):
 
         self.setAsCurrentModel()
@@ -173,15 +197,23 @@ class Mesher:
         # Identify the elements that have not been assigned
         out = fndElIds[np.isin(fndElIds, assignedElIds, invert=True)]
         return out
+
+
     def maxPhysicalGroupId(self, dim: int) -> int:
         """
         Returns the highest physical group id in the GMSH model
 
         :param dim: int: The chosen dimension
-        :return: int: The highest group id used
+        :return: int: The highest group id used for the chosen dimension
         """
         self.setAsCurrentModel()
-        return np.max([x[1] for x in gmsh.model.getPhysicalGroups(dim)])
+
+        physicalGroups = gmsh.model.getPhysicalGroups(dim)
+
+        if len(physicalGroups) > 0:
+            return np.max([x[1] for x in gmsh.model.getPhysicalGroups(dim)])
+        else:
+            return 0
 
     def getVolumeName(self, volId: int) -> str:
         """
