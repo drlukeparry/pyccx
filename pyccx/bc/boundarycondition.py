@@ -447,6 +447,6 @@ class Force(BoundaryCondition):
 
         for i in range(3):
             compMag = self.mag * self.dir[i]
-            bCondStr += '{:s},{:d}\n'.format(nodesetName, i, compMag)
+            bCondStr += '{:s},{:d}\n'.format(nodesetName, i+1, compMag)
 
         return bCondStr
