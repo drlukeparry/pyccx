@@ -1020,17 +1020,51 @@ class Mesher:
 
         logging.info('Generating GMSH \n')
 
-        gmsh.model.mesh.generate(1)
-        gmsh.model.mesh.generate(2)
+        gmsh.model.mesh.generate(Ent.Curve)
 
-        try:
-            gmsh.model.mesh.generate(3)
-        except:
-            print('Meshing Failed \n')
+        gmsh.option.setNumber("Mesh.Algorithm", self._meshingAlgorithm2D)
+        gmsh.model.mesh.generate(Ent.Surface)
+
+        if generate3DMesh:
+
+            try:
+
+                gmsh.option.setNumber("Mesh.Algorithm", self._meshingAlgorithm3D)
+                gmsh.model.mesh.generate(Ent.Volume)
+            except:
+                logging.error('Meshing Failed \n')
 
         self._isMeshGenerated = True
         self._isDirty = False
 
+        elTypeIds= self.getElementTypes()
+        self._meshAssignments = {}
+
+    def getElementTypes(self):
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            logging.error('Mesh is not generated')
+            return {}
+
+        eType, elIds, nIds = gmsh.model.mesh.getElements()
+        elTypeIds = {} #np.zeros_like(np.hstack(elIds))
+
+        for et, eids in zip(eType, elIds):
+            for eid in eids:
+                elTypeIds[int(eid)-1] = et
+
+        return elTypeIds
+
+    def getNumberElements(self):
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            logging.error('Mesh is not generated')
+            return
+
+        eType, elIds, nIds = gmsh.model.mesh.getElements()
+        return len(np.hstack(np.hstack(elIds)).ravel())
 
     def setRecombineSurfaces(self, surfId, angle = 45):
         """
