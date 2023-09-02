@@ -497,7 +497,7 @@ class Simulation:
         The results obtained after running an analysis
          """
         if self.isAnalysisCompleted():
-            return ResultProcessor('input')
+            return ResultProcessor(os.path.join(self._workingDirectory, 'input'))
         else:
             raise ValueError('Results were not available')
 
