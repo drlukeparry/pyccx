@@ -74,11 +74,11 @@ class BaseElementType(ABC):
                   'faces': [[1, 2, 3], [1, 4, 2], [2, 4, 3], [3, 4, 1]],
                   'elementType': ElementTypes.Volume
                   },
-        'HEX8':  {'id': 5, 'name': 'C3D4', 'nodes': 8, 'order': 1, 'family': ElementFamilies.Hex,
+        'HEX8':  {'id': 5, 'name': 'C3D8', 'nodes': 8, 'order': 1, 'family': ElementFamilies.Hex,
                   'faces': [[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]],
                   'elementType': ElementTypes.Volume
                   },
-        'HEX8R': {'id': 5, 'name': 'C3D8I', 'nodes': 8, 'order': 1, 'family': ElementFamilies.Hex,
+        'HEX8R': {'id': 5, 'name': 'C3D8R', 'nodes': 8, 'order': 1, 'family': ElementFamilies.Hex,
                    'faces': [[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]],
                    'elementType': ElementTypes.Volume
                   },
