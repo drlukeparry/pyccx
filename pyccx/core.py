@@ -4,7 +4,6 @@ from typing import Any, List, Optional, Tuple
 import numpy as np
 
 
-
 class MeshSet:
     """
     The Mesh set is a basic entity for storing node and element set lists that are used for creating sets across
@@ -29,7 +28,7 @@ class NodeSet(MeshSet):
      """
     def __init__(self, name, nodes):
         super().__init__(name)
-        self._nodes = np.asanyarray(nodes, dtype=np.int64)
+        self._nodes = np.unique(np.asanyarray(nodes, dtype=np.int64))
 
     @property
     def nodes(self):
@@ -40,10 +39,10 @@ class NodeSet(MeshSet):
 
     @nodes.setter
     def nodes(self, nodes):
-        self._nodes = np.asanyarray(nodes, dtype=np.int64)
+        self._nodes = np.unique(np.asanyarray(nodes, dtype=np.int64))
 
     def writeInput(self) -> str:
-        out = '*NSET,NSET={:s}\n'.format(self.name)
+        out = '*NSET, NSET={:s}\n'.format(self.name)
         out += np.array2string(self.nodes.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
@@ -55,7 +54,7 @@ class ElementSet(MeshSet):
     """
     def __init__(self, name, els):
         super().__init__(name)
-        self._els = np.asanyarray(els)
+        self._els = np.unique(np.asanyarray(els))
 
     @property
     def els(self):
@@ -66,7 +65,7 @@ class ElementSet(MeshSet):
 
     @els.setter
     def els(self, elements: np.array):
-        self._els = np.asanyarray(elements, dtype=np.int64)
+        self._els = np.unique(np.asanyarray(elements, dtype=np.int64))
 
     def writeInput(self) -> str:
 
