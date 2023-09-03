@@ -949,7 +949,8 @@ class Mesher:
 
         return mask
 
-    def writeMesh(self):
+    def getFacesFromId(self, surfIds):
+    def writeMeshInput(self):
         """
         Generates the current mesh format as an abaqus (cal2culix) .inp representation format
 
@@ -959,8 +960,8 @@ class Mesher:
 
         self.setAsCurrentModel()
 
-        txt = ''
-
+        txt  = '*Heading\n'
+        txt += 'mesh.inp\n'
         txt += '*node\n'
 
         nodeVals = gmsh.model.mesh.getNodes()
@@ -972,7 +973,7 @@ class Mesher:
 
         for nid, nCoords in zip(nids, nodeCoords):
             ncoords = nodeCoords[int(nid) - 1]
-            txt += "{:d}, {:.7f}, {:.7f}, {:.7f}/n".format(nid, *ncoords)
+            txt += "{:d}, {:.7f}, {:.7f}, {:.7f}\n".format(nid, *ncoords)
 
         # Obtain the surface-element physical groups and their associative element ids
         surfPhysicalGrps = gmsh.model.getPhysicalGroups(Ent.Surface)
@@ -1012,16 +1013,21 @@ class Mesher:
                         typeIdx[elId] = elTyp
                         elNodeIdx[elId] = elNodes
 
+        txt += "******* E L E M E N T S ************* \n"
         for elTyp, elIds in self._meshAssignments.items():
 
-            txt += "*ELEMENT, type = {:s}, ELSET = Surface1\n".format(elTyp.name)
+            txt += "*ELEMENT, TYPE = {:s}, ELSET = Surface1\n".format(elTyp.name)
 
             for elId in elIds:
                 if elTyp.id != typeIdx[elId]:
                     raise Exception('Incompatible elements selected (id: {:d} - {:s})'.format(elId, elTyp.name))
-                txt += "{:d} ".format(elId) + str(elNodeIdx[elId])[1:-1] + "\n"
+
+                elLine = np.hstack([elId, elNodeIdx[elId].ravel()]).astype(np.int64)
+                txt += np.array2string(elLine, precision=0, separator=', ', threshold=9999999999)[1:-1] + "\n"
+                #txt +=  + str(elNodeIdx[elId])[1:-1] + "\n"
 
         return txt
+
 
     def getSurfaceFacesFromSurfId(self, surfTagId):
 
