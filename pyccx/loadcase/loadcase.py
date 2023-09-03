@@ -213,7 +213,13 @@ class LoadCase:
     def writeInput(self) -> str:
 
         outStr  = '{:*^64}\n'.format(' LOAD CASE ({:s}) '.format(self.name))
-        outStr += '*STEP\n'
+        outStr += '*STEP'
+
+        if self._isNonlinear:
+            outStr += ', NLGEOM=YES'
+
+        outStr += '\n'
+
         # Write the thermal analysis loadstep
 
         if self._loadCaseType == LoadCaseType.STATIC:
@@ -227,9 +233,6 @@ class LoadCase:
 
         if self._isSteadyState:
             outStr += ', STEADY STATE'
-
-        if self._isNonlinear:
-            outStr += ', NLGEOM'
 
         if self._automaticIncrements:
             outStr += ', DIRECT'
