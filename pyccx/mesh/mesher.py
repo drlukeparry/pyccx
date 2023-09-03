@@ -654,7 +654,7 @@ class Mesher:
 
         self.setAsCurrentModel()
 
-        tags = gmsh.model.getPhysicalGroups(1)
+        tags = gmsh.model.getPhysicalGroups(Ent.Curve)
 
         for tag in tags:
             # Remove all tri group surfaces
@@ -667,9 +667,10 @@ class Mesher:
         """
         Removes surface meshes (2D mesh entities) from the GMSH model
         """
+
         self.setAsCurrentModel()
 
-        tags = gmsh.model.getPhysicalGroups(2)
+        tags = gmsh.model.getPhysicalGroups(Ent.Surface)
 
         for tag in tags:
             # Remove all tri group surfaces
@@ -687,6 +688,7 @@ class Mesher:
         :return: list(int) - List of Point Ids
         """
         self.setAsCurrentModel()
+
         pnts = gmsh.model.getBoundary([(Ent.Volume, id)], recursive=True)
         return [x[1] for x in pnts]
 
@@ -709,6 +711,7 @@ class Mesher:
         :return: List of Ids
         """
         self.setAsCurrentModel()
+
         entities = gmsh.model.getBoundary([id], recursive=False)
         return [x[1] for x in entities]
 
@@ -786,7 +789,6 @@ class Mesher:
             # Return all the elements in the model
             result = gmsh.model.mesh.getElements()
 
-
         if merge:
             return np.hstack(result[1]).ravel()
         else:
@@ -797,6 +799,7 @@ class Mesher:
     def getElements(self, entityId: Tuple[int,int] = None):
         """
         Returns the elements for the entire model or optionally a specific entity.
+
         :param entityId: The entity id to obtain elements for
         :return: A Tuple of  element types, element ids and corresponding node ids
         """
@@ -841,8 +844,8 @@ class Mesher:
         """
         Returns all node ids from a selected entity in the GMSH model.
 
-        :param entityId:  int : Volume name
-        :return:
+        :param entityId: The selected geometric entity id
+        :return: The node ids for the selected entity
         """
 
         self.setAsCurrentModel()
@@ -860,7 +863,7 @@ class Mesher:
         Returns all nodes for a selected surface region
 
         :param entityName: The geometric surface name
-        :return: Node Ids
+        :return: The list of node ids associated with the selected entity id
         """
         self.setAsCurrentModel()
 
@@ -878,8 +881,8 @@ class Mesher:
         """
         Returns all node ids from a selected volume domain in the GMSH model.
 
-        :param volumeName:  Volume name
-        :return:
+        :param volumeName: Volume name
+        :return: The list of node ids associated with the selected entity id
         """
 
         self.setAsCurrentModel()
@@ -899,7 +902,7 @@ class Mesher:
         Returns all nodes from a geometric edge
 
         :param edgeName: The geometric edge name
-        :return:
+        :return: The list of node ids associated with the selected entity id
         """
         self.setAsCurrentModel()
 
@@ -915,18 +918,19 @@ class Mesher:
         Returns all nodes for a selected surface region
 
         :param surfaceRegionName: The geometric surface name
-        :return:
+        :return: The list of node ids associated with the selected entity id
         """
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
-            raise ValueError('Mesh is not generated')
+            raise Exception('Mesh is not generated')
 
         surfTagId = self.getIdBySurfaceName(surfaceRegionName)
 
         return gmsh.model.mesh.getNodes(Ent.Surface, surfTagId, True)[0]
 
     def getSurfaceFacesFromRegion(self, regionName):
+
         self.setAsCurrentModel()
 
         surfTagId = self.getIdBySurfaceName(regionName)
@@ -1097,7 +1101,7 @@ class Mesher:
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
-            raise ValueError('Mesh is not generated')
+            raise Exception('Mesh is not generated')
 
         gmsh.model.mesh.renumberNodes()
         self.setModelChanged()
@@ -1109,7 +1113,7 @@ class Mesher:
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
-            raise ValueError('Mesh is not generated')
+            raise Exception('Mesh is not generated')
 
         gmsh.model.mesh.renumberElements()
         self.setModelChanged()
@@ -1123,7 +1127,7 @@ class Mesher:
 
     def generateMesh(self, generate3DMesh = True) -> None:
         """
-        Initialises the GMSH Meshing Proceedure
+        Initialises the GMSH Meshing Procedure
 
         :param generate3DMesh: Generates the 3D Mesh -
         """
@@ -1146,16 +1150,18 @@ class Mesher:
 
                 gmsh.option.setNumber("Mesh.Algorithm", self._meshingAlgorithm3D)
                 gmsh.model.mesh.generate(Ent.Volume)
+
             except:
                 logging.error('Meshing Failed \n')
 
         self._isMeshGenerated = True
         self._isDirty = False
 
-        elTypeIds= self.getElementTypes()
+        elTypeIds = self.getElementTypes()
         self._meshAssignments = {}
 
     def getElementTypes(self):
+
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
@@ -1171,15 +1177,25 @@ class Mesher:
 
         return elTypeIds
 
-    def getNumberElements(self):
+    def getNumberElements(self, physicalGroupsOnly = True):
+        """
+        The number of elements in the mesh
+
+        :param physicalGroupsOnly: If `True`` mesh number consists only physical grups - default is `True`
+        :return:
+        """
         self.setAsCurrentModel()
 
         if not self._isMeshGenerated:
             logging.error('Mesh is not generated')
             return
 
-        eType, elIds, nIds = gmsh.model.mesh.getElements()
-        return len(np.hstack(np.hstack(elIds)).ravel())
+        if physicalGroupsOnly:
+            return len(self.getAllPhysicalGroupElements())
+        else:
+
+            eType, elIds, nIds = gmsh.model.mesh.getElements()
+            return len(np.hstack(np.hstack(elIds)).ravel())
 
     def setRecombineSurfaces(self, surfId, angle = 45):
         """
@@ -1237,7 +1253,11 @@ class Mesher:
 
         if self.isMeshGenerated():
             self.setAsCurrentModel()
-            gmsh.write(filename)
+
+            with open(filename, 'w') as f:
+
+                out = self.writeMeshInput()
+                f.write(out)
         else:
             raise ValueError('Mesh has not been generated before writing the file')
 
