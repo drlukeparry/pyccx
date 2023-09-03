@@ -1,10 +1,13 @@
-import re  # used to get info from frd file
+import re
 import os
 import sys
-import subprocess  # used to check ccx version
+import subprocess
+import logging
+
 from enum import Enum, IntEnum, auto
 from typing import List, Tuple, Type
-import logging
+
+import numpy as np
 
 from ..bc import BoundaryCondition
 from ..core import MeshSet, ElementSet, SurfaceSet, NodeSet, Connector
@@ -597,6 +600,93 @@ class Simulation:
         except:
             pass
 
+    def monitor(self, filename):
+
+        # load the .sta file for convegence monitoring
+
+        staFilename = '{:s}.sta'.format(filename)
+
+        """
+        Note:
+        Format of each row in the .sta file corresponds with
+        
+        0 STEP
+        1 INC
+        2 ATT
+        3 ITRS
+        4 TOT TIME
+        5 STEP TIME
+        6 INC TIME
+        """
+        with open(staFilename, 'r') as f:
+
+            # check the first two lines of the .sta file are correct
+            line1 = f.readline()
+            line2 = f.readline()
+
+            if not('SUMMARY OF JOB INFORMATION' in line1 and
+                   'STEP' in line2):
+                raise Exception('Invalid .sta file generated')
+
+            line = f.readline()
+
+            convergenceOutput = []
+
+            while line:
+                out = re.search('\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)*', line)
+
+                if out:
+                    out = [float(val) for val in out.groups()]
+                    convergenceOutput.append(out)
+
+                line = f.readline()
+
+        convergenceOutput = np.array(convergenceOutput)
+
+        cvgFilename = '{:s}.cvg'.format(filename)
+
+        """
+        Note:
+        
+        Format of the CVF format consists of the following parameters
+        0 STEP
+        1 INC
+        2 ATT
+        3 ITER
+        4 CONT EL
+        5 RESID FORCE
+        6 CORR DISP
+        7 RESID FLUX
+        8 CORR TEMP
+        """
+        with open(cvgFilename, 'r') as f:
+
+            # check the first two lines of the .sta file are correct
+            line1 = f.readline()
+            line2 = f.readline()
+            line3 = f.readline()
+            line4 = f.readline()
+
+            if not ('SUMMARY OF C0NVERGENCE INFORMATION' in line1 and
+                    'STEP' in line2):
+                raise Exception('Invalid .cvg file generated')
+
+            line = f.readline()
+
+            convergenceOutput2 = []
+
+            while line:
+                out = re.search('\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)*', line)
+
+                if out:
+                    out = [float(val) for val in out.groups()]
+                    convergenceOutput2.append(out)
+
+                line = f.readline()
+
+            convergenceOutput2 = np.array(convergenceOutput2)
+
+        return convergenceOutput, convergenceOutput2
     def run(self):
         """
         Performs pre-analysis checks on the model and submits the job for Calculix to perform.
