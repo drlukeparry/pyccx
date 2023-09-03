@@ -1,10 +1,10 @@
 import abc
 import re
 import os
+import logging
+import numpy as np
 
 from ..core import ElementSet, NodeSet
-
-import numpy as np
 
 
 class Result(abc.ABC):
@@ -12,10 +12,18 @@ class Result(abc.ABC):
     Base Class for all Calculix Results
     """
     def __init__(self):
-        self.frequency = 1
+        self._frequency = 1
 
-    def setFrequency(self, freq):
-        self.frequency = freq
+    @property
+    def frequency(self):
+        """
+        The frequency for storing results sections in Calculix
+        """
+        return self._frequency
+
+    @frequency.setter
+    def frequency(self, frequency: int):
+        self._frequency = frequency
 
     @abc.abstractmethod
     def writeInput(self):
@@ -56,7 +64,8 @@ class NodalResult(Result):
         if isinstance(self.nodeSet, str) and self.nodeSet != '':
             inputStr += 'NSET={:s}, '.format(self.nodeSet)
 
-        inputStr += 'FREQUENCY={:d}\n'.format(self.frequency)
+        if isinstance(self.nodeSet, NodeSet):
+        inputStr += 'FREQUENCY={:d}\n'.format(self._frequency)
 
         if self.useNodalDisplacements:
             inputStr += 'U\n'
@@ -72,7 +81,7 @@ class NodalResult(Result):
         return inputStr
 
     def writeElementInput(self):
-        str = '*EL FILE, NSET={:s}, FREQUENCY={:d}\n'.format(self._nodeSet.name, self.frequency)
+        str = '*EL FILE, NSET={:s}, FREQUENCY={:d}\n'.format(self._nodeSet.name, self._frequency)
 
         if self.useCauchyStress:
             str += 'S\n'
@@ -112,7 +121,7 @@ class ElementResult(Result):
 
     def writeInput(self):
         str = ''
-        str += '*EL PRINT, ELSET={:s}, FREQUENCY={:d}\n'.format(self._elSet.name, self.frequency)
+        str += '*EL PRINT, ELSET={:s}, FREQUENCY={:d}\n'.format(self._elSet.name, self._frequency)
 
         if self.useCauchyStress:
             str += 'S\n'
