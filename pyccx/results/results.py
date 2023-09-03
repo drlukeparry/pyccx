@@ -497,21 +497,32 @@ class ResultProcessor:
 
                 # Store the element stress results across all integration quadrature points
                 inc, increment = self.findIncrementByTime(incTime)
-                self.increments[inc]['elStress'].append(self.readElStress(line, rfstr, incTime))
+                mode = 'elStress'
+
             elif 'heat flux' in line:
                 arr = self.readElResultBlock(infile, line)
                 line, mode, rfstr, incTime = arr
 
-                print(incTime)
-                print(self.increments)
                 # store the heatlufx results
                 inc, increment = self.findIncrementByTime(incTime)
 
                 mode = 'elHeatFlux'
                 self.increments[inc][mode] = []
 
-            if mode and inc > -1:
-                self.increments[inc][mode].append(self.readElFlux(line, rfstr, incTime))
+                if mode and inc > -1:
+                    self.increments[inc][mode].append(self.readElFlux(line, rfstr, incTime))
+
+            # set mode to none if we hit the end of a resuls block
+            if line.isspace():
+                mode = None
+
+            if not mode:
+                continue
+
+            if mode == 'elStress':
+                self.increments[inc]['elStress'].append(self.readElStress(line, rfstr, incTime))
+            elif mode == 'elHeatFlux':
+                self.increments[inc]['elHeatFlux'].append(self.readElFlux(line, rfstr, incTime))
 
         for inc in self.increments.values():
 
