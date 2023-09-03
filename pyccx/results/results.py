@@ -65,6 +65,8 @@ class NodalResult(Result):
             inputStr += 'NSET={:s}, '.format(self.nodeSet)
 
         if isinstance(self.nodeSet, NodeSet):
+            inputStr += 'NSET={:s}, '.format(self.nodeSet.name)
+
         inputStr += 'FREQUENCY={:d}\n'.format(self._frequency)
 
         if self.useNodalDisplacements:
@@ -85,6 +87,7 @@ class NodalResult(Result):
 
         if self.useCauchyStress:
             str += 'S\n'
+
         if self.useNodalStrain:
             str += 'E\n'
 
@@ -155,7 +158,8 @@ class ResultProcessor:
     def lastIncrement(self):
         """
         Returns the last increment of the Calculix results file
-        :return:
+
+        :return: The last increment of the Calculix results file
         """
 
         idx = sorted(list(self.increments.keys()))[-1]
@@ -177,8 +181,8 @@ class ResultProcessor:
         https://github.com/spacether/pycalculix
 
         :param fstr: C format string, commas separate fields
-        :param line: str: line string to parse
-        :return:  list: List of typed items extracted from the line
+        :param line: line string to parse
+        :return:  List of typed items extracted from the line
         """
 
         res = []
@@ -220,6 +224,7 @@ class ResultProcessor:
                             substr = thestr[:width]
                             thestr = thestr[width:]
                             substr = substr.strip()  # remove space padding
+
                             if ctype == 'I':
                                 substr = int(substr)
                             elif ctype == 'E':
@@ -280,8 +285,8 @@ class ResultProcessor:
 
 
     def readElResultBlock(self, infile, line):
-
         """Returns an array of line, mode, rfstr, time"""
+
         words = line.strip().split()
         # add time if not present
         time = float(words[-1])
@@ -295,8 +300,10 @@ class ResultProcessor:
         return [line, mode, rfstr, time]
 
     def readNodalResultsBlock(self, infile):
+        """
+        Returns an array of line, mode, rfstr, time
+        """
 
-        """Returns an array of line, mode, rfstr, time"""
         line = infile.readline()
         fstr = "1X,' 100','C',6A1,E12.5,I12,20A1,I2,I5,10A1,I2"
         tmp = self._getVals(fstr, line)
@@ -333,7 +340,7 @@ class ResultProcessor:
         """
 
         infile = open('{:s}.frd'.format(self.jobName), 'r')
-        print('Loading nodal results from file: ' + self.jobName)
+        logging.info('Loading nodal results from file: {:s}.frd'.format(self.jobName))
 
         mode = None
         time = 0.0
@@ -378,6 +385,9 @@ class ResultProcessor:
 
         infile.close()
 
+        """ 
+        Read the element post-processing file
+        """
         self.readDat()
 
         # Process the nodal blocks
@@ -388,33 +398,34 @@ class ResultProcessor:
             inc['force'] = self.orderNodes(np.array(inc['force']))
             inc['temp'] = self.orderNodes(np.array(inc['temp']))
 
-        print('The following times have been read:')
-        print(len(self.increments))
+        logging.info('Results Processor: The following times have been read:')
+        timeIncrements = [val['time'] for val in self.increments.values()]
+        logging.info(', '.join([str(time) for time in timeIncrements]))
 
     @staticmethod
     def orderNodes(nodeVals):
         if nodeVals.size == 0:
             return nodeVals
 
-        return nodeVals[nodeVals[:, 0].argsort(), :]
+        return nodeVals[np.argsort(nodeVals[:, 0]), :]
 
     @staticmethod
     def orderElements(elVals):
         if elVals.size == 0:
             return elVals
 
-        return elVals[elVals[:, 0].argsort(), :]
+        return elVals[np.argsort(elVals[:, 0]), :]
 
     def readDat(self):
 
         fname = '{:s}.dat'.format(self.jobName)
 
         if not os.path.isfile(fname):
-            print('Error: %s file not found' % fname)
+            raise Exception('Error: %s file not found' % fname)
             return
 
         infile = open(fname, 'r')
-        print('Loading element results from file: ' + fname)
+        logging.info('Loading element results from file: {:s}'.format(fname))
 
         mode = None
         rfstr = ''
@@ -435,7 +446,7 @@ class ResultProcessor:
                 arr = self.readElResultBlock(infile, line)
                 line, mode, rfstr, incTime = arr
 
-                # store stress results
+                # Store the element stress results across all integration quadrature points
                 inc, increment = self.findIncrementByTime(incTime)
                 self.increments[inc]['elStress'].append(self.readElStress(line, rfstr, incTime))
             elif 'heat flux' in line:
