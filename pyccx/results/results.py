@@ -153,7 +153,24 @@ class ResultProcessor:
         self.increments = {}
         self.jobName = jobName
 
-        print('Reading file {:s}'.format(jobName))
+        self._elements = None
+        self._nodes = None
+
+        logging.info('Reading file {:s}'.format(jobName))
+
+    @property
+    def nodes(self):
+        """
+        Nodes identified in the Calculix results file
+        """
+        return self._nodes
+
+    @property
+    def elements(self):
+        """
+        Elements identified in the Calculix results file
+        """
+        return self._elements
 
     def lastIncrement(self):
         """
@@ -351,15 +368,47 @@ class ResultProcessor:
             if not line:
                 break
 
+            if '2C' in line:
+                # Read nodal coordinates
+                reSearch = re.search('\s+2C\s+(\d+)', line)
+                numNodes = int(reSearch.group(1))
+
+                nodes = []
+                for i in range(numNodes):
+                    line = infile.readline()
+                    nid, x, y, z = self._getVals("1X,I2,I10,6E12.5", line)[1:]
+                    nodes.append([nid, x, y, z])
+
+                self._nodes = np.array(nodes)
+
+            if '3C' in line:
+                # Read elemental coordinates
+                reSearch = re.search('\s+3C\s+(\d+)', line)
+                numElements = int(reSearch[1])
+
+                elements = []
+                for i in range(numElements):
+                    line = infile.readline()
+                    eId, eType, eGrp, eMat = self._getVals("1X,'-1',5A1,4I5", line)[2:]
+
+                    line = infile.readline()
+                    elIds = self._getVals("1X,'-2',20I10", line)[1:]
+
+                    elements.append([eId, eType] + elIds)
+
+                self._elements = elements
+
             # set the results mode
             if '1PSTEP' in line:
                 # we are in a results block
                 arr = self.readNodalResultsBlock(infile)
                 line, mode, rfstr, time, inc = arr
                 inc = int(inc)
+
                 if inc not in self.increments.keys():
                     self.increments[inc] = {'time'  : time,
                                             'disp'  : [],
+                                            'elStress': [],
                                             'stress': [],
                                             'strain': [],
                                             'force' : [],
