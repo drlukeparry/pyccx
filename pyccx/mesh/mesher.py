@@ -950,6 +950,25 @@ class Mesher:
         return mask
 
     def getFacesFromId(self, surfIds):
+
+        self.setAsCurrentModel()
+
+        if not isinstance(surfIds, list):
+            surfId = [surfIds]
+
+        faceNodeList = {3:[], 4:[]}
+        for surfId in surfIds:
+            modelEls = self.getElements((Ent.Surface, surfId))
+            for elType in modelEls[0]:
+
+                gmsh.model.mesh.getElementProperties(16)
+
+                faceNodes = gmsh.model.mesh.getElementFaceNodes(elType, 3, surfId, primary=True).reshape(-1, 3)
+                faceNodeList[3].append(faceNodes)
+                faceNodes = gmsh.model.mesh.getElementFaceNodes(elType, 4, surfId, primary=True).reshape(-1, 4)
+                faceNodeList[4].append(faceNodes)
+
+
     def writeMeshInput(self):
         """
         Generates the current mesh format as an abaqus (cal2culix) .inp representation format
