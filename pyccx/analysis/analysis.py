@@ -567,8 +567,11 @@ class Simulation:
         """
         The results obtained after running an analysis
          """
+
+        workingResultsPath = os.path.join(self._workingDirectory,'input')
+
         if self.isAnalysisCompleted():
-            return ResultProcessor('input')
+            return ResultProcessor(workingResultsPath)
         else:
             raise ValueError('Results were not available')
 
