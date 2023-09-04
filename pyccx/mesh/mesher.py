@@ -41,6 +41,12 @@ class MeshingAlgorithm3D(IntEnum):
     def has_value(cls, value):
         return value in cls._value2member_map_
 
+class RecombinationAlgorithm(IntEnum):
+    SIMPLE = 0
+    BLOSSOM = 1
+    SIMPLE_QUAD = 2
+    BLOSSOM_QUAD = 3
+
 class Mesher:
     """
     The Mesher class provides the base interface built upon the GMSH-SDK API operations. It provides the capability
@@ -76,6 +82,7 @@ class Mesher:
         self._isDirty = False # Flag to indicate model hasn't been generated and is dirty
         self._isGeometryDirty = False
 
+        self._recombinationAlgorithm = RecombinationAlgorithm.BLOSSOM
         self._meshingAlgorithm2D = MeshingAlgorithm2D.DELAUNAY
         self._meshingAlgorithm3D = MeshingAlgorithm3D.DELAUNAY
 
@@ -511,6 +518,19 @@ class Mesher:
         self._meshingAlgorithm2D = meshingAlgorithm
         self.setModelChanged()
 
+
+    def setRecombinationAlgorithm(self, recombinationAlgorithm: RecombinationAlgorithm) -> None:
+        """
+        Sets the recombination algorithm to use by GMSH for the model
+
+        :param recombinationAlgorithm: The selected recombination algorithm for use
+        """
+
+        # The meshing algorithm is applied before generation, as this may be model specific
+        self._recombinationAlgorithm = recombinationAlgorithm
+
+        self.setModelChanged()
+
     ## Class Methods
     @classmethod
     def setUnits(cls, unitVal):
@@ -599,6 +619,7 @@ class Mesher:
         # Mesh.Algorithm3
         # Default value: 1#
         gmsh.option.setNumber("Mesh.Algorithm", MeshingAlgorithm3D.FRONTAL_DELAUNAY)
+        gmsh.option.setNumber("Mesh.RecombinationAlgorithm", RecombinationAlgorithm.BLOSSOM)
         #        gmsh.option.setNumber("Mesh.Algorithm3D", 10);
 
         gmsh.option.setNumber("Mesh.ElementOrder", Mesher.ElementOrder)
@@ -1243,6 +1264,8 @@ class Mesher:
         Recombines the surface mesh - between triangles and quadrilaterals using the specified recombination algorithm.
         """
         self.setAsCurrentModel()
+
+        gmsh.option.setNumber("Mesh.RecombinationAlgorithm", self._recombinationAlgorithm)
 
         if not self._isMeshGenerated:
             logging.error('Mesh is not generated')
