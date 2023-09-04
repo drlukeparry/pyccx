@@ -3,6 +3,18 @@ from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
+class ModelObject:
+
+    def __init__(self, name):
+        self._name = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        self._name = name
 
 class MeshSet:
     """
@@ -46,6 +58,37 @@ class NodeSet(MeshSet):
         out += np.array2string(self.nodes.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
+class Amplitude(ModelObject):
+
+    def __init__(self, name, profile):
+
+        super().__init__(name)
+
+        self.profile = profile
+
+    @property
+    def profile(self):
+        return self._profile
+
+    @profile.setter
+    def profile(self, profile):
+
+        profile = np.asanyarray(profile)
+
+        if not (profile.ndim == 2 and profile.shape[1] == 2):
+            raise ValueError('Invalid profile passed to Amplitude')
+
+        self._profile = profile
+
+    def writeInput(self) -> str:
+
+        out = '*AMPLITUDE, NAME={:s}\n'.format(self.name)
+
+        for row in self.profile:
+            time, amplitude = row
+            out += '{:.5f}, {:.5f}\n'.format(time, amplitude)
+
+        return out
 
 class ElementSet(MeshSet):
     """
