@@ -206,6 +206,10 @@ class TRI3(BaseElementType):
     """ 1st order Tri Planar Stress Element (CPS4) """
     Type = 'TRI3'
 
+class TRI6(BaseElementType):
+    """ 1st order Tri Planar Stress Element (CPS4) """
+    Type = 'TRI6'
+
 class QUAD4(BaseElementType):
     """ 1st order Quad Planar Stress Element (CPS4) """
     Type = 'QUAD4'
@@ -239,7 +243,7 @@ def elementTypes():
     Returns the list of available element types available
     :return:
     """
-    availableElementTypes = [NODE, BEAM2, BEAM3, TET10, HEX8, HEX20, HEX8R, SHELL3, SHELL4, SHELL8]
+    availableElementTypes = [NODE, BEAM2, BEAM3, TRI3, TRI6, TET4, TET10, HEX8, HEX20, HEX8R, SHELL3, SHELL4, SHELL8, WEDGE6]
 
     return availableElementTypes
 
