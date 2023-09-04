@@ -187,41 +187,126 @@ class NodalResult(Result):
 
 
 class ElementResult(Result):
+    """
+
+    Including this object will inform Calcuix to save the elemental integration properties to the file (.dat) for
+    the selected ElementSet.
+
+    """
     def __init__(self, elSet: ElementSet):
 
+        if not (isinstance(elSet, ElementSet) or isinstance(elSet, str)):
+            raise TypeError('ElementResult must be initialized with an ElementSet object or string')
+
         self._elSet = elSet
-        self.useElasticStrain = False
-        self.useCauchyStress = False
-        self.useHeatFlux = False
-        self.useESE = False
+        self._strain = False
+        self._mechanicalStrain = False
+        self._cauchyStress = False
+        self._plasticStrain = False
+        self._heatFlux = False
+        self._ESE = False
 
         super().__init__()
+
+    @property
+    def plasticStrain(self) -> bool:
+        """ The equivalent plastic strain"""
+        return self._plasticStrain
+
+    @plasticStrain.setter
+    def plasticStrain(self, state: bool):
+        self._plasticStrain = state
+
+    @property
+    def strain(self) -> bool:
+        """
+        The total Lagrangian strain for (hyper)elastic materials and incremental plasticity
+        and the total Eulerian strain for deformation plasticity."""
+        return self._strain
+
+    @strain.setter
+    def strain(self, state: bool ):
+        self._strain = state
+
+    @property
+    def mechanicalStrain(self) -> bool:
+        """
+        This is the mechanical Lagrangian strain for (hyper)elastic materials and incremental plasticity and the
+        mechanical Eulerian strain for deformation plasticity (mechanical strain = total strain - thermal strain)."""
+        return self._mechanicalStrain
+
+    @mechanicalStrain.setter
+    def mechanicalStrain(self, state: bool):
+        self._mechanicalStrain = state
+
+    @property
+    def ESE(self) -> bool:
+        """ """
+        return self._ESE
+
+    @ESE.setter
+    def ESE(self, state: bool):
+        """ The internal energy per unit volume """
+        self._ESE = state
+
+    @property
+    def heatFlux(self) -> bool:
+        """ Include heat flux in the output """
+        return self._heatFlux
+
+    @heatFlux.setter
+    def heatFlux(self, state):
+        self._heatFlux = state
+
+    @property
+    def cauchyStress(self) -> bool:
+        """ Include cauchy stress components in the output """
+        return self._cauchyStress
+
+    @cauchyStress.setter
+    def cauchyStress(self, state):
+        self._cauchyStress = state
 
     @property
     def elementSet(self) -> ElementSet:
         """
         The elementset to obtain values for post-processing.
         """
+
         return self._elSet
 
     @elementSet.setter
     def elementSet(self, elSet: ElementSet):
+
+        if not (isinstance(elSet, NodeSet) or isinstance(elSet, str)):
+            raise TypeError('ElementResult must be initialized with a NodeSet object or name of set')
+
         self._elSet = elSet
 
     def writeInput(self):
-        str = ''
-        str += '*EL PRINT, ELSET={:s}, FREQUENCY={:d}\n'.format(self._elSet.name, self._frequency)
 
-        if self.useCauchyStress:
+        str = ''
+
+        elName = self._elSet.name if isinstance(self._elSet, ElementSet) else self._elSet
+
+        str += '*EL PRINT, ELSET={:s}, FREQUENCY={:d}\n'.format(elName, self._frequency)
+
+        if self._cauchyStress:
             str += 'S\n'
 
-        if self.useElasticStrain:
+        if self._strain:
             str += 'E\n'
 
-        if self.useESE:
+        if self._mechanicalStrain:
+            str += 'ME\n'
+
+        if self._plasticStrain:
+            str += 'PEEQ\n'
+
+        if self._ESE:
             str += 'ELSE\n'
 
-        if self.useHeatFlux:
+        if self._heatFlux:
             str += 'HFL\n'
 
         return str
