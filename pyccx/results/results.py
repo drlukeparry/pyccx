@@ -44,7 +44,18 @@ class NodalResult(Result):
         self.usePlasticStrain = False
         self.useNodalStrain = False
 
+        self._expandShellElements = False
+
         super().__init__()
+
+    @property
+    def expandShellElements(self):
+        """ Expand shell elements from their mid-surface in the output """
+        return self._expandShellElements
+
+    @expandShellElements.setter
+    def expandShellElements(self, state):
+        self._expandShellElements = state
 
     @property
     def nodeSet(self) -> NodeSet:
@@ -66,6 +77,9 @@ class NodalResult(Result):
 
         if isinstance(self.nodeSet, NodeSet):
             inputStr += 'NSET={:s}, '.format(self.nodeSet.name)
+
+        if not self._expandShellElements:
+            inputStr += 'OUTPUT=2D, '
 
         inputStr += 'FREQUENCY={:d}\n'.format(self._frequency)
 
