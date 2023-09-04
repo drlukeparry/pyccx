@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import abc
 import re
 import os
@@ -32,21 +34,87 @@ class Result(abc.ABC):
 
 class NodalResult(Result):
 
-    def __init__(self, nodeSet: NodeSet):
+    def __init__(self, nodeSet: Union[str,NodeSet]):
+
+        if not (isinstance(nodeSet, NodeSet) or isinstance(nodeSet, str)):
+            raise TypeError('NodalResult must be initialized with a NodeSet object or name of set')
 
         self._nodeSet = nodeSet
 
-        self.useNodalDisplacements = False
-        self.useNodalTemperatures = False
-        self.useReactionForces = False
-        self.useHeatFlux = False
-        self.useCauchyStress = False  # Int points are interpolated to nodes
-        self.usePlasticStrain = False
-        self.useNodalStrain = False
+        self._displacement = True
+        self._temperature = False
+        self._reactionForce = False
+        self._heatFlux = False
+        self._cauchyStress = False  # Int points are interpolated to nodes
+        self._plasticStrain = False
+        self._strain = False
 
         self._expandShellElements = False
 
         super().__init__()
+
+    @property
+    def displacement(self) -> bool:
+        """ Include temperature in the output """
+        return self._displacement
+
+    @displacement.setter
+    def displacement(self, state: bool):
+        self._displacement = state
+
+    @property
+    def temperature(self) -> bool:
+        """ Include temperature in the output """
+        return self._temperature
+
+    @temperature.setter
+    def temperature(self, state: bool):
+        self._temperature = state
+
+    @property
+    def reactionForce(self) -> bool:
+        """ Include reaction forces in the output """
+        return self._reactionForce
+
+    @reactionForce.setter
+    def reactionForce(self, state: bool):
+        self._reactionForce = state
+
+    @property
+    def heatFlux(self) -> bool:
+        """ Include heat flux in the output """
+        return self._heatFlux
+
+    @heatFlux.setter
+    def heatFlux(self, state):
+        self._heatFlux = state
+
+    @property
+    def cauchyStress(self) -> bool:
+        """ Include cauchy stress components in the output """
+        return self._cauchyStress
+
+    @cauchyStress.setter
+    def cauchyStress(self, state):
+        self._cauchyStress = state
+
+    @property
+    def strain(self) -> bool:
+        """ Include strain in the output """
+        return self._strain
+
+    @strain.setter
+    def strain(self, state):
+        self._strain = state
+
+    @property
+    def plasticStrain(self) -> bool:
+        """ Include plastic strain in the output """
+        return self._plasticStrain
+
+    @plasticStrain.setter
+    def plasticStrain(self, state):
+        self._plasticStrain = state
 
     @property
     def expandShellElements(self):
@@ -60,12 +128,16 @@ class NodalResult(Result):
     @property
     def nodeSet(self) -> NodeSet:
         """
-        The elementset to obtain values for post-processing.
+        The node set to obtain values for post-processing.
         """
         return self._nodeSet
 
     @nodeSet.setter
     def nodeSet(self, nodeSet: NodeSet):
+
+        if not (isinstance(nodeSet, NodeSet) or isinstance(nodeSet, str)):
+            raise TypeError('NodalResult nodeset must be a NodeSet object or name of set')
+
         self._nodeSet = nodeSet
 
     def writeInput(self):
@@ -83,13 +155,13 @@ class NodalResult(Result):
 
         inputStr += 'FREQUENCY={:d}\n'.format(self._frequency)
 
-        if self.useNodalDisplacements:
+        if self._displacement:
             inputStr += 'U\n'
 
-        if self.useNodalTemperatures:
+        if self._temperature:
             inputStr += 'NT\n'
 
-        if self.useReactionForces:
+        if self._reactionForce:
             inputStr += 'RF\n'
 
         inputStr += self.writeElementInput()
@@ -99,16 +171,16 @@ class NodalResult(Result):
     def writeElementInput(self):
         str = '*EL FILE, NSET={:s}, FREQUENCY={:d}\n'.format(self._nodeSet.name, self._frequency)
 
-        if self.useCauchyStress:
+        if self._cauchyStress:
             str += 'S\n'
 
-        if self.useNodalStrain:
+        if self._strain:
             str += 'E\n'
 
-        if self.usePlasticStrain:
+        if self._plasticStrain:
             str += 'PEEQ\n'
 
-        if self.useHeatFlux:
+        if self._heatFlux:
             str += 'HFL\n'
 
         return str
