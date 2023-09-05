@@ -916,6 +916,41 @@ class Mesher:
         else:
             return elements
 
+    def getElementsByPhysicalGroups(self, physicalGroup) -> np.ndarray:
+        """
+        Returns all elements associated with a physical group
+
+        :param physicalGroup: The physical group id
+        :return: The element ids associated with the physical groups
+        """
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise Exception('Mesh is not generated')
+
+        if not isinstance(physicalGroup, list):
+            physicalGroup = [physicalGroup]
+
+        # Obtain the surface-element physical groups and their associative element ids
+
+        # Obtain the volume-element physical groups and their associative element ids
+        eTags = [(x[0], gmsh.model.getEntitiesForPhysicalGroup(x[0], x[1])) for x in physicalGroup]
+
+        entTags = []
+        for tag in eTags:
+            entTags += [(tag[0], x) for x in tag[1]]
+
+        fndElements = []
+
+        if len(entTags):
+
+            # Collect all the surface ids from phyiscal volume tags
+            for entTag in entTags:
+                els = self.getElements(entTag)
+                fndElements.append(els)
+
+        return self._mergeElements(fndElements)
+
     def getNodesFromEntity(self, entityId: Tuple[int,int]) -> np.array:
         """
         Returns all node ids from a selected entity in the GMSH model.
@@ -1100,7 +1135,7 @@ class Mesher:
 
             # Collect all the  ids from phyiscal surface tags
             for surfEntTag in np.hstack(surfEntTags):
-                surfEls = self.getElements((2, surfEntTag))
+                surfEls = self.getElements((Ent.Surface, surfEntTag))
 
                 for elTyp, idx, nodes in zip(surfEls[0], surfEls[1], surfEls[2]):
                     nodes = nodes.reshape(len(idx), -1)
