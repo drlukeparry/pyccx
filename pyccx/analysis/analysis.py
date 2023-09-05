@@ -47,6 +47,12 @@ class Simulation:
     CALCULIX_PATH = ''
     """ The Calculix directory path used for Windows platforms"""
 
+    USE_WSL = False
+    """ A flag to toggle using WSL for CalculiX. Setting this to true will 
+    cause the system to invoke CalculiX from WSL instead of requiring a Windows 
+    install.
+    """
+
     VERBOSE_OUTPUT = True
     """ When enabled, the output during the analysis is redirected to the console"""
 
@@ -475,8 +481,13 @@ class Simulation:
         return True
 
     def version(self):
+        if sys.platform == 'win32' and self.USE_WSL:
+            p = subprocess.Popen(['wsl.exe', 'ccx', '-v'], stdout=subprocess.PIPE, universal_newlines=True )
+            stdout, stderr = p.communicate()
+            version = re.search(r"(\d+).(\d+)", stdout)
+            return int(version.group(1)), int(version.group(2))
 
-        if sys.platform == 'win32':
+        elif sys.platform == 'win32':
             cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
             p = subprocess.Popen([cmdPath, '-v'], stdout=subprocess.PIPE, universal_newlines=True )
             stdout, stderr = p.communicate()
@@ -554,7 +565,29 @@ class Simulation:
 
         print('\n{:=^60}\n'.format(' RUNNING CALCULIX '))
 
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' and self.USE_WSL:
+            # Substitute the drive letter with correct mount path for WSL.
+            path = re.sub("([A-Z])://", lambda match: f"/mnt/{match.group(1).lower()}/", self._workingDirectory)
+
+            filename = 'input'
+
+            cmd = 'wsl.exe ccx' + ' -i ' + os.path.join(path, filename).replace("\\", "/")
+
+            # Using shell=True. Not sure if it's possible without it due to the issues with WSL paths and Windows paths differing
+            popen = subprocess.Popen(cmd, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True, shell=True)
+
+            if self.VERBOSE_OUTPUT:
+                for stdout_line in iter(popen.stdout.readline, ""):
+                    print(stdout_line, end='')
+
+            popen.stdout.close()
+            return_code = popen.wait()
+            if return_code:
+                raise subprocess.CalledProcessError(return_code, cmd)
+
+            # Analysis was completed successfully
+            self._analysisCompleted = True
+        elif sys.platform == 'win32':
             cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
             arguments = '-i input'
 
