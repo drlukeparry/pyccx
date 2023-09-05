@@ -1,10 +1,10 @@
-from . import material
-from . import mesh
 from . import analysis
 
-from .core import ElementSet, SurfaceSet,  MeshSet, NodeSet, DOF, Connector
+from . import material
+from . import mesh
+from . import utils
 
+from .core import Connector, DOF, ElementSet, MeshSet, NodeSet, SurfaceSet
 from .bc import BoundaryConditionType, BoundaryCondition, Acceleration, Film, Fixed, HeatFlux, Pressure, Radiation
 from .loadcase import LoadCaseType, LoadCase
-#from .model import Model
 from .results import ElementResult, NodalResult, ResultProcessor
