@@ -256,6 +256,15 @@ class Mesher:
         out = fndElIds[np.isin(fndElIds, assignedElIds, invert=True)]
         return out
 
+    @property
+    def physicalGroups(self):
+        """
+        Returns the physical groups tags available in the model
+        """
+        self.setAsCurrentModel()
+
+        tags = gmsh.model.getPhysicalGroups()
+        return tags
 
     def maxPhysicalGroupId(self, dim: int) -> int:
         """
