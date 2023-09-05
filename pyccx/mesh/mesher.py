@@ -173,6 +173,7 @@ class Mesher:
 
         return
 
+
     def getAllPhysicalGroupElements(self):
 
         self.setAsCurrentModel()
@@ -182,6 +183,7 @@ class Mesher:
 
         tags = gmsh.model.getPhysicalGroups()
         entTags = []
+
         for x in tags:
             eTags = gmsh.model.getEntitiesForPhysicalGroup(x[0], x[1])
             for eTag in eTags:
@@ -190,18 +192,61 @@ class Mesher:
         elIdList = []
 
         for eTag in entTags:
-            elIdList.append(self.getElements((eTag[0], eTag[1]))[1])
+            elIdList.append(self.getElements(eTag))
 
-        elIdList = np.hstack(elIdList)
+        return self._mergeElements(elIdList)
 
-        return elIdList
+    @staticmethod
+    def _mergeElements(elList):
+        """
+        Internal method for merging list of elements of different types
+
+        :return: A dictionary consisting of element types as keys and elements that are compounded together
+        """
+        fndElements = elList
+
+        eOut = {}
+
+        for els in fndElements:
+
+            for i, eType in enumerate(els[0]):
+                if not eOut.get(eType, False):
+                    eOut[eType] = [[], []]
+
+                eOut[eType][0].append(els[1][i])
+                eOut[eType][1].append(els[2][i])
+
+        for id in eOut.keys():
+            elType = elements.getElementById(id)
+
+            eOut[id][0] = np.hstack(eOut[id][0]).ravel()
+            eOut[id][1] = np.vstack(eOut[id][1]).reshape(-1, elType.nodes)
+
+        # process the keys so that the dimensions are consistent with the formatting of the element types
+        return eOut
+
+    @staticmethod
+    def _restructureElementStructure(els):
+        """
+        Restructures the internal gmsh element structures so the element dimensions are consistent with the element types
+
+        :param els: The GMSH element type
+        :return: The restructured element list
+        """
+
+        for i, id in enumerate(els[0]):
+            elType = elements.getElementById(id)
+            els[2][i] = els[2][i].reshape(-1, elType.nodes)
+
+            # process the keys so that the dimensions are consistent with the formatting of the element types
+        return els
 
     def identifyUnassignedElements(self):
 
         self.setAsCurrentModel()
 
         # Obtain the current list of elements across the entire model
-        elIds = self.getAllPhysicalGroupElements()
+        elIds = np.hstack(self.getAllPhysicalGroupElements())
         fndElIds = np.sort(elIds)
 
         # Concatenate all the list of assigned elements
@@ -832,11 +877,12 @@ class Mesher:
         if entityId:
             # return all the elements for the entity
             result = gmsh.model.mesh.getElements(entityId[0], entityId[1])
-            return result
         else:
             # Return all the elements in the model
             result = gmsh.model.mesh.getElements()
-            return result
+
+        result = self._restructureElementStructure(result)
+        return result
 
     def getElementsByType(self, elType: elements.BaseElementType, returnElIds: Optional[bool] = False) -> np.ndarray:
         """
