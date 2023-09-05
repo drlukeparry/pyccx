@@ -16,6 +16,40 @@ class ModelObject:
     def name(self, name: str):
         self._name = name
 
+
+class Amplitude(ModelObject):
+
+    def __init__(self, name, profile):
+
+        super().__init__(name)
+
+        self.profile = profile
+
+    @property
+    def profile(self):
+        return self._profile
+
+    @profile.setter
+    def profile(self, profile):
+
+        profile = np.asanyarray(profile)
+
+        if not (profile.ndim == 2 and profile.shape[1] == 2):
+            raise ValueError('Invalid profile passed to Amplitude')
+
+        self._profile = profile
+
+    def writeInput(self) -> str:
+
+        out = '*AMPLITUDE, NAME={:s}\n'.format(self.name)
+
+        for row in self.profile:
+            time, amplitude = row
+            out += '{:.5f}, {:.5f}\n'.format(time, amplitude)
+
+        return out
+
+
 class MeshSet:
     """
     The Mesh set is a basic entity for storing node and element set lists that are used for creating sets across
@@ -56,39 +90,9 @@ class NodeSet(MeshSet):
     def writeInput(self) -> str:
         out = '*NSET, NSET={:s}\n'.format(self.name)
         out += np.array2string(self.nodes.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
+        out += '\n'
         return out
 
-class Amplitude(ModelObject):
-
-    def __init__(self, name, profile):
-
-        super().__init__(name)
-
-        self.profile = profile
-
-    @property
-    def profile(self):
-        return self._profile
-
-    @profile.setter
-    def profile(self, profile):
-
-        profile = np.asanyarray(profile)
-
-        if not (profile.ndim == 2 and profile.shape[1] == 2):
-            raise ValueError('Invalid profile passed to Amplitude')
-
-        self._profile = profile
-
-    def writeInput(self) -> str:
-
-        out = '*AMPLITUDE, NAME={:s}\n'.format(self.name)
-
-        for row in self.profile:
-            time, amplitude = row
-            out += '{:.5f}, {:.5f}\n'.format(time, amplitude)
-
-        return out
 
 class ElementSet(MeshSet):
     """
@@ -114,6 +118,8 @@ class ElementSet(MeshSet):
 
         out = '*ELSET,ELSET={:s}\n'.format(self.name)
         out += np.array2string(self.els.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
+        out += '\n'
+
         return out
 
 
