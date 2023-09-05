@@ -558,14 +558,30 @@ class ResultProcessor:
                 numElements = int(reSearch[1])
 
                 elements = []
-                for i in range(numElements):
-                    line = infile.readline()
-                    eId, eType, eGrp, eMat = self._getVals("1X,'-1',5A1,4I5", line)[2:]
+                line = infile.readline()
+
+
+                elIds = []
+                eId = None
+                eType = None
+
+                while True:
+
+                    if line[:3] == ' -3':
+                        if len(elIds) > 0:
+                            elements.append([eId, eType] + elIds)
+                        break
+                    elif line[:3] == ' -1':
+                        if len(elIds) > 0:
+                            elements.append([eId, eType] + elIds)
+                        eId, eType, eGrp, eMat = self._getVals("1X,' -1',5A1,4I5", line)[2:]
+                        elIds = []
+                    elif line[:3] == ' -2':
+                        elIds += self._getVals("1X,'-2',20I10", line)[1:]
+                    else:
+                        raise Exception('Error parsing .frd file')
 
                     line = infile.readline()
-                    elIds = self._getVals("1X,'-2',20I10", line)[1:]
-
-                    elements.append([eId, eType] + elIds)
 
                 self._elements = elements
 
