@@ -1,29 +1,52 @@
-
+import abc
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
-class ModelObject:
+class ModelObject():
 
-    def __init__(self, name):
-        self._name = name
+    def __init__(self, name, label = ''):
+
+        self.setName(name)
+        self._label = label
+
+    @property
+    def label(self) -> str:
+        return self._label
+
+    @label.setter
+    def label(self, label: str):
+        self._label = label
 
     @property
     def name(self) -> str:
+
         return self._name
 
     @name.setter
-    def name(self, name: str):
-        self._name = name
+    def name(self, name):
+        self.setName(name)
 
+    def setName(self, name: str):
+
+        if not name.isascii():
+            raise ValueError('Name provided ({:s}) must be alpha-numeric'.format(name))
+
+        if ' ' in name:
+            raise ValueError('Name provided ({:s}) must not contain spaces'.format(name))
+
+        if '*' in name:
+            raise ValueError('Name provide ({:s}) contains invalid character (*)'.format(name))
+
+        self._name = name
 
 class Amplitude(ModelObject):
 
-    def __init__(self, name, profile):
+    def __init__(self, name: str, profile = None):
 
         super().__init__(name)
 
-        self.profile = profile
+        self._profile = profile
 
     @property
     def profile(self):

@@ -1,10 +1,10 @@
 import abc
-from enum import Enum, Flag, auto
-from typing import Any, List, Tuple
+from enum import auto, Enum, Flag
+from typing import Any, List, Tuple, Union
 
 import numpy as np
 
-from ..core import ElementSet, NodeSet, SurfaceSet, DOF
+from ..core import Amplitude, ElementSet, ModelObject, NodeSet, SurfaceSet, DOF
 
 
 class BoundaryConditionType(Flag):
@@ -26,7 +26,7 @@ class BoundaryConditionType(Flag):
     """ Boundary condition can be used in a fluid  analysis"""
 
 
-class BoundaryCondition(abc.ABC):
+class BoundaryCondition(ModelObject):
     """
     Base class for all boundary conditions
     """

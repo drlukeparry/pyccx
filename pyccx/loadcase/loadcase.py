@@ -6,6 +6,7 @@ from enum import Enum, IntEnum, auto
 from typing import List, Tuple, Type
 
 from ..bc import BoundaryCondition, BoundaryConditionType
+from ..core import ModelObject
 from ..results import Result
 
 
@@ -28,7 +29,7 @@ class LoadCaseType(IntEnum):
     """Dynamic analysis of a structure"""
 
 
-class LoadCase:
+class LoadCase(ModelObject):
     """
     A unique Load case defines a set of simulation analysis conditions and a set of boundary conditions to apply to the domain.
     The default and initial timestep provide an estimate for the solver should be specified  along with the total duration
@@ -36,10 +37,9 @@ class LoadCase:
     specified using :meth:`setLoadCaseType`. Depending on the analysis type the steady-state solution
     may instead be calculated.
     """
-    def __init__(self, loadCaseName: str, loadCaseType: LoadCaseType = None, resultSets = None):
+    def __init__(self, name: str, loadCaseType: LoadCaseType = None, resultSets = None):
 
         self._input = ''
-        self._loadcaseName = loadCaseName
         self._loadCaseType = None
         self._isSteadyState = False
         self._isNonlinear = False
@@ -60,6 +60,8 @@ class LoadCase:
 
         if resultSets:
             self.resultSet = resultSets
+
+        super().__init__(name)
 
     @property
     def loadCaseType(self) -> LoadCaseType:
@@ -90,14 +92,6 @@ class LoadCase:
             raise ValueError('Loadcase ResultSets must be derived from a Result class')
         else:
             self._resultSet = rSets
-
-    @property
-    def name(self) -> str:
-        return self._loadcaseName
-
-    @name.setter
-    def name(self, loadCaseName):
-        self._loadcaseName = loadCaseName
 
     @property
     def maxTimestep(self) -> float:
@@ -187,7 +181,7 @@ class LoadCase:
         """
         Set the loadcase type based on the analysis types available in :class:`~pyccx.loadcase.LoadCaseType`.
 
-        :param loadCaseType: Set the loadcase type using the enum :class:`~pyccx.loadcase.LoadCaseType`
+        :param loadCaseType: Set the load case type using the enum :class:`~pyccx.loadcase.LoadCaseType`
         """
 
         if isinstance(loadCaseType, LoadCaseType):
@@ -229,8 +223,8 @@ class LoadCase:
         elif self._loadCaseType == LoadCaseType.UNCOUPLEDTHERMOMECHANICAL:
             outStr += '*UNCOUPLED TEMPERATURE-DISPLACEMENT'
         else:
-            raise ValueError('Loadcase type ({:s} is not currently supported in PyCCX'.format(self._loadCaseType))
-
+            raise ValueError('The type ({:s}) for Loadcase ({:s})  is not currently supported in PyCCX'.format(self._loadCaseType,
+                                                                                                               self.name))
         if self._isSteadyState:
             outStr += ', STEADY STATE'
 

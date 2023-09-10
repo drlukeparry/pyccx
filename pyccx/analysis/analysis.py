@@ -39,16 +39,17 @@ class AnalysisType(IntEnum):
     FLUID = auto()
 
 
-class MaterialAssignment():
+class MaterialAssignment(ModelObject):
     """
     An element set is basic entity for storing element set lists.The set remains constant without any dynamic referencing
      to any underlying geometric entities.
     """
 
     def __init__(self, name: str, elementSet: ElementSet, material: Material):
-        self._name = name
         self._elSet = elementSet
         self._material = material
+
+        super().__init__(name)
 
     @property
     def material(self) -> Material:
@@ -56,6 +57,10 @@ class MaterialAssignment():
 
     @material.setter
     def material(self, material: Material):
+
+        if not isinstance(material, Material):
+            raise TypeError('Invalid material assignment provided to MaterialAssignment ({:s})'.format(self.name))
+
         self._material = material
 
     @property

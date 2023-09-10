@@ -2,17 +2,20 @@ import numpy as np
 import abc
 from enum import Enum, auto
 
+from ..core import ModelObject
 
-class Material(abc.ABC):
+class Material(ModelObject):
     """
     Base class for all material model definitions
     """
     MATERIALMODEL = 'INVALID'
 
-    def __init__(self, name):
+    def __init__(self, name: str):
+
         self._input = ''
-        self._name = name
         self._materialModel = ''
+
+        super().__init__(name)
 
     @property
     def name(self) -> str:
