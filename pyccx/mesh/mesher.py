@@ -937,7 +937,10 @@ class Mesher:
         if not self._isMeshGenerated:
             raise Exception('Mesh is not generated')
 
-        elVar = gmsh.model.mesh.getElementsByType(elType.id)
+        if elTag:
+            elVar = gmsh.model.mesh.getElementsByType(elType.id, elTag)
+        else:
+            elVar = gmsh.model.mesh.getElementsByType(elType.id)
 
         elements = elVar[1].reshape(-1, elType.nodes)
 
@@ -1133,7 +1136,7 @@ class Mesher:
 
         for nid, nCoords in zip(nids, nodeCoords):
             ncoords = nodeCoords[int(nid) - 1]
-            txt += "{:d}, {:.7f}, {:.7f}, {:.7f}\n".format(nid, *ncoords)
+            txt += "{:d}, {:e}, {:e}, {:e}\n".format(nid, *ncoords)
 
         # Obtain the surface-element physical groups and their associative element ids
         surfPhysicalGrps = gmsh.model.getPhysicalGroups(Ent.Surface)
@@ -1176,13 +1179,16 @@ class Mesher:
         txt += "******* E L E M E N T S ************* \n"
         for elTyp, elIds in self._meshAssignments.items():
 
-            txt += "*ELEMENT, TYPE = {:s}, ELSET = Surface1\n".format(elTyp.name)
+            txt += "*ELEMENT, TYPE = {:s}\n".format(elTyp.name)
 
             for elId in elIds:
                 if elTyp.id != typeIdx[elId]:
                     raise Exception('Incompatible elements selected (id: {:d} - {:s})'.format(elId, elTyp.name))
 
-                elLine = np.hstack([elId, elNodeIdx[elId].ravel()]).astype(np.int64)
+                # Sort element ids between gmsh and calculix abaqus
+                elRow = elNodeIdx[elId]
+                elSortRow = elRow[np.array(elTyp.map)-1].ravel()
+                elLine = np.hstack([elId, elSortRow]).astype(np.int64)
                 txt += np.array2string(elLine, precision=0, separator=', ', threshold=9999999999)[1:-1] + "\n"
                 #txt +=  + str(elNodeIdx[elId])[1:-1] + "\n"
 
