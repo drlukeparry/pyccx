@@ -89,8 +89,9 @@ class NodeSet(MeshSet):
 
     def writeInput(self) -> str:
         out = '*NSET, NSET={:s}\n'.format(self.name)
-        out += np.array2string(self.nodes.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
-        out += '\n'
+        for i in range(0, self.nodes.shape[0], 16):
+            out += ', '.join(['{:d}'.format(val) for val in self.nodes[i:i+16]])
+            out += '\n'
         return out
 
 
@@ -117,8 +118,10 @@ class ElementSet(MeshSet):
     def writeInput(self) -> str:
 
         out = '*ELSET,ELSET={:s}\n'.format(self.name)
-        out += np.array2string(self.els.ravel(), precision=2, separator=', ', threshold=9999999999)[1:-1]
-        out += '\n'
+
+        for i in range(0, self._els.shape[0], 16):
+            out += ', '.join(['{:d}'.format(val) for val in self._els[i:i+16]])
+            out += '\n'
 
         return out
 
