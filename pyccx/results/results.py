@@ -526,7 +526,9 @@ class ResultProcessor:
         """
         Opens up the results files and processes the results
         """
+        self.clearResults()
 
+        logging.info('Reading the results files}')
         infile = open('{:s}.frd'.format(self.jobName), 'r')
         logging.info('Loading nodal results from file: {:s}.frd'.format(self.jobName))
 
@@ -638,6 +640,11 @@ class ResultProcessor:
         timeIncrements = [val['time'] for val in self.increments.values()]
         logging.info(', '.join([str(time) for time in timeIncrements]))
 
+    def clearResults(self):
+        self.increments = {}
+        self._elements = None
+        self._nodes = None
+
     @staticmethod
     def orderNodes(nodeVals):
         if nodeVals.size == 0:
@@ -667,6 +674,7 @@ class ResultProcessor:
         rfstr = ''
         incTime = 0.0
         inc = -1
+        
         while True:
             line = infile.readline()
 
