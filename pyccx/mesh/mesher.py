@@ -272,8 +272,12 @@ class Mesher:
             # process the keys so that the dimensions are consistent with the formatting of the element types
         return els
 
-    def identifyUnassignedElements(self):
+    def identifyUnassignedElements(self) -> np.array:
+        """
+        Returns the list of elements that have not been assigned element types
 
+        :return: List of elements that have no element type designated
+        """
         self.setAsCurrentModel()
 
         # Obtain the current list of elements across the entire model
@@ -285,6 +289,7 @@ class Mesher:
 
         # Identify the elements that have not been assigned
         out = fndElIds[np.isin(fndElIds, assignedElIds, invert=True)]
+
         return out
 
     @property
