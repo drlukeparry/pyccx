@@ -34,13 +34,12 @@ class Result(abc.ABC):
 
 class NodalResult(Result):
 
-    def __init__(self, nodeSet: Union[str,NodeSet]):
+    def __init__(self, nodeSet: Union[str,NodeSet] = None):
 
-        if not (isinstance(nodeSet, NodeSet) or isinstance(nodeSet, str)):
+        if nodeSet and not (isinstance(nodeSet, NodeSet) or isinstance(nodeSet, str)):
             raise TypeError('NodalResult must be initialized with a NodeSet object or name of set')
 
         self._nodeSet = nodeSet
-
         self._displacement = True
         self._temperature = False
         self._reactionForce = False
@@ -142,46 +141,75 @@ class NodalResult(Result):
 
     def writeInput(self):
         inputStr = ''
-        inputStr += '*NODE FILE, '
 
-        if isinstance(self.nodeSet, str) and self.nodeSet != '':
-            inputStr += 'NSET={:s}, '.format(self.nodeSet)
+        if self._nodeSet:
+            """ Obtain the selected nodal quantities for the model using *NODE PRINT option """
+            inputStr += '*NODE PRINT'
 
-        if isinstance(self.nodeSet, NodeSet):
-            inputStr += 'NSET={:s}, '.format(self.nodeSet.name)
+            if isinstance(self._nodeSet, str) and self._nodeSet != '':
+
+                inputStr += ', NSET={:s}, '.format(self.nodeSet)
+
+            if isinstance(self._nodeSet, NodeSet):
+                inputStr += ', NSET={:s} '.format(self.nodeSet.name)
+
+        else:
+            """ Obtain the entire nodal quantities for the model using *NODE FILE option """
+            inputStr += '*NODE FILE'
 
         if not self._expandShellElements:
-            inputStr += 'OUTPUT=2D, '
+            inputStr += ', OUTPUT=2D '
 
-        inputStr += 'FREQUENCY={:d}\n'.format(self._frequency)
+        inputStr += ', FREQUENCY={:d}\n'.format(self._frequency)
 
+        lineStr = []
         if self._displacement:
-            inputStr += 'U\n'
+            lineStr += 'U'
 
         if self._temperature:
-            inputStr += 'NT\n'
+            lineStr += 'NT'
 
         if self._reactionForce:
-            inputStr += 'RF\n'
+            lineStr += 'RF'
 
+        inputStr += ', '.join(lineStr)
+
+        inputStr += '\n'
         inputStr += self.writeElementInput()
 
         return inputStr
 
     def writeElementInput(self):
-        str = '*EL FILE, NSET={:s}, FREQUENCY={:d}\n'.format(self._nodeSet.name, self._frequency)
+
+        lineStr = []
 
         if self._cauchyStress:
-            str += 'S\n'
+            lineStr += 'S'
 
         if self._strain:
-            str += 'E\n'
+            lineStr += 'E'
 
         if self._plasticStrain:
-            str += 'PEEQ\n'
+            lineStr += 'PEEQ'
 
         if self._heatFlux:
-            str += 'HFL\n'
+            lineStr += 'HFL'
+
+        if len(lineStr) == 0:
+            return ''
+
+
+        str = '*EL FILE'
+
+        if self._nodeSet:
+
+            if isinstance(self._nodeSet, NodeSet):
+                str += ', NSET={:s}'.format(self._nodeSet.name)
+            else:
+                str += ', NSET={:s}'.format(self._nodeSet)
+
+        str += ', FREQUENCY={:d}\n'.format(self._nodeSet.name, self._frequency)
+
 
         return str
 
@@ -327,7 +355,7 @@ class ResultProcessor:
         self._elements = None
         self._nodes = None
 
-        logging.info('Reading file {:s}'.format(jobName))
+        logging.info('Results file prefix set to {:s}'.format(jobName))
 
     @property
     def nodes(self):
