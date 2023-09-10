@@ -292,6 +292,9 @@ class Simulation:
         for surfSet in self._surfaceSets:
             surfaceSets[surfSet.name] = surfSet
 
+        for meshAssignment in self.materialAssignments:
+            elementSets[meshAssignment.els.name] = meshAssignment.els
+
         # Iterate through all loadcases and boundary conditions.and find unique values. This is greedy so will override
         # any with same name.
         for loadcase in self.loadCases:
