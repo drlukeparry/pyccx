@@ -10,7 +10,7 @@ from typing import List, Tuple, Type
 import numpy as np
 
 from ..bc import BoundaryCondition
-from ..core import MeshSet, ElementSet, SurfaceSet, NodeSet, Connector
+from ..core import Amplitude, Connector, ModelObject, MeshSet, ElementSet, NodeSet, SurfaceSet
 from ..loadcase import LoadCase
 from ..material import Material
 from ..mesh import Mesher
@@ -72,6 +72,10 @@ class MaterialAssignment(ModelObject):
 
     @els.setter
     def els(self, elementSet: ElementSet):
+
+        if not isinstance(elementSet, ElementSet):
+            raise TypeError('Invalid element set type provided to MaterialAssignment ({:s}).'.format(self.name))
+
         self._elSet = elementSet
 
     def writeInput(self) -> str:
@@ -100,6 +104,10 @@ class ShellMaterialAssignment(MaterialAssignment):
 
     @thickness.setter
     def thickness(self, thickness):
+
+        if thickness < 1e-8:
+            raise ValueError('The thickness of the shell type should be greater than zero')
+
         self._thickness =  thickness
 
     def writeInput(self) -> str:
@@ -107,9 +115,21 @@ class ShellMaterialAssignment(MaterialAssignment):
         out += '{:e}\n'.format(self._thickness)
         return out
 
+
+class AnalysisControls():
+
+    def __init__(self, name, elementSet, material, thickness):
+        super().__init__(name, elementSet, material)
+
+        self._thickness = thickness
+
+    def writeInput(self) -> str:
+        out  = '*controls'
+        return out
+
 class Simulation:
     """
-    Provides the base class for running a Calculix simulation
+    Provides the base class for running a Calculix Simulation
     """
 
     NUMTHREADS = 1
@@ -326,7 +346,8 @@ class Simulation:
                 if isinstance(resultSet, ElementResult):
                     elementSets[resultSet.elementSet.name] = resultSet.elementSet
                 elif isinstance(resultSet, NodalResult):
-                    nodeSets[resultSet.nodeSet.name] = resultSet.nodeSet
+                    if resultSet.nodeSet and isinstance(resultSet.nodeSet, NodeSet):
+                        nodeSets[resultSet.nodeSet.name] = resultSet.nodeSet
 
             for bc in loadcase.boundaryConditions:
                 if isinstance(bc.target, ElementSet):
@@ -414,11 +435,15 @@ class Simulation:
         self.init()
 
         self._writeHeaders()
+
+
         self._writeMesh()
+        logging.info('\t Analysis mesh written to file')
         self._writeNodeSets()
         self._writeElementSets()
         self._writeKinematicConnectors()
         self._writeMPCs()
+        self._writeAmplitudes()
         self._writeMaterials()
         self._writeMaterialAssignments()
         self._writeInitialConditions()
@@ -477,9 +502,6 @@ class Simulation:
         for nodeSet in nodeSets:
             self._input += os.linesep
             self._input += nodeSet.writeInput()
-            #self._input += '*NSET,NSET={:s}\n'.format(nodeSet['name'])
-            #self._input += '*NSET,NSET={:s}\n'.format(nodeSet['name'])
-            #self._input += np.array2string(nodeSet['nodes'], precision=2, separator=', ', threshold=9999999999)[1:-1]
 
     def _writeKinematicConnectors(self):
 
@@ -517,20 +539,20 @@ class Simulation:
 
     def _writeMaterialAssignments(self):
         self._input += os.linesep
-        self._input += '{:*^125}\n'.format(' MATERIAL ASSIGNMENTS ')
+        self._input += '{:*^80}\n'.format(' MATERIAL ASSIGNMENTS ')
 
         for matAssignment in self.materialAssignments:
             self._input += matAssignment.writeInput()
 
     def _writeMaterials(self):
         self._input += os.linesep
-        self._input += '{:*^125}\n'.format(' MATERIALS ')
+        self._input += '{:*^80}\n'.format(' MATERIALS ')
         for material in self.materials:
             self._input += material.writeInput()
 
     def _writeInitialConditions(self):
         self._input += os.linesep
-        self._input += '{:*^125}\n'.format(' INITIAL CONDITIONS ')
+        self._input += '{:*^80}\n'.format(' INITIAL CONDITIONS ')
 
         for initCond in self.initialConditions:
             self._input += '*INITIAL CONDITIONS,TYPE={:s}\n'.format(initCond['type'].upper())
@@ -543,15 +565,12 @@ class Simulation:
     def _writeAnalysisConditions(self):
 
         self._input += os.linesep
-        self._input += '{:*^125}\n'.format(' ANALYSIS CONDITIONS ')
-
-        # Write the Initial Timestep
-        self._input += '{:.5f}, {:.5f}\n'.format(self.initialTimeStep, self.defaultTimeStep)
+        self._input += '{:*^80}\n'.format(' ANALYSIS CONDITIONS ')
 
     def _writeLoadSteps(self):
 
         self._input += os.linesep
-        self._input += '{:*^125}\n'.format(' LOAD STEPS ')
+        self._input += '{:*^80}\n'.format(' LOAD STEPS ')
 
         for loadCase in self.loadCases:
             self._input += loadCase.writeInput()
@@ -564,6 +583,7 @@ class Simulation:
 
         self.model.writeMesh(meshPath)
         self._input += '*include,input={:s}\n'.format(meshFilename)
+
 
     def checkAnalysis(self) -> bool:
         """
@@ -580,6 +600,8 @@ class Simulation:
             if not material.isValid():
                 raise AnalysisError('Material ({:s}) is not valid'.format(material.name))
 
+        if len(self.model.identifyUnassignedElements()) > 0:
+            raise AnalysisError('Mesh model has unassigned element types')
 
         return True
 
@@ -619,7 +641,7 @@ class Simulation:
             raise ValueError('Results were not available')
 
     def isAnalysisCompleted(self) -> bool:
-        """ Returns if the analysis was completed successfully """
+        """ Returns `True` if the analysis was completed successfully """
         return self._analysisCompleted
 
     def clearAnalysis(self, includeResults: bool = False) -> None:
@@ -641,7 +663,7 @@ class Simulation:
 
         try:
             for file in files:
-                filePath = os.path.join(self._workingDirectory,file)
+                filePath = os.path.join(self._workingDirectory, file)
                 os.remove(filePath)
         except:
             pass
@@ -741,15 +763,20 @@ class Simulation:
         # Reset analysis status
         self._analysisCompleted = False
 
-        print('{:=^60}\n'.format(' RUNNING PRE-ANALYSIS CHECKS '))
-        self.checkAnalysis()
+        logging.info('{:=^60}'.format(' RUNNING PRE-ANALYSIS CHECKS '))
+        if self.checkAnalysis():
+            logging.info('\t Analysis checks were successfully completed')
 
-        print('{:=^60}\n'.format(' WRITING INPUT FILE '))
+        logging.info('{:=^60}'.format(' WRITING ANALYSIS INPUT FILE '))
         inputDeckContents = self.writeInput()
 
+        logging.info('\t Analysis input file has been generated')
         inputDeckPath = os.path.join(self._workingDirectory,'input.inp')
+
         with open(inputDeckPath, "w") as text_file:
             text_file.write(inputDeckContents)
+
+        logging.info('\t Analysis input file ({:s}) has been written to file'.format(inputDeckPath))
 
         # Set environment variables for performing multi-threaded
         os.environ["CCX_NPROC_STIFFNESS"] = '{:d}'.format(Simulation.NUMTHREADS)
@@ -757,7 +784,7 @@ class Simulation:
         os.environ["NUMBER_OF_PROCESSORS"] = '{:d}'.format(Simulation.NUMTHREADS)
         os.environ["OMP_NUM_THREADS"] = '{:d}'.format(Simulation.NUMTHREADS)
 
-        print('\n{:=^60}\n'.format(' RUNNING CALCULIX '))
+        logging.info('{:=^60}'.format(' RUNNING CALCULIX '))
 
         if sys.platform == 'win32':
             cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
