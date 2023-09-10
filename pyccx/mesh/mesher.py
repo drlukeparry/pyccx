@@ -41,11 +41,13 @@ class MeshingAlgorithm3D(IntEnum):
     def has_value(cls, value):
         return value in cls._value2member_map_
 
+
 class RecombinationAlgorithm(IntEnum):
     SIMPLE = 0
     BLOSSOM = 1
     SIMPLE_QUAD = 2
     BLOSSOM_QUAD = 3
+
 
 class Mesher:
     """
@@ -103,6 +105,15 @@ class Mesher:
         """ Version of the GMSH SDK available """
 
         return gmsh.GMSH_API_VERSION_MAJOR, gmsh.GMSH_API_VERSION_MINOR, gmsh.GMSH_API_VERSION_PATCH
+
+    def clearPhysicalGroups(self, dimension: int = None):
+        """
+        Clears all physical groups in the model
+        :param dimension: Integer is the dimension of the physical group to clear. Default is None.
+        """
+
+        self.setAsCurrentModel()
+        gmsh.model.removePhysicalGroups(dimension)
 
     def clearMeshAssignments(self, elType = None) -> None:
         """
@@ -350,7 +361,7 @@ class Mesher:
 
     def setVolumePhysicalName(self, volId: Any, name: str) -> int:
         """
-        Sets the Physcal Group Name of the Volumes(s)
+        Sets the Physical Group Name of the Volumes(s)
 
         :param volId: The set of volume ids
         :param name: The name assigned to volume group
@@ -868,7 +879,6 @@ class Mesher:
             return np.hstack(result[1]).ravel()
         else:
             return result[1]
-
 
 
     def getElements(self, entityId: Tuple[int,int] = None):
