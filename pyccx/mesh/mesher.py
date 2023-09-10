@@ -106,6 +106,26 @@ class Mesher:
 
         return gmsh.GMSH_API_VERSION_MAJOR, gmsh.GMSH_API_VERSION_MINOR, gmsh.GMSH_API_VERSION_PATCH
 
+    def open(self, filename: str):
+        """
+        Opens a GMSH file and loads the model into the current instance
+
+        :param filename: The filename of the GMSH file
+        """
+
+        self.setAsCurrentModel()
+
+        try:
+            gmsh.open(filename)
+
+        except:
+            raise Exception('Unable to open GMSH file ({:s})'.format(filename))
+
+        self._modelName = gmsh.model.getCurrent()
+
+        self.clearMeshAssignments()
+        self._isMeshGenerated = True
+
     def clearPhysicalGroups(self, dimension: int = None):
         """
         Clears all physical groups in the model
