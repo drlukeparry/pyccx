@@ -349,7 +349,7 @@ class Acceleration(BoundaryCondition):
 
     def writeInput(self) -> str:
         bCondStr = '*DLOAD\n'
-        bCondStr += '{:s},GRAV,{:.5f}, {:.3f},{:.3f},{:.3f}\n'.format(self.target.name, self.mag, *self.dir)
+        bCondStr += '{:s},GRAV,{:.5f}, {:e},{:e},{:e}\n'.format(self.target.name, self.mag, *self.dir)
         return bCondStr
 
 

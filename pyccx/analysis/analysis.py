@@ -99,7 +99,7 @@ class ShellMaterialAssignment(MaterialAssignment):
 
     def writeInput(self) -> str:
         out  = '*shell section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
-        out += '{:.3f}\n'.format(self._thickness)
+        out += '{:e}\n'.format(self._thickness)
         return out
 
 class Simulation:
@@ -503,7 +503,7 @@ class Simulation:
         self._input += '{:*^125}\n'.format(' ANALYSIS CONDITIONS ')
 
         # Write the Initial Timestep
-        self._input += '{:.3f}, {:.3f}\n'.format(self.initialTimeStep, self.defaultTimeStep)
+        self._input += '{:.5f}, {:.5f}\n'.format(self.initialTimeStep, self.defaultTimeStep)
 
     def _writeLoadSteps(self):
 
@@ -520,7 +520,7 @@ class Simulation:
         meshPath= os.path.join(self._workingDirectory, meshFilename)
 
         self.model.writeMesh(meshPath)
-        self._input += '*include,input={:s}'.format(meshFilename)
+        self._input += '*include,input={:s}\n'.format(meshFilename)
 
     def checkAnalysis(self) -> bool:
         """

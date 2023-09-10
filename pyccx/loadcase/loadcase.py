@@ -238,7 +238,7 @@ class LoadCase:
             outStr += ', DIRECT'
 
         # Write the timestepping information
-        outStr += '\n{:.3f}, {:.3f} ,{:.3f} , {:.3f}\n'.format(self._initialTimestep,
+        outStr += '\n{:.7f}, {:.7f} ,{:.7f} , {:.7f}\n'.format(self._initialTimestep,
                                                                self._totalTime,
                                                                self._minTimestep, self._maxTimestep)
 
