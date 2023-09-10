@@ -278,10 +278,27 @@ class Simulation:
     def materialAssignments(self, matAssignments: List[MaterialAssignment]):
         self._materialAssignments = matAssignments
 
+    def _collectAmplitudes(self):
+        """
+        Private function returns a unique set of Element, Nodal, Surface sets which are used by the analysis during writing.
+        This reduces the need to explicitly attach them to an analysis.
+        """
+        amps = {}
+
+        for loadcase in self.loadCases:
+
+            for bc in loadcase.boundaryConditions:
+                if bc.amplitude:
+                    amps[bc.amplitude.name] = bc.amplitude
+
+        return list(amps.values())
+
     def _collectSets(self, setType: Type[MeshSet] = None):
         """
         Private function returns a unique set of Element, Nodal, Surface sets which are used by the analysis during writing.
         This reduces the need to explicitly attach them to an analysis.
+
+        :param setType: The type of set to collect
         """
         elementSets = {}
         nodeSets = {}
@@ -384,6 +401,11 @@ class Simulation:
         """
         return self._collectSets(setType=SurfaceSet)
 
+    def getAmplitudes(self) -> List[Amplitude]:
+        """ Returns *all** the :class:`pyccx.core.Amplitudes` used and generated in the analysis """
+
+        return self._collectAmplitudes()
+
     def writeInput(self) -> str:
         """
         Writes the input deck for the simulation
@@ -405,9 +427,22 @@ class Simulation:
 
         return self._input
 
+    def _writeAmplitudes(self):
+
+        amplitudes = self._collectAmplitudes()
+
+        if len(amplitudes) == 0:
+            return
+
+        self._input += '{:*^80}\n'.format(' AMPLITUDES ')
+
+        for amp in amplitudes:
+            self._input += amp.writeInput()
+            self._input += os.linesep
+
     def _writeHeaders(self):
 
-        self._input += os.linesep
+        self._input +=  '\n'
         self._input += '{:*^125}\n'.format(' INCLUDES ')
 
         for filename in self.includes:
