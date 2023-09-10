@@ -31,32 +31,86 @@ class BoundaryCondition(ModelObject):
     Base class for all boundary conditions
     """
 
-    def __init__(self, target):
+    def __init__(self, name, target, amplitude = None, timeDelay = None):
 
         self.init = True
-        self.target = target
+        self._target = target
+
+        if not name:
+            name = ''
+
+        self._amplitude = amplitude
+        self._timeDelay = timeDelay
+
+        super().__init__(name)
+
+    @property
+    def name(self):
+        """
+        The name of the boundary condition
+        """
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        self._name = name
+
+    @property
+    def amplitude(self) -> Union[None, Amplitude]:
+        """
+        Apply a single Amplitude (time based profile) for the boundary condition
+        """
+        return self._amplitude
+
+    @amplitude.setter
+    def amplitude(self, amplitude: Amplitude):
+        if not isinstance(amplitude, Amplitude):
+            raise TypeError('Boundary condition\'s amplitude must be an Amplitude object')
+
+        self._amplitude = amplitude
+
+    @property
+    def timeDelay(self) -> Union[None, float]:
+        """
+        A time delay can be added before initiating an Amplitude profile on the boundary condition
+        """
+        return self._timeDelay
+
+    @timeDelay.setter
+    def timeDelay(self, time):
+        if time < 1e-8:
+            self._timeDelay = None
+        else:
+            self._timeDelay = time
+    @property
+    def target(self):
+        return self._target
+
+    @target.setter
+    def target(self, target):
+        self._target = target
 
     def getTargetName(self) -> str:
-        return self.target.name
+        return self._target.name
 
     def getBoundaryElements(self):
 
-        if isinstance(self.target, ElementSet):
-            return self.target.els
+        if isinstance(self._target, ElementSet):
+            return self._target.els
 
         return None
 
     def getBoundaryFaces(self):
 
-        if isinstance(self.target, SurfaceSet):
-            return self.target.surfacePairs
+        if isinstance(self._target, SurfaceSet):
+            return self._target.surfacePairs
 
         return None
 
     def getBoundaryNodes(self):
 
-        if isinstance(self.target, NodeSet):
-            return self.target.nodes
+        if isinstance(self._target, NodeSet):
+            return self._target.nodes
 
         return None
 
@@ -80,7 +134,8 @@ class Film(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target, h: float = 0.0, TAmbient: float = 0.0):
+    def __init__(self, target, h: float = 0.0, TAmbient: float = 0.0,
+                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
 
         self.h = h
         self.T_amb = TAmbient
@@ -88,7 +143,7 @@ class Film(BoundaryCondition):
         if not isinstance(target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Film Boundary Condition')
 
-        super().__init__(target)
+        super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
@@ -116,12 +171,20 @@ class Film(BoundaryCondition):
         self.T_amb = Tamb
 
     def writeInput(self) -> str:
-        bCondStr = '*FILM\n'
+        bCondStr = '*FILM'
+
+        if self._amplitude:
+            bCondStr += ', AMPLITUDE = {:s}'.format(self._amplitude.name)
+
+        if self._timeDelay:
+            bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        bCondStr += '\n'
 
         bfaces = self.getBoundaryFaces()
 
         for i in len(bfaces):
-            bCondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.T_amb, self.h)
+            bCondStr += '{:d},F{:d}, {:e}, {:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.T_amb, self.h)
 
         return bCondStr
 
@@ -133,14 +196,15 @@ class HeatFlux(BoundaryCondition):
     coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target, flux: float = 0.0):
+    def __init__(self, target, flux: float = 0.0,
+                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
 
         self._flux = flux
 
         if not isinstance(target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Heat Flux Boundary Condition')
 
-        super().__init__(target)
+        super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
@@ -158,11 +222,20 @@ class HeatFlux(BoundaryCondition):
 
     def writeInput(self) -> str:
 
-        bCondStr = '*DFLUX\n'
+        bCondStr = '*DFLUX'
+
+        if self._amplitude:
+            bCondStr += ', AMPLITUDE = {:s}'.format(self._amplitude.name)
+
+        if self._timeDelay:
+            bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        bCondStr += '\n'
+
         bfaces = self.getBoundaryFaces()
 
         for i in range(len(bfaces)):
-            bCondStr += '{:d},S{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self._flux)
+            bCondStr += '{:d}, S{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self._flux)
 
         return bCondStr
 
@@ -172,11 +245,12 @@ class Radiation(BoundaryCondition):
     The radiation boundary condition applies Black-body radiation using the Stefan-Boltzmann Law,
     :math:`q_{rad} = \\epsilon \\sigma_b\\left(T-T_{amb}\\right)^4`, which is imposed on the faces of
     boundaries elements (correctly ordered according to Calculix's requirements). Ensure that the Stefan-Boltzmann constant :math:
-    `\\sigma_b`, has consistent units, which is set in the :attr:`~pyccx.analysis.Simulation.SIGMAB`. This BC may be used in thermal and
-    coupled thermo-mechanical analyses.
+    `\\sigma_b`, has consistent units, which is set in the :attr:`~pyccx.analysis.Simulation.SIGMAB`.
+    This BC may be used in thermal and coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target, epsilon=1.0, TAmbient: float = 0.0):
+    def __init__(self, target, epsilon: float = 1.0, TAmbient: float = 0.0,
+                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
 
         self.T_amb = TAmbient
         self._epsilon = epsilon
@@ -184,7 +258,7 @@ class Radiation(BoundaryCondition):
         if not isinstance(target, SurfaceSet):
             raise ValueError('A SurfaceSet must be used for a Radiation Boundary Condition')
 
-        super().__init__(target)
+        super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.THERMAL
@@ -213,11 +287,20 @@ class Radiation(BoundaryCondition):
 
     def writeInput(self) -> str:
 
-        bCondStr = '*RADIATE\n'
+        bCondStr = '*RADIATE'
+
+        if self._amplitude:
+            bCondStr += ', AMPLITUDE = {:s}'.format(self._amplitude.name)
+
+        if self._timeDelay:
+            bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        bCondStr += '\n'
+
         bfaces = self.getBoundaryFaces()
 
         for i in range(len(bfaces)):
-            bCondStr += '{:d},F{:d},{:e},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.T_amb, self._epsilon)
+            bCondStr += '{:d}, F{:d}, {:e}, {:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.T_amb, self._epsilon)
 
         return bCondStr
 
@@ -229,7 +312,8 @@ class Fixed(BoundaryCondition):
     the analysis type.
     """
 
-    def __init__(self, target: Any, dof: List[DOF] = [], values=None):
+    def __init__(self, target: Any, dof: List[DOF] = [], values=None,
+                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
 
         if not isinstance(target, NodeSet):
             raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
@@ -241,7 +325,7 @@ class Fixed(BoundaryCondition):
         self._dof = dof
         self._values = values
 
-        super().__init__(target)
+        super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.ANY
@@ -270,7 +354,15 @@ class Fixed(BoundaryCondition):
 
     def writeInput(self) -> str:
 
-        bCondStr = '*BOUNDARY\n'
+        bCondStr = '*BOUNDARY'
+
+        if self._amplitude:
+            bCondStr += ', AMPLITUDE = {:s}'.format(self._amplitude.name)
+
+        if self._timeDelay:
+            bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        bCondStr += '\n'
 
         nodesetName = self.getTargetName()
 
@@ -295,19 +387,20 @@ class Acceleration(BoundaryCondition):
     analysis. This is provided as magnitude, direction of the acceleration on the body.
     """
 
-    def __init__(self, target, dir=None, mag=1.0):
+    def __init__(self, target, dir = None, mag = 1.0,
+                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
 
-        self.mag = 1.0
+        self._mag = 1.0
 
         if not isinstance(target, NodeSet) or not isinstance(target, ElementSet):
             raise ValueError('The target for an Acceleration BC should be a node or element set.')
 
         if dir:
-            self.dir = dir
+            self.dir = np.asanyarray(dir)
         else:
             self.dir = np.array([0.0, 0.0, 1.0])
 
-        super().__init__(target)
+        super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
@@ -328,12 +421,12 @@ class Acceleration(BoundaryCondition):
         """
         The acceleration magnitude applied onto the body
         """
-        return self.mag
+        return self._mag
 
     @magnitude.setter
     def magnitude(self, magVal: float) -> None:
         from numpy import linalg
-        self.mag = magVal
+        self._mag = magVal
 
     @property
     def direction(self) -> np.ndarray:
@@ -348,8 +441,17 @@ class Acceleration(BoundaryCondition):
         self.dir = v / linalg.norm(v)
 
     def writeInput(self) -> str:
-        bCondStr = '*DLOAD\n'
-        bCondStr += '{:s},GRAV,{:.5f}, {:e},{:e},{:e}\n'.format(self.target.name, self.mag, *self.dir)
+        bCondStr = '*DLOAD'
+
+        if self._amplitude:
+            bCondStr += ', AMPLITUDE = {:s}'.format(self._amplitude.name)
+
+        if self._timeDelay:
+            bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        bCondStr += '\n'
+
+        bCondStr += '{:s},GRAV,{:.5f}, {:e},{:e},{:e}\n'.format(self.target.name, self._mag, *self.dir)
         return bCondStr
 
 
@@ -358,14 +460,15 @@ class Pressure(BoundaryCondition):
     The Pressure Boundary Condition applies a uniform pressure to faces across an element boundary.
     """
 
-    def __init__(self, target, magnitude: float = 0.0):
+    def __init__(self, target, magnitude: float = 0.0,
+                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
 
-        self.mag = magnitude
+        self._mag = magnitude
 
         if not isinstance(target, SurfaceSet):
             raise ValueError('A surface set must be assigned to a Pressure boundary condition.')
 
-        super().__init__(target)
+        super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
@@ -375,19 +478,28 @@ class Pressure(BoundaryCondition):
         """
         The magnitude of pressure applied onto the surface
         """
-        return self.mag
+        return self._mag
 
     @magnitude.setter
     def magnitude(self, magVal: float) -> None:
-        self.mag = magVal
+        self._mag = magVal
 
     def writeInput(self) -> str:
 
-        bCondStr = '*DLOAD\n'
+        bCondStr = '*DLOAD'
+
+        if self._amplitude:
+            bCondStr += ', AMPLITUDE = {:s}'.format(self._amplitude.name)
+
+        if self._timeDelay:
+            bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        bCondStr += '\n'
+
         bfaces = self.getBoundaryFaces()
 
         for i in range(len(bfaces)):
-            bCondStr += '{:d},P{:d},{:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self.mag)
+            bCondStr += '{:6d}, P{:d}, {:e}\n'.format(bfaces[i, 0], bfaces[i, 1], self._mag)
 
         return bCondStr
 
@@ -398,11 +510,12 @@ class Force(BoundaryCondition):
     coupled thermo-mechanical analyses provided the DOF is applicable to the analysis type.
     """
 
-    def __init__(self, target):
+    def __init__(self, target,
+                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
         self.mag = 0.0
         self.dir = np.array([0.0, 0.0, 1.0])
 
-        super().__init__(target)
+        super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
@@ -442,7 +555,16 @@ class Force(BoundaryCondition):
         self.dir = v / linalg.norm(v)
 
     def writeInput(self) -> str:
-        bCondStr = '*CLOAD\n'
+        bCondStr = '*CLOAD'
+
+        if self._amplitude:
+            bCondStr += ', AMPLITUDE = {:s}'.format(self._amplitude.name)
+
+        if self._timeDelay:
+            bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        bCondStr += '\n'
+
         nodesetName = self.getTargetName()
 
         for i in range(3):
