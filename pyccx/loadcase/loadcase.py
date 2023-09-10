@@ -197,16 +197,17 @@ class LoadCase(ModelObject):
 
         :return: outStr
         """
-        bcondStr = ''
+        bCondStr = ''
 
         for bcond in self.boundaryConditions:
-            bcondStr += bcond.writeInput()
+            bCondStr += bcond.writeInput()
+            bCondStr += '\n'
 
-        return bcondStr
+        return bCondStr
 
     def writeInput(self) -> str:
-
-        outStr  = '{:*^64}\n'.format(' LOAD CASE ({:s}) '.format(self.name))
+        outStr = '\n'
+        outStr += '{:*^80}\n'.format(' LOAD CASE ({:s}) '.format(self.name))
         outStr += '*STEP'
 
         if self._isNonlinear:
@@ -228,14 +229,17 @@ class LoadCase(ModelObject):
         if self._isSteadyState:
             outStr += ', STEADY STATE'
 
-        if self._automaticIncrements:
+        if not self._automaticIncrements:
             outStr += ', DIRECT'
 
+        outStr += '\n'
+
         # Write the timestepping information
-        outStr += '\n{:.7f}, {:.7f} ,{:.7f} , {:.7f}\n'.format(self._initialTimestep,
+        outStr += '{:.7f}, {:.7f} ,{:.7f} , {:.7f}\n'.format(self._initialTimestep,
                                                                self._totalTime,
                                                                self._minTimestep, self._maxTimestep)
 
+        outStr += '\n'
         # Write the individual boundary conditions associated with this loadcase
         outStr += self.writeBoundaryCondition()
 
