@@ -1,1 +1,1 @@
-from .exporters import *
+from .exporters import exportToVTK

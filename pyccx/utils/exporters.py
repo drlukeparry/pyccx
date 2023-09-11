@@ -1,3 +1,6 @@
+import os
+import shutil
+
 from enum import Enum, Flag, auto
 from typing import Any, List, Tuple
 
@@ -6,6 +9,50 @@ import numpy as np
 
 from ..core import ElementSet, NodeSet, SurfaceSet, DOF
 from ..results import ResultProcessor
+
+
+def exportToPVD(filename: str, results: ResultProcessor):
+    """
+    Exports all the timestep increments to a pvd file for visualisation in Paraview
+
+    :param filename: The root filename of the .pvd file
+    :param results: The PyCCX results processor
+    """
+
+    rootFilename = os.path.basename(filename).split('.')[0]
+    rootDir = os.path.dirname(filename)
+
+    if rootDir:
+        rootDir =  rootDir + '/'
+
+    data = ET.Element('VTKFile', type="Collection", version ="0.1", byte_order="LittleEndian")
+    colEl = ET.SubElement(data, 'Collection')
+
+    resultsFolder = '{:s}{:s}-data'.format(rootDir, rootFilename)
+
+    """ Remove the previous directory """
+    try:
+        shutil.rmtree(resultsFolder)
+    except:
+        pass
+
+    os.mkdir(resultsFolder)
+
+    colItems = []
+    for inc in results.increments:
+        iterData = results.increments[inc]
+
+        incPath = '{:s}/{:s}'.format(resultsFolder, 'increment-{:d}.vtu'.format(inc))
+
+        """ Export the .vtu format to the data folder """
+        exportToVTK(incPath, results, inc)
+
+        dataSetEl = ET.SubElement(colEl, 'DataSet', timestep="{:d}".format(inc), group="", part="0",file=incPath)
+        colItems.append(dataSetEl)
+
+    b_xml = ET.tostring(data)
+    with open('{:s}'.format(filename), 'wb') as f:
+        f.write(b_xml)
 
 def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
     """
