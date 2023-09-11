@@ -157,8 +157,8 @@ class NodalResult(Result):
             """ Obtain the entire nodal quantities for the model using *NODE FILE option """
             inputStr += '*NODE FILE'
 
-        if not self._expandShellElements:
-            inputStr += ', OUTPUT=2D '
+            if not self._expandShellElements:
+                inputStr += ', OUTPUT=2D '
 
         inputStr += ', FREQUENCY={:d}\n'.format(self._frequency)
 
@@ -702,7 +702,7 @@ class ResultProcessor:
         rfstr = ''
         incTime = 0.0
         inc = -1
-        
+
         while True:
             line = infile.readline()
 
