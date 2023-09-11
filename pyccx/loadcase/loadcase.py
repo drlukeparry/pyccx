@@ -31,11 +31,11 @@ class LoadCaseType(IntEnum):
 
 class LoadCase(ModelObject):
     """
-    A unique Load case defines a set of simulation analysis conditions and a set of boundary conditions to apply to the domain.
-    The default and initial timestep provide an estimate for the solver should be specified  along with the total duration
-    of the load case using :meth:`setTimeStep`. The analysis type for the loadcase should be
-    specified using :meth:`setLoadCaseType`. Depending on the analysis type the steady-state solution
-    may instead be calculated.
+    A unique Load case defines a set of simulation analysis conditions and a set of boundary conditions to apply to
+    the domain. The default and initial timestep provide an estimate for the solver should be specified  along with
+    the total duration of the load case using :meth:`setTimeStep`. The analysis type for the loadcase should be
+    specified using :meth:`setLoadCaseType`. Depending on the analysis type the steady-state solution may instead be
+    calculated.
     """
     def __init__(self, name: str, loadCaseType: LoadCaseType = None, resultSets = None):
 

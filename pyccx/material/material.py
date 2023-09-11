@@ -300,7 +300,6 @@ class ElastoPlasticMaterial(Material):
     def writeInput(self) -> str:
 
         inputStr = '*material, name={:s}\n'.format(self._name)
-        inputStr += '*{:s}\n'.format(self.materialModel)
 
         inputStr += self._writeElasticProp()
 

@@ -41,11 +41,13 @@ class AnalysisType(IntEnum):
 
 class MaterialAssignment(ModelObject):
     """
-    An element set is basic entity for storing element set lists.The set remains constant without any dynamic referencing
-     to any underlying geometric entities.
+    MaterialAssignment is a base class for defining the Element Types and :class:`Material` that are specified for
+    an :class:`ElementSet` within the model. These are required to be set for all elements that exist within
+    :class:`pyccx.mesh.Mesher` that are defined and exported for use in Calculix.
     """
 
     def __init__(self, name: str, elementSet: ElementSet, material: Material):
+
         self._elSet = elementSet
         self._material = material
 
@@ -83,17 +85,48 @@ class MaterialAssignment(ModelObject):
 
 
 class SolidMaterialAssignment(MaterialAssignment):
+    """
+    SolidMaterialAssignment designates elements as solid 3D continuum elements, for the selected elements in a provided
+    :class:`ElementSet` with the given :class:`Material`. This option should be used for the following class of elements
+    including assigning material properties to 3D, plane stress, plane strain and axisymmetric element types. For
+    plane stress and plane strain elements the thickness parameter can be specified.
+    """
+    def __init__(self, name, elementSet, material, thickness: float = None):
 
-    def __init__(self, name, elementSet, material):
+        self._thickness = thickness
         super().__init__(name, elementSet, material)
+
+    @property
+    def thickness(self):
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, thickness):
+
+        if thickness is None:
+            self._thickness = None
+        elif thickness < 1e-8:
+            self._thickness = None
+        else:
+            self._thickness = thickness
 
     def writeInput(self) -> str:
         out = '*solid section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
+
+        if self._thickness:
+            out += '{:e}'.format(self._thickness)
+
         return out
 
+
 class ShellMaterialAssignment(MaterialAssignment):
+    """
+    ShellMaterialAssignment is used to select shell elments for the selected elements in a provided
+    :class:`ElementSet` with the given :class:`Material`. A thickness must be provided for the selected shell elements.
+    """
 
     def __init__(self, name, elementSet, material, thickness):
+
         super().__init__(name, elementSet, material)
 
         self._thickness = thickness
