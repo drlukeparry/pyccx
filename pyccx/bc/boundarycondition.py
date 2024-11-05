@@ -383,8 +383,8 @@ class Fixed(BoundaryCondition):
 
 class Acceleration(BoundaryCondition):
     """
-    The Acceleration Boundary Condition applies an acceleration term across a Volume (i.e. Element Set) during a structural
-    analysis. This is provided as magnitude, direction of the acceleration on the body.
+    The Acceleration Boundary Condition applies an acceleration term across a Volume (i.e. Element Set) during a
+    structural analysis. This is provided as magnitude, direction of the acceleration on the body.
     """
 
     def __init__(self, target, dir = None, mag = 1.0,
@@ -457,7 +457,7 @@ class Acceleration(BoundaryCondition):
 
 class Pressure(BoundaryCondition):
     """
-    The Pressure Boundary Condition applies a uniform pressure to faces across an element boundary.
+    The Pressure Boundary Condition applies a uniform pressure to the  faces across an element boundary.
     """
 
     def __init__(self, target, magnitude: float = 0.0,

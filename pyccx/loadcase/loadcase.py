@@ -36,21 +36,31 @@ class LoadCase(ModelObject):
     the total duration of the load case using :meth:`setTimeStep`. The analysis type for the loadcase should be
     specified using :meth:`setLoadCaseType`. Depending on the analysis type the steady-state solution may instead be
     calculated.
+
+    If the option :attr:`automaticIncrements` is set to False, the solver will use the initial timestep and the total
+    time steps will be defined by the user when using the :attr:`nonlinear` option, which provides time-dependent
+    behavior for the analysis.
+
     """
     def __init__(self, name: str, loadCaseType: LoadCaseType = None, resultSets = None):
 
         self._input = ''
+
+        """ Analysis Types for the Load Case"""
         self._loadCaseType = None
         self._isSteadyState = False
         self._isNonlinear = False
+
+        """ Time-stepping parameters """
         self._automaticIncrements = True
         self._initialTimestep = 0.1
         self._defaultTimeStep = 0.1
-        self._minTimestep = 1e-6
-        self._maxTimestep = 1.0
-        self._totalTime = 1.0
+        self._minTimestep     = 1e-6
+        self._maxTimestep     = 1.0
+        self._totalTime       = 1.0
         self._resultSet = []
         self._boundaryConditions = []
+
 
         if loadCaseType:
             if loadCaseType in LoadCaseType:

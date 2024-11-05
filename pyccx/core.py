@@ -121,7 +121,7 @@ class NodeSet(MeshSet):
 class ElementSet(MeshSet):
     """
     An element set is basic entity for storing element set lists.The set remains constant without any dynamic referencing
-     to any underlying geometric entities.
+    to any underlying geometric entities.
     """
     def __init__(self, name, els):
         super().__init__(name)
@@ -130,7 +130,7 @@ class ElementSet(MeshSet):
     @property
     def els(self):
         """
-        Elements contains the list of Node IDs
+        Elements contains the list of element IDs
         """
         return self._els
 
