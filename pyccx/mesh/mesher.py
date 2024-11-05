@@ -55,8 +55,10 @@ class Mesher:
     to mesh multiple PythonOCC objects
     """
 
-    # Static class variables for meshing operations
+    """ Minimum tolerance used for truncating nodal coordiante values """
+    EPSILON = 1E-10
 
+    # Static class variables for meshing operations
     ElementOrder = 1
     NumThreads = 4
     OptimiseNetgen = True
@@ -880,10 +882,11 @@ class Mesher:
         return nodeCoordsSrt
 
 
-    def getElementIds(self, entityId: Tuple[int,int] = None, merge = True):
+    def getElementIds(self, entityId: Tuple[int,int] = None, merge: bool = True):
         """
         Returns the elements for the entire model or optionally a specific entity.
         :param entityId: The entity id to obtain elements for
+        :param merge: Merge the element ids into a single array
         :return: A Tuple of  element types, element ids and corresponding node ids
         """
         self.setAsCurrentModel()
@@ -1139,8 +1142,14 @@ class Mesher:
         nodeCoords = nodeCoords[invNid]
         nids = np.sort(nids)
 
+        # For any coordinate values that are below a epsilon, set these to zero
+
         for nid, nCoords in zip(nids, nodeCoords):
             ncoords = nodeCoords[int(nid) - 1]
+
+            # Truncate any values below the epsilon
+            ncoords[np.abs(ncoords) < self.EPSILON] = 0.0
+
             txt += "{:d}, {:e}, {:e}, {:e}\n".format(nid, *ncoords)
 
         # Obtain the surface-element physical groups and their associative element ids
