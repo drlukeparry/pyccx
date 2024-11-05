@@ -1,1 +1,1 @@
-from .results import Result, NodalResult, ElementResult, ResultProcessor
+from .results import Result, NodalResult, ElementResult, ResultProcessor, ResultsValue

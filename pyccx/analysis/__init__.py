@@ -1,1 +1,1 @@
-from .analysis import AnalysisType, AnalysisError, Simulation, SolidMaterialAssignment, ShellMaterialAssignment
+from .analysis import AnalysisType, AnalysisError, MaterialAssignment, Simulation, SolidMaterialAssignment, ShellMaterialAssignment
