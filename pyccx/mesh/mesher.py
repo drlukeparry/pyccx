@@ -1106,9 +1106,9 @@ class Mesher:
         :param elementType:
         :return:
         """
-        mask = np.zeros([elementType.faces.shape[0], np.max(elementType.faces)])
+        mask = np.zeros([len(elementType.faces), np.max(elementType.faces)])
         for i in np.arange(mask.shape[0]):
-            mask[i, elementType.faces[i] - 1] = 1
+            mask[i, np.array(elementType.faces[i]) - 1] = 1
 
         return mask
 
