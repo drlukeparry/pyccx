@@ -1219,6 +1219,35 @@ class Mesher:
 
         return txt
 
+    def getNodesInBoundingBox(self, minX: int, minY: int, minZ: int,
+                                                             maxX: int, maxY: int, maxZ: int) -> np.array:
+        """
+        Returns all nodes within a bounding box
+
+        :param minX: Minimum X
+        :param minY: Minimum Y
+        :param minZ: Minimum Z
+        :param maxX: Maximum X
+        :param maxY: Maximum Y
+        :param maxZ: Maximum Z
+        :return: The node ids within the bounding box
+        """
+        self.setAsCurrentModel()
+
+        if not self._isMeshGenerated:
+            raise Exception('Mesh is not generated')
+
+        nodeVals = gmsh.model.mesh.getNodes()
+        nids = nodeVals[0]
+        invNid = np.argsort(nids)
+        nodeCoords = nodeVals[1].reshape(-1, 3)
+        nodeCoords = nodeCoords[invNid]
+        nids = np.sort(nids)
+
+        mask = np.logical_and(np.all(nodeCoords >= [minX, minY, minZ], axis=1),
+                                              np.all(nodeCoords <= [maxX, maxY, maxZ], axis=1))
+
+        return nids[mask]
 
     def getSurfaceFacesFromSurfId(self, surfTagId):
 
