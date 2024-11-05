@@ -135,7 +135,11 @@ class Mesher:
         """
 
         self.setAsCurrentModel()
-        gmsh.model.removePhysicalGroups(dimension)
+
+        if not dimension:
+            gmsh.model.removePhysicalGroups()
+        else:
+            gmsh.model.removePhysicalGroups(dimension)
 
     def clearMeshAssignments(self, elType = None) -> None:
         """
@@ -285,6 +289,11 @@ class Mesher:
         # Obtain the current list of elements across the entire model
         elIds = np.hstack(self.getAllPhysicalGroupElements())
         fndElIds = np.sort(elIds)
+
+        meshAssignmentVals = self._meshAssignments.values()
+
+        if len(meshAssignmentVals) == 0:
+            return fndElIds
 
         # Concatenate all the list of assigned elements
         assignedElIds = np.hstack([x for x in self._meshAssignments.values()])
