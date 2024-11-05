@@ -31,7 +31,7 @@ class BoundaryCondition(ModelObject):
     Base class for all boundary conditions
     """
 
-    def __init__(self, name, target, amplitude = None, timeDelay = None):
+    def __init__(self, name, target, amplitude: Amplitude = None, timeDelay: float = None):
 
         self.init = True
         self._target = target
@@ -39,22 +39,24 @@ class BoundaryCondition(ModelObject):
         if not name:
             name = ''
 
+        self._resetBoundaryCondition = False
         self._amplitude = amplitude
         self._timeDelay = timeDelay
 
         super().__init__(name)
 
     @property
-    def name(self):
+    def resetBoundaryCondition(self) -> bool:
         """
-        The name of the boundary condition
+        Reset the boundary condition so that previous conditions in the BC are reset/ignored. By default this value is
+        to `False` to match the behavior in Calculix. This is useful for applying different  boundary conditions across
+        multiple seperated loadcases.
         """
-        return self._name
+        return self._resetBoundaryCondition
 
-    @name.setter
-    def name(self, name: str):
-        self._name = name
-
+    @resetBoundaryCondition.setter
+    def resetBoundaryCondition(self, value: bool):
+        self._resetBoundaryCondition = value
     @property
     def amplitude(self) -> Union[None, Amplitude]:
         """
@@ -179,6 +181,9 @@ class Film(BoundaryCondition):
         if self._timeDelay:
             bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
 
+        if self._resetBoundaryCondition:
+            bCondStr += ', OP = NEW'
+
         bCondStr += '\n'
 
         bfaces = self.getBoundaryFaces()
@@ -229,6 +234,9 @@ class HeatFlux(BoundaryCondition):
 
         if self._timeDelay:
             bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        if self._resetBoundaryCondition:
+            bCondStr += ', OP = NEW'
 
         bCondStr += '\n'
 
@@ -295,6 +303,9 @@ class Radiation(BoundaryCondition):
         if self._timeDelay:
             bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
 
+        if self._resetBoundaryCondition:
+            bCondStr += ', OP = NEW'
+
         bCondStr += '\n'
 
         bfaces = self.getBoundaryFaces()
@@ -308,8 +319,8 @@ class Radiation(BoundaryCondition):
 class Fixed(BoundaryCondition):
     """
     The fixed boundary condition removes or sets the DOF (e.g. displacement components, temperature) specifically on
-    a Node Set. This BC may be used in thermal and coupled thermo-mechanical analyses provided the DOF is applicable to
-    the analysis type.
+    a :class:`NodeSet`. This BC may be used in thermal and coupled thermo-mechanical analyses provided the DOF is
+    applicable to the analysis type.
     """
 
     def __init__(self, target: Any, dof: List[DOF] = [], values=None,
@@ -361,6 +372,9 @@ class Fixed(BoundaryCondition):
 
         if self._timeDelay:
             bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        if self._resetBoundaryCondition:
+            bCondStr += ', OP = NEW'
 
         bCondStr += '\n'
 
@@ -449,6 +463,9 @@ class Acceleration(BoundaryCondition):
         if self._timeDelay:
             bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
 
+        if self._resetBoundaryCondition:
+            bCondStr += ', OP = NEW'
+
         bCondStr += '\n'
 
         bCondStr += '{:s},GRAV,{:.5f}, {:e},{:e},{:e}\n'.format(self.target.name, self._mag, *self.dir)
@@ -493,6 +510,9 @@ class Pressure(BoundaryCondition):
 
         if self._timeDelay:
             bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        if self._resetBoundaryCondition:
+            bCondStr += ', OP = NEW'
 
         bCondStr += '\n'
 
@@ -562,6 +582,9 @@ class Force(BoundaryCondition):
 
         if self._timeDelay:
             bCondStr += ', TIMEDELAY = {:e}'.format(self._timeDelay)
+
+        if self._resetBoundaryCondition:
+            bCondStr += ', OP = NEW'
 
         bCondStr += '\n'
 
