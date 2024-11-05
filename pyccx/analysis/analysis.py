@@ -191,6 +191,7 @@ class Simulation:
 
         self.initialTimeStep = 0.1
         self.defaultTimeStep = 0.1
+
         self.totalTime = 1.0
         self.useSteadyStateAnalysis = True
 
@@ -788,6 +789,17 @@ class Simulation:
             convergenceOutput2 = np.array(convergenceOutput2)
 
         return convergenceOutput, convergenceOutput2
+
+    def checkLine(self, line):
+
+        self._runData = {}
+
+        if 'Total CalculiX Time:'in line:
+            runTime = re.search('Total CalculiX Time: (\S*)', line )[1]
+            runTime = float(runTime)
+
+            self._runData['runTime'] = runTime
+
     def run(self):
         """
         Performs pre-analysis checks on the model and submits the job for Calculix to perform.
@@ -827,16 +839,25 @@ class Simulation:
 
             popen = subprocess.Popen(cmd, cwd=self._workingDirectory,  stdout=subprocess.PIPE, universal_newlines=True)
 
-            if self.VERBOSE_OUTPUT:
-                for stdout_line in iter(popen.stdout.readline, ""):
+            for stdout_line in iter(popen.stdout.readline, ""):
+
+                if not stdout_line or stdout_line == '\n':
+                    continue
+
+                if "Using up to " in stdout_line:
+                    continue
+
+                if self.VERBOSE_OUTPUT:
                     print(stdout_line, end='')
+
+                self.checkLine(stdout_line)
 
             popen.stdout.close()
             return_code = popen.wait()
             if return_code:
                 raise subprocess.CalledProcessError(return_code, cmd)
 
-            # A        :return:nalysis was completed successfully
+            # Analysis was completed successfully
             self._analysisCompleted = True
 
         elif sys.platform == 'linux':
@@ -847,9 +868,17 @@ class Simulation:
 
             popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True)
 
-            if self.VERBOSE_OUTPUT:
-                for stdout_line in iter(popen.stdout.readline, ""):
+            for stdout_line in iter(popen.stdout.readline, ""):
+
+                if not stdout_line or stdout_line == '\n':
+                    continue
+
+                if "Using up to " in stdout_line:
+                    continue
+
+                if self.VERBOSE_OUTPUT:
                     print(stdout_line, end='')
+                self.checkLine(stdout_line)
 
             popen.stdout.close()
             return_code = popen.wait()
@@ -867,9 +896,18 @@ class Simulation:
 
             popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True)
 
-            if self.VERBOSE_OUTPUT:
-                for stdout_line in iter(popen.stdout.readline, ""):
+            for stdout_line in iter(popen.stdout.readline, ""):
+
+                if not stdout_line or stdout_line == '\n':
+                    continue
+
+                if "Using up to " in stdout_line:
+                    continue
+
+                if self.VERBOSE_OUTPUT:
                     print(stdout_line, end='')
+
+                self.checkLine(stdout_line)
 
             popen.stdout.close()
             return_code = popen.wait()
