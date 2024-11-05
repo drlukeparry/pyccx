@@ -380,7 +380,7 @@ class Mesher:
 
     def setSurfacePhysicalName(self, surfId: Any, name: str) -> int:
         """
-        Sets the Physcal Group Name of the Surfaces(s)
+        Sets the Physical Group Name of the Surfaces(s)
 
         :param surfId: The set of surface ids
         :param name: Name assigned to volume
@@ -754,7 +754,8 @@ class Mesher:
         gmsh.option.setNumber("Mesh.NumSubEdges", 4)
 
         # The following GMSH options do not appear to change anything
-        # Import labels is required inorder to correctly reference geometric entities and their associated mesh entities
+        # Import labels is required inorder to correctly reference geometric
+        # entities and their associated mesh entities
         gmsh.option.setNumber("Geometry.OCCImportLabels", 1)
 
         # gmsh.option.setNumber("Geometry.OCCAutoFix", 0)
@@ -940,7 +941,8 @@ class Mesher:
         result = self._restructureElementStructure(result)
         return result
 
-    def getElementsByType(self, elType: elements.BaseElementType, returnElIds: Optional[bool] = False) -> np.ndarray:
+    def getElementsByType(self, elType: elements.BaseElementType, elTag: Tuple[int,int] = None,
+                        returnElIds: Optional[bool] = False) -> np.ndarray:
         """
         Returns all elements of type (elType) from the GMSH model, within class ElementTypes. Note: the element ids are returned with
         an index starting from 1 - internally GMSH uses an index starting from 1, like most FEA pre-processors
