@@ -81,7 +81,7 @@ class NodalResult(Result):
 
     @property
     def heatFlux(self) -> bool:
-        """ Include heat flux in the output """
+        """ Include the nodal heat flux components in the results """
         return self._heatFlux
 
     @heatFlux.setter
@@ -90,7 +90,7 @@ class NodalResult(Result):
 
     @property
     def cauchyStress(self) -> bool:
-        """ Include cauchy stress components in the output """
+        """ Include the extrapolated nodal cauchy stress components in the results """
         return self._cauchyStress
 
     @cauchyStress.setter
@@ -99,7 +99,7 @@ class NodalResult(Result):
 
     @property
     def strain(self) -> bool:
-        """ Include strain in the output """
+        """ Include the strain components in the results """
         return self._strain
 
     @strain.setter
@@ -108,7 +108,7 @@ class NodalResult(Result):
 
     @property
     def plasticStrain(self) -> bool:
-        """ Include plastic strain in the output """
+        """ Include equivalent plastic strain variable in the results """
         return self._plasticStrain
 
     @plasticStrain.setter
@@ -116,23 +116,27 @@ class NodalResult(Result):
         self._plasticStrain = state
 
     @property
-    def expandShellElements(self):
-        """ Expand shell elements from their mid-surface in the output """
+    def expandShellElements(self) -> bool:
+        """
+        Setting this property will instruct calculix to export the  node values that are obtained impliclity when the
+        nodes from the shell elements are expanded/project rom their mid-surface region. This is useful for
+        post-processing and represting an equivalent volumetric mesh for the shell elements.
+        """
         return self._expandShellElements
 
     @expandShellElements.setter
-    def expandShellElements(self, state):
+    def expandShellElements(self, state: bool):
         self._expandShellElements = state
 
     @property
-    def nodeSet(self) -> NodeSet:
+    def nodeSet(self) -> Union[NodeSet,str]:
         """
-        The node set to obtain values for post-processing.
+        The :class:`NodeSet` to obtain values for post-processing.
         """
         return self._nodeSet
 
     @nodeSet.setter
-    def nodeSet(self, nodeSet: NodeSet):
+    def nodeSet(self, nodeSet: Union[NodeSet, str]):
 
         if not (isinstance(nodeSet, NodeSet) or isinstance(nodeSet, str)):
             raise TypeError('NodalResult nodeset must be a NodeSet object or name of set')
@@ -381,13 +385,19 @@ class ResultProcessor:
         idx = sorted(list(self.increments.keys()))[-1]
         return self.increments[idx]
 
-    def findIncrementByTime(self, incTime) -> int:
+    def findIncrementByTime(self, incTime, tol: Optional[float] = 1e-6) -> Tuple[int, Dict]:
+        """
+        Finds an increment at a stored time witin a specified tolerance (default: 1e-6)
 
-        for inc, increment in self.increments.items():
-            if abs(increment['time'] - incTime) < 1e-9:
+        :param incTime: The specified analysis time to locate the increment
+        :param tol: The numerical tolerance to find the increment [default: 1e-6]
+        :return: The Increment data structure if found
+        """
+        for inc, increment in self._increments.items():
+            if abs(increment['time'] - incTime) < tol:
                 return inc, increment
         else:
-            raise ValueError('Increment could not be found at time <{:.5f}>s'.format(incTime))
+            raise ValueError('Increment could not be found at time <{:.9f}>s'.format(incTime))
 
     @staticmethod
     def _getVals(fstr: str, line: str):
@@ -461,26 +471,44 @@ class ResultProcessor:
                 return line
 
     def readNodeDisp(self, line, rfstr) -> tuple:
+        """
+        Reads the nodal displacement values from the .frd file
+        """
         nid, ux, uy, uz = self._getVals(rfstr, line)[1:]
         return nid, ux, uy, uz
 
     def readNodeForce(self, line, rfstr):
+        """
+        Reads the nodal force values from the .frd file
+        """
         nid, f_x, f_y, f_z = self._getVals(rfstr, line)[1:]
         return nid, f_x, f_y, f_z
 
     def readNodeFlux(self, line, rfstr) -> tuple:
+        """
+        Reads the nodal heat flux values from the .frd file
+        """
         nid, f_x, f_y, f_z = self._getVals(rfstr, line)[1:]
         return nid, f_x, f_y, f_z
 
     def readNodeTemp(self, line, rfstr) -> tuple:
+        """
+        Reads the nodal temp values from the .frd file
+        """
         nid, temp = self._getVals(rfstr, line)[1:]
         return nid, temp
 
     def readNodeStress(self, line, rfstr) -> tuple:
+        """
+        Reads the nodal stress values from the .frd file
+        """
         nid, sxx, syy, szz, sxy, syz, szx = self._getVals(rfstr, line)[1:]
         return nid, sxx, syy, szz, sxy, syz, szx
 
     def readNodeStrain(self, line, rfstr) -> tuple:
+        """
+        Reads the nodal strain values from the .frd file
+        """
         nid, exx, eyy, ezz, exy, eyz, ezx = self._getVals(rfstr, line)[1:]
         return nid, exx, eyy, ezz, exy, eyz, ezx
 
@@ -499,9 +527,10 @@ class ResultProcessor:
 
         return elId, intp, sxx, syy, szz, sxy, syz, szx
 
-
     def readElResultBlock(self, infile, line):
-        """Returns an array of line, mode, rfstr, time"""
+        """
+        eturns an array of line, mode, rfstr, time
+        """
 
         words = line.strip().split()
         # add time if not present
@@ -687,8 +716,10 @@ class ResultProcessor:
 
         return elVals[np.argsort(elVals[:, 0]), :]
 
-    def readDat(self):
-
+    def readDat(self) -> None:
+        """
+        Internal method that reads the Analysis' Calculix .dat file for the elemental quanties and parses the results.
+        """
         fname = '{:s}.dat'.format(self.jobName)
 
         if not os.path.isfile(fname):
