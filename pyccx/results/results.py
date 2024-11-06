@@ -830,14 +830,14 @@ class ResultProcessor:
                 line, mode, rfstr, time, inc = arr
                 inc = int(inc)
 
-                if inc not in self.increments.keys():
-                    self.increments[inc] = {'time'  : time,
-                                            'disp'  : [],
-                                            'elStress': [],
-                                            'stress': [],
-                                            'strain': [],
-                                            'force' : [],
-                                            'temp'  : []}
+                if inc not in self._increments.keys():
+                    self._increments[inc] = {'time'  : time,
+                                             ResultsValue.DISP  : [],
+                                             ResultsValue.ELSTRESS: [],
+                                             ResultsValue.STRESS: [],
+                                             ResultsValue.STRAIN: [],
+                                             ResultsValue.FORCE : [],
+                                             ResultsValue.TEMP  : []}
 
             # set mode to none if we hit the end of a resuls block
             if line[:3] == ' -3':
@@ -847,15 +847,15 @@ class ResultProcessor:
                 continue
 
             if mode == 'DISP':
-                self.increments[inc]['disp'].append(self.readNodeDisp(line, rfstr))
+                self._increments[inc][ResultsValue.DISP].append(self.readNodeDisp(line, rfstr))
             elif mode == 'STRESS':
-                self.increments[inc]['stress'].append(self.readNodeStress(line, rfstr))
+                self._increments[inc][ResultsValue.STRESS].append(self.readNodeStress(line, rfstr))
             elif mode == 'TOSTRAIN':
-                self.increments[inc]['strain'].append(self.readNodeStrain(line, rfstr))
+                self._increments[inc][ResultsValue.STRAIN].append(self.readNodeStrain(line, rfstr))
             elif mode == 'FORC':
-                self.increments[inc]['force'].append(self.readNodeForce(line, rfstr))
+                self._increments[inc][ResultsValue.FORCE].append(self.readNodeForce(line, rfstr))
             elif mode == 'NDTEMP':
-                self.increments[inc]['temp'].append(self.readNodeTemp(line, rfstr))
+                self._increments[inc][ResultsValue.TEMP].append(self.readNodeTemp(line, rfstr))
 
         infile.close()
 
@@ -864,20 +864,51 @@ class ResultProcessor:
         """
         self.readDat()
 
+        resultKeys = [ResultsValue.DISP, ResultsValue.STRESS, ResultsValue.STRAIN, ResultsValue.FORCE, ResultsValue.TEMP]
+
         # Process the nodal blocks
-        for inc in self.increments.values():
-            inc['disp'] = self.orderNodes(np.array(inc['disp']))
-            inc['stress'] = self.orderNodes(np.array(inc['stress']))
-            inc['strain'] = self.orderNodes(np.array(inc['strain']))
-            inc['force'] = self.orderNodes(np.array(inc['force']))
-            inc['temp'] = self.orderNodes(np.array(inc['temp']))
+        for inc in self._increments.values():
+            for key in resultKeys:
+                inc[key] = self.orderNodes(np.array(inc[key]))
+
+                if key == ResultsValue.STRESS:
+
+                    if len(inc[key]) == 0:
+                        # empty value
+                        continue
+
+                    # Generate the von-mises stress if the nodal stress property is available
+                    nodeStress = inc[key]
+                    sigma = nodeStress[:, 1:]
+                    sigma_v = self.calculateVonMises(sigma)
+                    sigma_v = np.hstack([nodeStress[:, 0].reshape(-1, 1), sigma_v.reshape(-1, 1)])
+                    inc[ResultsValue.VMSTRESS] = sigma_v
 
         logging.info('Results Processor: The following times have been read:')
-        timeIncrements = [val['time'] for val in self.increments.values()]
+        timeIncrements = [val['time'] for val in self._increments.values()]
         logging.info(', '.join([str(time) for time in timeIncrements]))
 
+        if len(timeIncrements) == 0:
+            logging.warning('Results file contains no results')
+
+    @staticmethod
+    def calculateVonMises(sigma):
+
+        numComps = sigma.shape[1]
+
+        if numComps == 3:
+            # 2D Stress Tensor (Planar Stress)
+            sigma_v = np.sqrt(sigma[:, 0]**2 - sigma[:, 0] * sigma[:, 1] + sigma[:, 1]**2 + 3.*sigma[:, 2]**2 )
+        elif numComps == 6:
+            # 3D Stress Tensor
+            sigma_v =  0.5 * np.sqrt( (sigma[:,0] - sigma[:,1])**2 + (sigma[:,1] - sigma[:,2])**2 + (sigma[:,2] - sigma[:,0])**2 +
+                                      6.*(sigma[:,3]**2 + sigma[:,4]**2 + sigma[:,5]**2) )
+        else:
+            raise Exception('Invalid number of stress components')
+
+        return sigma_v
     def clearResults(self):
-        self.increments = {}
+        self._increments = {}
         self._elements = None
         self._nodes = None
 
@@ -940,10 +971,10 @@ class ResultProcessor:
                 inc, increment = self.findIncrementByTime(incTime)
 
                 mode = 'elHeatFlux'
-                self.increments[inc][mode] = []
+                self._increments[inc][mode] = []
 
                 if mode and inc > -1:
-                    self.increments[inc][mode].append(self.readElFlux(line, rfstr, incTime))
+                    self._increments[inc][mode].append(self.readElFlux(line, rfstr, incTime))
 
             # set mode to none if we hit the end of a resuls block
             if line.isspace():
@@ -953,11 +984,11 @@ class ResultProcessor:
                 continue
 
             if mode == 'elStress':
-                self.increments[inc]['elStress'].append(self.readElStress(line, rfstr, incTime))
+                self._increments[inc]['elStress'].append(self.readElStress(line, rfstr, incTime))
             elif mode == 'elHeatFlux':
-                self.increments[inc]['elHeatFlux'].append(self.readElFlux(line, rfstr, incTime))
+                self._increments[inc]['elHeatFlux'].append(self.readElFlux(line, rfstr, incTime))
 
-        for inc in self.increments.values():
+        for inc in self._increments.values():
 
             if 'elStress' in inc:
                 inc['elStress'] = self.orderElements(np.array(inc['elStress']))

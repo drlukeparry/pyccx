@@ -1142,7 +1142,7 @@ class Mesher:
 
         self.setAsCurrentModel()
 
-        txt  = '*Heading\n'
+        txt   = '*Heading\n'
         txt += 'mesh.inp\n'
         txt += '*node\n'
 

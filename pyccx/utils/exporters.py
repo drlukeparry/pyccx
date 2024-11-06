@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 
 from ..core import ElementSet, NodeSet, SurfaceSet, DOF
-from ..results import ResultProcessor
+from ..results import ResultProcessor, ResultsValue
 
 
 def exportToPVD(filename: str, results: ResultProcessor):
@@ -100,33 +100,33 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
 
     data = ET.Element('VTKFile', type="UnstructuredGrid")
     e1 = ET.SubElement(data, 'UnstructuredGrid')
-    ePiece = ET.SubElement(e1, 'Piece', NumberOfPoints = str(len(results.nodes)),
-                                        NumberOfCells = str(len(results.elements)))
+    ePiece = ET.SubElement(e1, 'Piece', NumberOfPoints = str(len(results.nodes[0])),
+                                             NumberOfCells = str(len(results.elements[0])))
 
     ePointData = ET.SubElement(ePiece, 'PointData')
 
     """ Write the Node Displacement Data """
-    if len(resultIncrement['disp']) > 0:
+    if len(resultIncrement[ResultsValue.DISP]) > 0:
 
         eDispArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="Displacement", NumberOfComponents="3", Format="Ascii")
         nodeDispStr = ''
 
-        for row in resultIncrement['disp']:
+        for row in resultIncrement[ResultsValue.DISP]:
             nodeDispStr  += ' '.join([str(val) for val in row[1:]]) + '\n'
         eDispArray.text = nodeDispStr
 
 
     """ Write the Node RF Data """
-    if len(resultIncrement['force']) > 0:
+    if len(resultIncrement[ResultsValue.FORCE]) > 0:
         eRFArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="RF", NumberOfComponents="3", Format="Ascii")
         nodeDispStr = ''
-        for row in resultIncrement['force']:
+        for row in resultIncrement[ResultsValue.FORCE]:
             nodeDispStr  += ' '.join([str(val) for val in row[1:]]) + '\n'
         eRFArray.text = nodeDispStr
 
     """ Write the Cauchy Stress Data """
-    if len(resultIncrement['stress']) > 0:
-        sigma = resultIncrement['stress'][:,1:]
+    if len(resultIncrement[ResultsValue.STRESS]) > 0:
+        sigma = resultIncrement[ResultsValue.STRESS][:,1:]
         eSigmaArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="stress",
                                     NumberOfComponents=str(sigma.shape[1]), Format="Ascii")
         nodeSigmaStr = ''
@@ -134,11 +134,23 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
             nodeSigmaStr  += ' '.join([str(val) for val in row]) + '\n'
         eSigmaArray.text = nodeSigmaStr
 
+    """ Write the Cauchy Stress Data """
+    if resultIncrement.get(ResultsValue.VMSTRESS, None) is not None:
+        if len(resultIncrement[ResultsValue.VMSTRESS]) > 0:
+            sigma = resultIncrement[ResultsValue.VMSTRESS][:,1:]
+            eSigmaVMArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="stressVM",
+                                        NumberOfComponents=str(sigma.shape[1]), Format="Ascii")
+            nodeSigmaStr = ''
+            for row in sigma:
+                nodeSigmaStr  += ' '.join([str(val) for val in row]) + '\n'
+
+            eSigmaVMArray.text = nodeSigmaStr
+
     """ Write strain data """
-    if len(resultIncrement['strain']) > 0:
+    if len(resultIncrement[ResultsValue.STRAIN]) > 0:
         eStrainArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="strain", NumberOfComponents="6", Format="Ascii")
         nodeStrainStr = ''
-        for row in resultIncrement['strain']:
+        for row in resultIncrement[ResultsValue.STRAIN]:
             nodeStrainStr  += ' '.join([str(val) for val in row[1:]]) + '\n'
         eStrainArray.text = nodeStrainStr
 
@@ -150,8 +162,8 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
 
     """ Write the Node Coordinate Data """
     nodeStr = ''
-    for row in results.nodes:
-        nodeStr  += ' '.join([str(val) for val in row[1:]]) + '\n'
+    for row in results.nodes[1]:
+        nodeStr  += ' '.join([str(val) for val in row]) + '\n'
 
     ePointsArray.text = nodeStr
 
@@ -163,31 +175,33 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
     Note: Row is the element id, element type, element nodes
     """
     elConStr = ''
-    for row in results.elements:
+
+    elIds, elType, elCon = results.elements
+    for i, elId in enumerate(elIds):
         # Note (row[1]) is the element type
 
-        if row[1] in nodeMap:
+        if elType[i] in nodeMap:
             # Remap the nodes of the elements for special types in VTK
-            elIds = np.array(row[2:])
-            elIds = elIds[np.array(nodeMap[row[1]])]
-            elConStr += ' '.join([str(val-1) for val in elIds]) + '\n'
+            elConIds = np.array(elCon[i])
+            elConIds = elConIds[np.array(nodeMap[elType[i]])]
+            elConStr += ' '.join([str(val-1) for val in elConIds]) + '\n'
         else:
             # Write connectivity directly
-            elConStr += ' '.join([str(val-1) for val in row[2:]]) + '\n'
+            elConStr += ' '.join([str(val-1) for val in elCon[i]]) + '\n'
 
     eConArray.text = elConStr
 
     """ Write the element offset array """
     eOffArray  = ET.SubElement(eCells, 'DataArray', type="Int32", Name="offsets", Format="Ascii")
-    elOffset = np.cumsum([len(row)-2 for row in results.elements])
+    elOffset = np.cumsum([len(row) for row in elCon])
     eOffArray.text = ' '.join([str(int(val)) for val in elOffset]) + '\n'
 
     """ Write the element type array """
     eTypeArray = ET.SubElement(eCells, 'DataArray', type="UInt8", Name="types", Format="Ascii")
-    eTypes = [vtkMap[row[1]] for row in results.elements]
+    eTypes = [vtkMap[row] for row in elType]
     eTypeArray.text = ' '.join([str(int(val)) for val in eTypes]) + '\n'
 
-    """ Write the binary string to the fikle """
+    """ Write the binary string to the file """
     b_xml = ET.tostring(data)
     with open(filename, 'wb') as f:
         f.write(b_xml)
