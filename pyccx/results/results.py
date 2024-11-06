@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import abc
 import re
@@ -7,6 +7,25 @@ import logging
 import numpy as np
 
 from ..core import ElementSet, NodeSet
+
+
+class ResultsValue:
+    """
+    The following class atributes are available for post-processing the result file and are used as an enumeration
+    for selecting the desired results to be saved to the .frd and .dat file processed in the :class:`ResultProcessor`.
+    """
+
+    # Nodal Quantities
+    DISP = 'disp'
+    STRESS = 'stress'
+    VMSTRESS = 'stressVM'
+    STRAIN = 'strain'
+    FORCE  = 'force'
+    TEMP   = 'temp'
+
+    # Elemental  Quantities
+    ELSTRESS   = 'elStress'
+    ELHEATFLUX = 'elHeatFlux'
 
 
 class Result(abc.ABC):
