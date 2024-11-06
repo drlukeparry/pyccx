@@ -52,8 +52,12 @@ class Result(abc.ABC):
 
 
 class NodalResult(Result):
+    """
+    The NodalResult when attached to a :class:`~pyccx.loadcase.LoadCase` will inform Calculix to save the nodal
+    values onto the file (.frd) for the selected nodes attached in the specified :class:`NodeSet`.
+    """
 
-    def __init__(self, nodeSet: Union[str,NodeSet] = None):
+    def __init__(self, nodeSet: Union[str, NodeSet] = None):
 
         if nodeSet and not (isinstance(nodeSet, NodeSet) or isinstance(nodeSet, str)):
             raise TypeError('NodalResult must be initialized with a NodeSet object or name of set')
@@ -73,7 +77,7 @@ class NodalResult(Result):
 
     @property
     def displacement(self) -> bool:
-        """ Include temperature in the output """
+        """ Include the nodal displacement components in the results """
         return self._displacement
 
     @displacement.setter
@@ -82,7 +86,7 @@ class NodalResult(Result):
 
     @property
     def temperature(self) -> bool:
-        """ Include temperature in the output """
+        """ Include the nodal temperature in the results """
         return self._temperature
 
     @temperature.setter
@@ -91,7 +95,7 @@ class NodalResult(Result):
 
     @property
     def reactionForce(self) -> bool:
-        """ Include reaction forces in the output """
+        """ Include the nodal reaction forces in the results  """
         return self._reactionForce
 
     @reactionForce.setter
@@ -186,14 +190,15 @@ class NodalResult(Result):
         inputStr += ', FREQUENCY={:d}\n'.format(self._frequency)
 
         lineStr = []
+
         if self._displacement:
-            lineStr += 'U'
+            lineStr.append('U')
 
         if self._temperature:
-            lineStr += 'NT'
+            lineStr.append('NT')
 
         if self._reactionForce:
-            lineStr += 'RF'
+            lineStr.append('RF')
 
         inputStr += ', '.join(lineStr)
 
@@ -207,42 +212,42 @@ class NodalResult(Result):
         lineStr = []
 
         if self._cauchyStress:
-            lineStr += 'S'
+            lineStr.append('S')
 
         if self._strain:
-            lineStr += 'E'
+            lineStr.append('E')
 
         if self._plasticStrain:
-            lineStr += 'PEEQ'
+            lineStr.append('PEEQ')
 
         if self._heatFlux:
-            lineStr += 'HFL'
+            lineStr.append('HFL')
 
         if len(lineStr) == 0:
             return ''
 
-
-        str = '*EL FILE'
+        elInputStr = '*EL FILE'
 
         if self._nodeSet:
 
             if isinstance(self._nodeSet, NodeSet):
-                str += ', NSET={:s}'.format(self._nodeSet.name)
+                elInputStr += ', NSET={:s}'.format(self._nodeSet.name)
             else:
-                str += ', NSET={:s}'.format(self._nodeSet)
+                elInputStr += ', NSET={:s}'.format(self._nodeSet)
 
-        str += ', FREQUENCY={:d}\n'.format(self._nodeSet.name, self._frequency)
+        elInputStr += ', FREQUENCY={:d}\n'.format( self._frequency)
 
+        elInputStr += ', '.join(lineStr)
+        elInputStr += '\n'
 
-        return str
+        return elInputStr
 
 
 class ElementResult(Result):
     """
-
-    Including this object will inform Calcuix to save the elemental integration properties to the file (.dat) for
-    the selected ElementSet.
-
+    Including an :class:`ElementResult` in a :class:`~pyccx.loadcase.LoadCase` will inform Calcuix to save
+    the elemental integration properties to the (.dat) file for the selected :class:`ElementSet` in the chosen
+    working directory specified in the :class:`~pyccx.analysis.Simulation`.
     """
     def __init__(self, elSet: ElementSet):
 
@@ -271,7 +276,7 @@ class ElementResult(Result):
     @property
     def strain(self) -> bool:
         """
-        The total Lagrangian strain for (hyper)elastic materials and incremental plasticity
+        The total Lagrangian strain for (hyper)-elastic materials and incremental plasticity
         and the total Eulerian strain for deformation plasticity."""
         return self._strain
 
@@ -292,7 +297,9 @@ class ElementResult(Result):
 
     @property
     def ESE(self) -> bool:
-        """ """
+        """
+        Obtain the internal strain energy per unit volume
+        """
         return self._ESE
 
     @ESE.setter
@@ -319,7 +326,7 @@ class ElementResult(Result):
         self._cauchyStress = state
 
     @property
-    def elementSet(self) -> ElementSet:
+    def elementSet(self) -> Union[ElementSet,str]:
         """
         The elementset to obtain values for post-processing.
         """
@@ -365,14 +372,14 @@ class ElementResult(Result):
 
 class ResultProcessor:
     """
-    ResultProcessor takes the output (results) file from the Calculix simulation and processes the ASCII .frd file
-    to load the results into a structure. Individual timesteps (increments) are segregated and may be accessed
-    accordingly.
+    ResultProcessor takes the output (results) file from the Calculix simulation, specified in the working directory
+    for the :class:`pyccx.analysis.Simulation`. The class processes the ASCII .frd file to load the results into a
+    structure. Individual timesteps (increments) are seperated and may be accessed accordingly using :meth:`getResult`.
     """
 
     def __init__(self, jobName):
 
-        self.increments = {}
+        self._increments = {}
         self.jobName = jobName
 
         self._elements = None
@@ -381,28 +388,181 @@ class ResultProcessor:
         logging.info('Results file prefix set to {:s}'.format(jobName))
 
     @property
-    def nodes(self):
+    def increments(self) -> Dict:
+        """
+        Stored increments of the Calculix results file
+        """
+        return self._increments
+
+    @property
+    def nodes(self) -> Tuple[List[int], List[List[int]]]:
         """
         Nodes identified in the Calculix results file
         """
-        return self._nodes
+
+        nIds = self._nodes[:,0]
+        nCoords = self._nodes[:,1:].reshape(-1,3)
+
+        return nIds, nCoords
 
     @property
-    def elements(self):
+    def elements(self) -> Tuple[List[int], List[int], List[List[int]]]:
         """
         Elements identified in the Calculix results file
+
+        A tuple of element ids, element types and element connectivity are returned
         """
-        return self._elements
+        elIds = [el[0] for el in self._elements]
+        elTypes = [el[1] for el in self._elements]
+        elCon = [el[2:] for el in self._elements]
+
+        return elIds, elTypes, elCon
+
+    def getElementResult(self, increment: int, resultKey: ResultsValue, nodeIds: Optional[np.array] = None) -> Tuple[
+        np.array, np.array]:
+        """
+        Returns a nodal result at step increment, for a correpsonding ResultsValue type. The nodeIds parameter is optional
+
+        :param increment: The selected increment index available
+        :param resultKey: A Valid Nodal Quantity in ResultsValue
+        :param nodeIds: A list  of node ids
+        :return: A tuple of node ids and corresponding result values
+        """
+        if not self.hasResults():
+            raise Exception('No results have been read')
+
+        increment = self._increments.get(increment, None)
+
+        if increment is None:
+            raise Exception('Increment {:d} does not exist'.format(increment))
+
+        if resultKey not in [ResultsValue.DISP, ResultsValue.STRESS, ResultsValue.STRAIN, ResultsValue.FORCE,
+                             ResultsValue.TEMP]:
+            raise Exception('Invalid result key specified - not a Nodal Result ')
+
+        result = increment.get(resultKey, None)
+
+        if result is None:
+            raise Exception('Result {:s} does not exist in increment {:d}'.format(resultKey, id))
+
+        if nodeIds is None:
+            # Return the results including the nodal ids
+            return result[:, 0], result[:, 1:]
+        else:
+            if isinstance(nodeIds, NodeSet):
+                nIds = nodeIds.nodes  # Convert FEA ids to Pythonic indexing
+            else:
+                nIds = nodeIds
+
+            # Perform a set intersection
+            fndIds = np.argwhere(np.isin(result[:, 0], nIds, assume_unique=True)).ravel()
+
+            return fndIds, result[fndIds, 1:]
+
+
+    def getNodeResult(self, increment: int, resultKey: ResultsValue, nodeIds: Optional[np.array] = None) -> Tuple[np.array, np.array]:
+        """
+        Returns a nodal result at step increment, for a correpsonding ResultsValue type. The nodeIds parameter is optional
+
+        :param increment: The selected increment index available
+        :param resultKey: A Valid Nodal Quantity in ResultsValue
+        :param nodeIds: A list  of node ids
+        :return: A tuple of node ids and corresponding result values
+        """
+        if not self.hasResults():
+            raise Exception('No results have been read')
+
+        increment = self._increments.get(increment, None)
+
+        if increment is None:
+            raise Exception('Increment {:d} does not exist'.format(increment))
+
+        validNodeKeys = [ResultsValue.DISP, ResultsValue.STRESS, ResultsValue.VMSTRESS, ResultsValue.STRAIN,
+                         ResultsValue.FORCE, ResultsValue.TEMP]
+
+        if resultKey not in validNodeKeys:
+            raise Exception('Invalid result key specified - not a Nodal Result ')
+
+        result = increment.get(resultKey, None)
+
+        if result is None:
+            raise Exception('Result {:s} does not exist in increment {:d}'.format(resultKey, id))
+
+        if nodeIds is None:
+            # Return the results including the nodal ids
+            return result[:, 0], result[:, 1:]
+        else:
+            if isinstance(nodeIds, NodeSet):
+                nIds = nodeIds.nodes  # Convert FEA ids to Pythonic indexing
+            else:
+                nIds = nodeIds
+
+            # Perform a set intersection
+            fndIds = np.argwhere(np.isin(result[:, 0], nIds, assume_unique=True)).ravel()
+
+            return fndIds, result[fndIds, 1:]
+
+    def getElementResult(self, increment: int, resultKey: ResultsValue,
+                         elIds: Optional[np.array] = None) -> Tuple[np.array, np.array, np.array]:
+        """
+        Returns a element result at step increment, for a correpsonding ResultsValue type.
+        The elIDs parameter is optional and will select those values stored at these elements. The return value is
+        a tuple, consisting of the element ids, integration points and corresponding result values.
+
+        :param increment: The selected increment index available
+        :param resultKey: A Valid Nodal Quantity in ResultsValue
+        :param elIds: A list of element ids
+
+        :return: A tuple of element ids, integration points and corresponding result values
+        """
+        if not self.hasResults():
+            raise Exception('No results have been read')
+
+        increment = self._increments.get(increment, None)
+
+        if increment is None:
+            raise Exception('Increment {:d} does not exist'.format(increment))
+
+        if resultKey not in [ResultsValue.ELSTRESS, ResultsValue.ELHEATFLUX]:
+            raise Exception('Invalid result key specified - not a Element Result ')
+
+        result = increment.get(resultKey, None)
+
+        if result is None:
+            raise Exception('Result {:s} does not exist in increment {:d}'.format(resultKey, id))
+
+        if elIds is None:
+            # Return the results including the nodal ids
+            return result[:, 0], result[:, 1], result[:, 2:]
+        else:
+            if isinstance(elIds, ElementSet):
+                eIds = elIds.els  # Convert FEA ids to Pythonic indexing
+            else:
+                eIds = elIds
+
+            # Perform a set intersection
+            fndIds = np.argwhere(np.isin(result[:, 0], eIds, assume_unique=False)).ravel()
+
+            return fndIds, result[fndIds, 1], result[fndIds, 2:]
+
+    def hasResults(self) -> bool:
+        return len(self.increments.keys()) > 0
+
+
+    @property
+    def numIncrements(self):
+        """
+        Convenience property for the number of increments available in the Calculix results file
+        """
+        return len(self.increments.keys())
 
     def lastIncrement(self):
         """
-        Returns the last increment of the Calculix results file
-
-        :return: The last increment of the Calculix results file
+        Returns the last or final increment stored in the Calculix results file
         """
 
-        idx = sorted(list(self.increments.keys()))[-1]
-        return self.increments[idx]
+        idx = sorted(list(self._increments.keys()))[-1]
+        return self._increments[idx]
 
     def findIncrementByTime(self, incTime, tol: Optional[float] = 1e-6) -> Tuple[int, Dict]:
         """
