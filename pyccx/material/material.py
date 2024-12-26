@@ -19,11 +19,18 @@ class Material(ModelObject):
 
         super().__init__(name)
 
+    @staticmethod
+    def toNumpy(val):
+        v = np.asanyarray(val)
+        if v.ndim == 0:
+            v = v.reshape(-1)
+        return v
+
     @property
     def name(self) -> str:
         return self._name
 
-    def setName(self, matName: str):
+    def setName(self, matName: str) -> None:
         self._name = matName
 
     @property
@@ -70,12 +77,12 @@ class ElastoPlasticMaterial(Material):
 
         super().__init__(name)
 
-        self._E = 210e3
-        self._nu = 0.33
-        self._density = 7.85e-9
-        self._alpha_CTE = 12e-6
-        self._k = 50.0
-        self._cp = 50.0
+        self._E = Material.toNumpy(210e3)
+        self._nu = Material.toNumpy(0.33)
+        self._density = Material.toNumpy(7.85e-9)
+        self._alpha_CTE = Material.toNumpy(12e-6)
+        self._k = Material.toNumpy(15.0)
+        self._cp = Material.toNumpy(420e-9)
 
         # Plastic Behavior
         self._workHardeningMode = ElastoPlasticMaterial.WorkHardeningType.NONE
@@ -96,6 +103,7 @@ class ElastoPlasticMaterial(Material):
     @E.setter
     def E(self, val: Union[float, Iterable]) -> None:
 
+        self._E = Material.toNumpy(val)
 
     @property
     def nu(self):
@@ -105,6 +113,7 @@ class ElastoPlasticMaterial(Material):
     @nu.setter
     def nu(self, val: Union[float, Iterable]):
 
+        self._nu = Material.toNumpy(val)
 
     @property
     def density(self) -> np.ndarray:
@@ -114,8 +123,8 @@ class ElastoPlasticMaterial(Material):
         return self._density
 
     @density.setter
-    def density(self, val):
-        self._density = val
+    def density(self, val: Union[float, Iterable]):
+        self._density = Material.toNumpy(val)
 
     @property
     def alpha_CTE(self) -> np.ndarray:
@@ -132,23 +141,24 @@ class ElastoPlasticMaterial(Material):
         return self._alpha_CTE
 
     @alpha_CTE.setter
-    def alpha_CTE(self, val):
-        self._alpha_CTE = val
+    def alpha_CTE(self, val: Union[float, Iterable]) -> None:
+        self._alpha_CTE = Material.toNumpy(val)
 
     @property
-    def k(self):
-        """Thermal conductivity :math:`k`
+    def k(self) -> np.ndarray:
+        """
+        Thermal conductivity :math:`k`
 
-        The thermal conductivity :math:`k` can be both isotropic by setting as a scalar value, or orthotropic by setting to an (1x3) array corresponding
-        to :math:`k_{ii}, k_{jj}, k_{kk}` for each direction. Temperature dependent thermal conductivity eat can be set
-        by providing an nx4 array, where the 1st column is the temperature :math:`T` and the remaining columns are the
-        orthotropic values of :math:`k`.
+        The thermal conductivity :math:`k` can be both isotropic by setting as a scalar value, or orthotropic by
+        setting to a (1x3) array corresponding to :math:`k_{ii}, k_{jj}, k_{kk}` for each direction. Temperature
+        dependent thermal conductivity eat can be set  by providing a nx4 array, where the 1st column is the
+        temperature :math:`T` and the remaining columns are the orthotropic values of :math:`k`.
         """
         return self._k
 
     @k.setter
     def k(self, val: Union[float, Iterable]) -> None:
-        self._k = val
+        self._k = Material.toNumpy(val)
 
     @property
     def cp(self) -> np.ndarray:
@@ -164,7 +174,7 @@ class ElastoPlasticMaterial(Material):
 
     @cp.setter
     def cp(self, val: Union[float, Iterable]) -> None:
-        self._cp = val
+        self._cp = Material.toNumpy(val)
 
     def isPlastic(self) -> bool:
         """
@@ -206,26 +216,14 @@ class ElastoPlasticMaterial(Material):
 
     @property
     def materialModel(self):
-        return 'elastic' # Calculix material model
-
-    @staticmethod
-    def cast2Numpy(tempVals):
-        if type(tempVals) == float:
-            tempVal = np.array([tempVals])
-        elif type(tempVals) == list:
-            tempVal = np.array(tempVals)
-        elif type(tempVals) == np.ndarray:
-            tempVal = tempVals
-        else:
-            raise ValueError('Mat prop type not supported')
-
-        return tempVal
+        """ The Material Model calculix keyword """
+        return 'elastic'
 
     def _writeElasticProp(self) -> str:
 
         lineStr = '*elastic'
-        nu = self.cast2Numpy(self.nu)
-        E = self.cast2Numpy(self.E)
+        nu = self.nu
+        E = self.E
 
         if nu.ndim != E.ndim:
             raise ValueError("Both Poisson's ratio and Young's modulus must be temperature dependent or constant")
@@ -266,7 +264,7 @@ class ElastoPlasticMaterial(Material):
                                                  self._hardeningCurve[i, 1],   # Plastic Strain
                                                  self._hardeningCurve[i, 2])  # Temperature
 
-    def _writeMaterialProp(self, matPropName: str, tempVals) -> str:
+    def _writeMaterialProp(self, matPropName: str, tempVals: Iterable) -> str:
         """
         Helper method to write the material property name and formatted values depending on the anisotropy
         of the material and if non-linear parameters are used.
@@ -275,15 +273,7 @@ class ElastoPlasticMaterial(Material):
         :param tempVals: Values to assign material properties
         :return: str:
         """
-
-        if type(tempVals) == float:
-            tempVal = np.array([tempVals])
-        elif type(tempVals) == list:
-            tempVal = np.array(tempVals)
-        elif type(tempVals) == np.ndarray:
-            tempVal = tempVals
-        else:
-            raise ValueError('Material prop type not supported')
+        tempVal = np.asanyarray(tempVals)
 
         lineStr = '*{:s}'.format(matPropName)
 
@@ -318,16 +308,16 @@ class ElastoPlasticMaterial(Material):
 
         inputStr += self._writeElasticProp()
 
-        if self._density:
+        if self._density.any():
             inputStr += self._writeMaterialProp('density', self._density)
 
-        if self._cp:
+        if self._cp.any():
             inputStr += self._writeMaterialProp('specific heat', self._cp)
 
-        if self._alpha_CTE:
+        if self._alpha_CTE.any():
             inputStr += self._writeMaterialProp('expansion', self._alpha_CTE)
 
-        if self._k:
+        if self._k.any():
             inputStr += self._writeMaterialProp('conductivity', self._k)
 
         # Write the plastic mode
