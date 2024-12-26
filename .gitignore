@@ -25,6 +25,8 @@ __pycache__/
 env/
 build/
 develop-eggs/
+docs/api/
+docs/output/
 dist/
 downloads/
 eggs/
