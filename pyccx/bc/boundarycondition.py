@@ -274,14 +274,14 @@ class Radiation(BoundaryCondition):
         return BoundaryConditionType.THERMAL
 
     @property
-    def emmisivity(self) -> float:
+    def emissivity(self) -> float:
         """
-        The emissivity value :math:`\\epsilon` used for the Radiation Boundary Condition
+        The emissivity value :math:`\\epsilon` used for the Radiation boundary condition
         """
         return self._epsilon
 
-    @emmisivity.setter
-    def emmisivity(self, val: float):
+    @emissivity.setter
+    def emissivity(self, val: float) -> None:
         self._epsilon = val
 
     @property
