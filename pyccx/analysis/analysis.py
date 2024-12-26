@@ -846,7 +846,7 @@ class Simulation:
                 if "Using up to " in stdout_line:
                     continue
 
-                if self.VERBOSE_OUTPUT:
+                if Simulation.VERBOSE_OUTPUT:
                     print(stdout_line, end='')
 
                 self.checkLine(stdout_line)
@@ -875,7 +875,7 @@ class Simulation:
                 if "Using up to " in stdout_line:
                     continue
 
-                if self.VERBOSE_OUTPUT:
+                if Simulation.VERBOSE_OUTPUT:
                     print(stdout_line, end='')
                 self.checkLine(stdout_line)
 
@@ -903,7 +903,7 @@ class Simulation:
                 if "Using up to " in stdout_line:
                     continue
 
-                if self.VERBOSE_OUTPUT:
+                if Simulation.VERBOSE_OUTPUT:
                     print(stdout_line, end='')
 
                 self.checkLine(stdout_line)
