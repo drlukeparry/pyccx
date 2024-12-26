@@ -1,8 +1,8 @@
 import numpy as np
 
-from abc import ABC, abstractmethod
-from enum import Enum, IntEnum
-from typing import List, Optional, Tuple
+from abc import ABC
+from enum import IntEnum
+from typing import List
 
 from .utils import classproperty
 

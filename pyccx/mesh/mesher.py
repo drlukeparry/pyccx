@@ -1,6 +1,5 @@
-from abc import ABC, abstractmethod
-from enum import Enum, IntEnum
-from typing import Any, List, Optional, Tuple
+from enum import IntEnum
+from typing import Any, List, Optional, Tuple, Union
 
 import logging
 import os
@@ -8,7 +7,7 @@ import numpy as np
 import gmsh
 
 from . import elements
-from .utils import *
+from .utils import Ent
 
 
 class MeshingAlgorithm2D(IntEnum):
@@ -52,18 +51,18 @@ class RecombinationAlgorithm(IntEnum):
 class Mesher:
     """
     The Mesher class provides the base interface built upon the GMSH-SDK API operations. It provides the capability
-    to mesh multiple PythonOCC objects
+    to mesh multiple  objects
     """
 
-    """ Minimum tolerance used for truncating nodal coordiante values """
-    EPSILON = 1E-10
+    EPSILON: float = 1E-10
+    """ Minimum tolerance used for truncating nodal coordinate values """
 
     # Static class variables for meshing operations
-    ElementOrder = 1
-    NumThreads = 4
-    OptimiseNetgen = True
-    Units = ''
-    Initialised = False
+    ElementOrder: int = 1
+    NumThreads: int = 4
+    OptimiseNetgen: bool = True
+    Units: str = ''
+    Initialised: bool = False
 
     # Instance methods
     def __init__(self, modelName: str):
@@ -96,8 +95,8 @@ class Mesher:
     @classmethod
     def showGui(cls):
         """
-        Opens up the native GMSH Gui to inspect the geometry in the model and the mesh. This will block the Python script
-        until the GUI is exited.
+        Opens up the native GMSH Gui to inspect the geometry in the model and the mesh. This will block the
+        Python script until the GUI is exited.
         """
         if cls.Initialised:
             gmsh.fltk.run()
@@ -108,9 +107,9 @@ class Mesher:
 
         return gmsh.GMSH_API_VERSION_MAJOR, gmsh.GMSH_API_VERSION_MINOR, gmsh.GMSH_API_VERSION_PATCH
 
-    def open(self, filename: str):
+    def open(self, filename: str) -> None:
         """
-        Opens a GMSH file and loads the model into the current instance
+        Opens a GMSH file and loads the geometry into the current modelling instance
 
         :param filename: The filename of the GMSH file
         """
@@ -121,7 +120,7 @@ class Mesher:
             gmsh.open(filename)
 
         except:
-            raise Exception('Unable to open GMSH file ({:s})'.format(filename))
+            raise Exception(f"Unable to open GMSH file ({filename})")
 
         self._modelName = gmsh.model.getCurrent()
 
@@ -265,7 +264,8 @@ class Mesher:
     @staticmethod
     def _restructureElementStructure(els):
         """
-        Restructures the internal gmsh element structures so the element dimensions are consistent with the element types
+        Restructures the internal GMSH element structures so the element dimensions are consistent with the element
+        types
 
         :param els: The GMSH element type
         :return: The restructured element list
@@ -306,7 +306,7 @@ class Mesher:
     @property
     def physicalGroups(self):
         """
-        Returns the physical groups tags available in the model
+        The physical groups tags available in the model
         """
         self.setAsCurrentModel()
 
@@ -416,7 +416,7 @@ class Mesher:
         """
         Sets the geometric name of the volume id
 
-        :param id: Dimension, Entity Id tuple(int, int):
+        :param id: Dimension, Entity id tuple(int, int):
         :param name: str: Name assigned to entity
         """
         self.setAsCurrentModel()
@@ -438,7 +438,7 @@ class Mesher:
         """
         return self._isDirty
 
-    def setModelChanged(self, state: bool = False) -> None:
+    def setModelChanged(self, state: Optional[bool] = False) -> None:
         """
         Any changes to GMSH model should call this to prevent inconsistency in a generated model
 
@@ -449,7 +449,7 @@ class Mesher:
 
     def addGeometry(self, filename: str, name: str, meshFactor: Optional[float] = 0.03):
         """
-        Adds CAD geometry into the GMSH kernel. The filename of compatiable model files along with the mesh factor
+        Adds CAD geometry into the GMSH kernel. The filename of compatible model files along with the mesh factor
         should be used to specify a target mesh size.
 
         :param filename:
@@ -506,7 +506,7 @@ class Mesher:
     @property
     def volumes(self) -> List[int]:
         """
-        The ids for all volume geometry in the model
+        The geometric elementary ids for all volume geometry in the model
         """
         self.setAsCurrentModel()
         tags = gmsh.model.getEntities(Ent.Volume)
@@ -515,7 +515,7 @@ class Mesher:
     @property
     def surfaces(self) -> List[int]:
         """
-        The ids for all surface geometry in the model
+        The geometric entity ids for all surface geometry in the model
         """
         self.setAsCurrentModel()
         tags = gmsh.model.getEntities(Ent.Surface)
@@ -559,7 +559,7 @@ class Mesher:
         self._isGeometryDirty = True
         self.setModelChanged()
 
-    def boundingBox(self) -> np.array:
+    def boundingBox(self) -> np.ndarray:
         """
         Returns the bounding box of the model
 
@@ -568,7 +568,7 @@ class Mesher:
         self.setAsCurrentModel()
         return np.array(gmsh.model.getBoundingBox())
 
-    def getGeomBoundingBoxById(self, tagId: int) -> np.array:
+    def getGeomBoundingBoxById(self, tagId: int) -> np.ndarray:
         """
         Returns the bounding box of the geometry (volume) by id
 
@@ -585,7 +585,8 @@ class Mesher:
 
     def setMeshSize(self, pnts: List[int], size: float) -> None:
         """
-        Sets the mesh element size along an entity, however, this can only currently be performed using
+        Sets the mesh element size along an entity, however, this can only currently be performed by the assignment
+        of the sizes onto point ids.
 
         :param pnts: Point ids to set the mesh size
         :param size: Set the desired mesh length size at this point
@@ -599,8 +600,8 @@ class Mesher:
 
     def set3DMeshingAlgorithm(self, meshingAlgorithm: MeshingAlgorithm3D) -> None:
         """
-        Sets the meshing algorithm to use by GMSH for the model
-        
+        Sets the 3D meshing algorithm to use by GMSH for the model
+
         :param meshingAlgorithm: The selected 3D Meshing Algorithm used
         """
 
@@ -610,7 +611,7 @@ class Mesher:
 
     def set2DMeshingAlgorithm(self, meshingAlgorithm: MeshingAlgorithm2D) -> None:
         """
-        Sets the meshing algorithm to use by GMSH for the model
+        Sets the 2D meshing algorithm to use by GMSH for the model
 
         :param meshingAlgorithm: The selected 2D Meshing Algorithm used
         """
@@ -634,14 +635,14 @@ class Mesher:
 
     ## Class Methods
     @classmethod
-    def setUnits(cls, unitVal):
+    def setUnits(cls, unitVal: str) -> None:
         cls.Units = unitVal
 
         if cls.Initialised:
             gmsh.option.setString("Geometry.OCCTargetUnit", Mesher.Units)
 
     @classmethod
-    def setElementOrder(cls, elOrder: int):
+    def setElementOrder(cls, elOrder: int) -> None:
         """
         Sets the element order globally for the entire model. Note that different element orders cannot be used within
         the same GMSH model during generation
@@ -689,8 +690,8 @@ class Mesher:
     @classmethod
     def setMeshSizeFactor(self, meshSizeFactor: float) -> None:
         """
-        The mesh factor size provides an estimate length for the initial element sizes based on proportion of the maximumum
-        bounding box length.
+        The mesh factor size provides an estimate length for the initial element sizes based on proportion of the 
+        maximum bounding box length.
 
         :param meshSizeFactor: The mesh factor size between [0.,1.0]
         """
@@ -701,7 +702,7 @@ class Mesher:
         self.modelMeshSizeFactor = meshSizeFactor
 
     @classmethod
-    def finalize(cls):
+    def finalize(cls) -> None:
         gmsh.finalize()
         cls.Initialised = False
 
@@ -761,7 +762,7 @@ class Mesher:
         # gmsh.option.setNumber("Geometry.OCCAutoFix", 0)
         cls.Initialised = True
 
-    def setAsCurrentModel(self):
+    def setAsCurrentModel(self) -> None:
         """
         Sets the current model to that specified in the class instance because
         Only one instance of GMSH sdk is available so this must be
@@ -873,11 +874,12 @@ class Mesher:
         nodeIds = np.sort(nodeIds)
         return nodeIds
 
-    def getNodes(self):
+    def getNodes(self) -> np.ndarray:
         """
         Returns the nodal coordinates from the entire GMSH model. These are sorted automatically by the node-id
 
-        :return: The nodal coordinates to the correspodning node ids
+        :return: The nodal coordinates to the corresponding node ids
+        :raises Exception: If the mesh is not generated
         """
         self.setAsCurrentModel()
 
@@ -892,12 +894,13 @@ class Mesher:
         return nodeCoordsSrt
 
 
-    def getElementIds(self, entityId: Tuple[int,int] = None, merge: bool = True):
+    def getElementIds(self, entityId: Optional[Tuple[int,int]] = None, merge: Optional[bool] = True):
         """
         Returns the elements for the entire model or optionally a specific entity.
+
         :param entityId: The entity id to obtain elements for
         :param merge: Merge the element ids into a single array
-        :return: A Tuple of  element types, element ids and corresponding node ids
+        :return: A Tuple of element types, element ids and corresponding node ids
         """
         self.setAsCurrentModel()
 
@@ -919,7 +922,7 @@ class Mesher:
             return result[1]
 
 
-    def getElements(self, entityId: Tuple[int,int] = None):
+    def getElements(self, entityId: Optional[Tuple[int,int]] = None):
         """
         Returns the elements for the entire model or optionally a specific entity.
 
@@ -941,14 +944,17 @@ class Mesher:
         result = self._restructureElementStructure(result)
         return result
 
-    def getElementsByType(self, elType: elements.BaseElementType, elTag: Tuple[int,int] = None,
-                        returnElIds: Optional[bool] = False) -> np.ndarray:
+    def getElementsByType(self, elType: elements.BaseElementType, elTag: Optional[Tuple[int,int]] = None,
+                          returnElIds: Optional[bool] = False) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
         """
         Returns all elements of type (elType) from the GMSH model, within class ElementTypes. Note: the element ids are returned with
         an index starting from 1 - internally GMSH uses an index starting from 1, like most FEA pre-processors
 
         :param elType: Element type
-        :return: List of Element Ids
+        :param elTag: Optional list of element tags to filter the element types from
+        :param returnElIds: 'True' returns the element ids along with the elements
+        :return: List of element Ids
+        :raises Exception: If the mesh is not generated
         """
 
         self.setAsCurrentModel()
@@ -1103,6 +1109,7 @@ class Mesher:
     def _getFaceOrderMask(self, elementType):
         """
         Private method which constructs the face mask array from the faces ordering of an element.
+
         :param elementType:
         :return:
         """
@@ -1134,15 +1141,14 @@ class Mesher:
 
     def writeMeshInput(self):
         """
-        Generates the current mesh format as an abaqus (cal2culix) .inp representation format
+        Generates the current mesh format as an abaqus (Calculix) .inp representation format
 
-        :return: THe mesh string format
+        :return: The mesh string format
         """
-        # Print the nodes
 
         self.setAsCurrentModel()
 
-        txt   = '*Heading\n'
+        txt = '*Heading\n'
         txt += 'mesh.inp\n'
         txt += '*node\n'
 
@@ -1215,7 +1221,6 @@ class Mesher:
                 elSortRow = elRow[np.array(elTyp.map)-1].ravel()
                 elLine = np.hstack([elId, elSortRow]).astype(np.int64)
                 txt += np.array2string(elLine, precision=0, separator=', ', threshold=9999999999)[1:-1] + "\n"
-                #txt +=  + str(elNodeIdx[elId])[1:-1] + "\n"
 
         return txt
 
@@ -1458,7 +1463,8 @@ class Mesher:
         except:
             logging.error('Recombining Failed \n')
 
-        elTypeIds = self.getElementTypes()
+        # Unused Section
+        # elTypeIds = self.getElementTypes()
         # for val in elTypeIds.items():
         #     eAssignments[val[0]] = 0
 
@@ -1550,18 +1556,18 @@ class Mesher:
         edgeTagId = -1
         for name in names:
             if name[0] == edgeName:
-                surfTagId = name[1]
+                edgeTagId = name[1]
 
         if edgeTagId == -1:
-            raise ValueError('Surface region ({:s}) was not found'.format(edgeName))
+            raise ValueError(f"Edge ({edgeName}) was not found in the model")
 
         return edgeTagId
 
-    def getIdBySurfaceName(self, surfaceName : str) -> int:
+    def getIdBySurfaceName(self, surfaceName: str) -> int:
         """
-        Obtains the ID for the surface name
+        Obtains the elemental id for the surface name
 
-        :param surfaceName:  Geometric surface name
+        :param surfaceName: Geometric surface name
         :return: Surface Ids
         """
 
@@ -1576,19 +1582,14 @@ class Mesher:
                 surfTagId = name[1]
 
         if surfTagId == -1:
-            raise ValueError('Surface region ({:s}) was not found'.format(surfaceName))
+            raise ValueError(f"Surface region ({surfaceName}) was not found")
 
         return surfTagId
 
-    def setEdgeSet(self, grpTag, edgeName):
+    def setEdgeSet(self, grpTag, edgeName) -> None:
         # Adding a physical group will export the surface mesh later so these need removing
 
         self.edgeSets.append({'name': edgeName, 'tag': grpTag, 'nodes': np.array([])})
-
-        # below is not needed - it is safe to get node list directly from entity
-
-    #        gmsh.model.addPhysicalGroup(1, [grpTag], len(self.edgeSets))
-    #        gmsh.model.setPhysicalName(1, len(self.edgeSets), edgeName)
 
     def setSurfaceSet(self, grpTag: int, surfName:str) -> None:
         """
@@ -1609,15 +1610,14 @@ class Mesher:
         gmsh.model.removePhysicalGroups()
         self.setModelChanged()
 
-    def interpTri(triVerts, triInd):
-
-        from matplotlib import pyplot as plt
+    def interpTri(triVerts: np.ndarray, triInd: np.ndarray):
 
         import matplotlib.pyplot as plt
         import matplotlib.tri as mtri
 
         x = triVerts[:, 0]
         y = triVerts[:, 1]
+
         triang = mtri.Triangulation(triVerts[:, 0], triVerts[:, 1], triInd)
 
         # Interpolate to regularly-spaced quad grid.

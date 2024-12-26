@@ -1,14 +1,16 @@
-import abc
-from typing import Any, List, Optional, Tuple
+from typing import Any, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
-class ModelObject():
 
-    def __init__(self, name, label = ''):
+class ModelObject:
+
+    def __init__(self, name: str, label: str = ''):
+
+        self._name = ''
+        self._label = label
 
         self.setName(name)
-        self._label = label
 
     @property
     def label(self) -> str:
@@ -20,25 +22,25 @@ class ModelObject():
 
     @property
     def name(self) -> str:
-
         return self._name
 
     @name.setter
-    def name(self, name):
+    def name(self, name: str) -> None:
         self.setName(name)
 
-    def setName(self, name: str):
+    def setName(self, name: str) -> None:
 
         if not name.isascii():
-            raise ValueError('Name provided ({:s}) must be alpha-numeric'.format(name))
+            raise ValueError(f"Name provided ({name}) must be alpha-numeric")
 
         if ' ' in name:
-            raise ValueError('Name provided ({:s}) must not contain spaces'.format(name))
+            raise ValueError(f"Name provided ({name}) must not contain spaces")
 
         if '*' in name:
-            raise ValueError('Name provide ({:s}) contains invalid character (*)'.format(name))
+            raise ValueError(f"Name provide ({name}) contains invalid character (*)")
 
         self._name = name
+
 
 class Amplitude(ModelObject):
 
@@ -92,10 +94,10 @@ class MeshSet:
 
 class NodeSet(MeshSet):
     """
-     An node set is basic entity for storing node set lists. The set remains constant without any dynamic referencing
-     to any underlying geometric entities.
-     """
-    def __init__(self, name, nodes):
+    A NodeSet is basic entity for storing a list of Node Ids. The set remains constant or fixed without
+    any dynamic referencing to any underlying geometric entities.
+    """
+    def __init__(self, name, nodes: Iterable):
         super().__init__(name)
         self._nodes = np.unique(np.asanyarray(nodes, dtype=np.int64))
 
@@ -107,7 +109,7 @@ class NodeSet(MeshSet):
         return self._nodes
 
     @nodes.setter
-    def nodes(self, nodes):
+    def nodes(self, nodes: Iterable) -> None:
         self._nodes = np.unique(np.asanyarray(nodes, dtype=np.int64))
 
     def writeInput(self) -> str:
@@ -120,12 +122,16 @@ class NodeSet(MeshSet):
 
 class ElementSet(MeshSet):
     """
-    An element set is basic entity for storing element set lists.The set remains constant without any dynamic referencing
-    to any underlying geometric entities.
+    An element set is basic entity for storing a list of element ids as part of a referencable set, typically
+    used amongst boundary conditions and assignments .The set remains constant without any dynamic
+    referencing to any underlying geometric entities.
     """
-    def __init__(self, name, els):
+    def __init__(self, name: str, elIds: Iterable):
+
         super().__init__(name)
-        self._els = np.unique(np.asanyarray(els))
+
+        self._els = np.array(dtype=np.int64)
+        self.els = elIds
 
     @property
     def els(self):
@@ -135,8 +141,9 @@ class ElementSet(MeshSet):
         return self._els
 
     @els.setter
-    def els(self, elements: np.array):
-        self._els = np.unique(np.asanyarray(elements, dtype=np.int64))
+    def els(self, elIds: Iterable):
+
+        self._els = np.unique(np.asanyarray(elIds, dtype=np.int64))
 
     def writeInput(self) -> str:
 
@@ -151,12 +158,12 @@ class ElementSet(MeshSet):
 
 class SurfaceNodeSet(MeshSet):
     """
-    A surface-node set set is basic entity for storing element face lists, typically for setting directional fluxes onto
+    A surface-node set is a basic entity for storing element face lists, typically for setting directional fluxes onto
     surface elements based on the element ordering. The set remains constant without any dynamic referencing
     to any underlying geometric entities. This approach requires explicitly assigning the list of nodal ids that
     define the surface.
     """
-    def __init__(self, name, nodalSet):
+    def __init__(self, name, nodalSet: Iterable):
 
         super().__init__(name)
         self._surfaceNodes = np.asanyarray(nodalSet)
@@ -170,7 +177,7 @@ class SurfaceNodeSet(MeshSet):
         return self._elSurfacePairs
 
     @surfacePairs.setter
-    def surfacePairs(self, surfacePairs):
+    def surfacePairs(self, surfacePairs) -> None:
         self._elSurfacePairs = np.asanyarray(surfacePairs, dtype=np.int64)
 
     def writeInput(self) -> str:
@@ -178,14 +185,14 @@ class SurfaceNodeSet(MeshSet):
         out = '*SURFACE,NAME={:s}, TYPE=NODE\n'.format(self.name)
 
         for i in range(self._elSurfacePairs.shape[0]):
-            out += '{:d},S{:d}\n'.format(self._elSurfacePairs[i,0], self._elSurfacePairs[i,1])
+            out += '{:d},S{:d}\n'.format(self._elSurfacePairs[i, 0], self._elSurfacePairs[i, 1])
 
-        #out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
+
 
 class SurfaceSet(MeshSet):
     """
-    A surface-set set is basic entity for storing element face lists, typically for setting directional fluxes onto
+    A surface-set  is a basic entity for storing element face lists, typically for setting directional fluxes onto
     surface elements based on the element ordering. The set remains constant without any dynamic referencing
     to any underlying geometric entities.
     """
@@ -195,7 +202,7 @@ class SurfaceSet(MeshSet):
         self._elSurfacePairs = np.asanyarray(surfacePairs, dtype=np.int64)
 
     @property
-    def surfacePairs(self) -> np.array:
+    def surfacePairs(self) -> np.ndarray:
         """
         Elements with the associated face orientations are specified as Nx2 numpy array, with the first column being
         the element Id, and the second column the chosen face orientation
@@ -211,20 +218,21 @@ class SurfaceSet(MeshSet):
         out = '*SURFACE,NAME={:s}\n'.format(self.name)
 
         for i in range(self._elSurfacePairs.shape[0]):
-            out += '{:d},S{:d}\n'.format(self._elSurfacePairs[i,0], self._elSurfacePairs[i,1])
+            out += '{:d},S{:d}\n'.format(self._elSurfacePairs[i, 0], self._elSurfacePairs[i, 1])
 
-        #out += np.array2string(self.els, precision=2, separator=', ', threshold=9999999999)[1:-1]
         return out
 
 
-class Connector:
+class Connector(ModelObject):
     """
      A Connector is a rigid connector between a set of nodes and an (optional) reference node.
      """
-    def __init__(self, name, nodes, refNode = None):
-        self.name = name
+    def __init__(self, name: str , nodeset: Optional[NodeSet] = None, refNode = None):
+
+        super().__init__(name)
+
         self._refNode = refNode
-        self._nodeset = None
+        self._nodeset = nodeset
 
     @property
     def refNode(self):
@@ -238,21 +246,21 @@ class Connector:
         self._refNode = node
 
     @property
-    def nodeset(self):
+    def nodeset(self) -> NodeSet:
         """
         Nodes contains the list of Node IDs
         """
         return self._nodeset
 
     @nodeset.setter
-    def nodeset(self, nodes):
+    def nodeset(self, nodes: Union[Iterable, NodeSet]):
 
-        if isinstance(nodes, list) or isinstance(nodes,np.ndarray):
-            self._nodeset = NodeSet('Connecter_{:s}'.format(self.name), np.array(nodes))
-        elif isinstance(nodes,NodeSet):
+        if isinstance(nodes, list) or isinstance(nodes, np.ndarray):
+            self._nodeset = NodeSet(f"Connecter_{self.name}", np.array(nodes))
+        elif isinstance(nodes, NodeSet):
             self._nodeset = nodes
         else:
-            raise Exception('Invalid type for nodes passed to Connector()')
+            raise ValueError('Invalid type for nodes passed to Connector()')
 
     def writeInput(self) -> str:
         # A nodeset is automatically created from the name of the connector
@@ -283,13 +291,13 @@ class DOF:
     """ Translation in the Z direction """
 
     RX = 4
-    """ Rotation about the X-axis"""
+    """ Rotation about the X-axis """
 
     RY = 5
-    """ Rotation about the Y-axis"""
+    """ Rotation about the Y-axis """
 
     RZ = 6
-    """ Rotation about the Z-axis"""
+    """ Rotation about the Z-axis """
 
     T = 11
     """ Temperature """

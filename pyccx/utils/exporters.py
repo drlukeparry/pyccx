@@ -1,15 +1,11 @@
+
 import os
 import shutil
-
-from enum import Enum, Flag, auto
-from typing import Any, List, Tuple
-
+from typing import Optional
 import xml.etree.ElementTree as ET
 import numpy as np
 
-from ..core import ElementSet, NodeSet, SurfaceSet, DOF
 from ..results import ResultProcessor, ResultsValue
-
 
 def exportToPVD(filename: str, results: ResultProcessor):
     """
@@ -23,9 +19,9 @@ def exportToPVD(filename: str, results: ResultProcessor):
     rootDir = os.path.dirname(filename)
 
     if rootDir:
-        rootDir =  rootDir + '/'
+        rootDir = rootDir + '/'
 
-    data = ET.Element('VTKFile', type="Collection", version ="0.1", byte_order="LittleEndian")
+    data = ET.Element('VTKFile', type="Collection", version="0.1", byte_order="LittleEndian")
     colEl = ET.SubElement(data, 'Collection')
 
     resultsFolder = '{:s}{:s}-data'.format(rootDir, rootFilename)
@@ -40,21 +36,23 @@ def exportToPVD(filename: str, results: ResultProcessor):
 
     colItems = []
     for inc in results.increments:
-        iterData = results.increments[inc]
+
+        # iterData = results.increments[inc]
 
         incPath = '{:s}/{:s}'.format(resultsFolder, 'increment-{:d}.vtu'.format(inc))
 
         """ Export the .vtu format to the data folder """
         exportToVTK(incPath, results, inc)
 
-        dataSetEl = ET.SubElement(colEl, 'DataSet', timestep="{:d}".format(inc), group="", part="0",file=incPath)
+        dataSetEl = ET.SubElement(colEl, 'DataSet', timestep="{:d}".format(inc), group="", part="0", file=incPath)
         colItems.append(dataSetEl)
 
     b_xml = ET.tostring(data)
     with open('{:s}'.format(filename), 'wb') as f:
         f.write(b_xml)
 
-def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
+
+def exportToVTK(filename: str, results: ResultProcessor, inc: Optional[int] = -1):
     """
     Exports a single time step result to the .vtu file in its xml format
 
@@ -82,9 +80,9 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
     This is for wedges and hex elements which have a different node ordering in VTK
     """
     nodeMap = {
-        2: [0,2,1,3,5,4],
-        4: [0,1,2,3,4,5,6,7,8,9,10,11,16,17,18,19,12,13,14,15],
-        5: [0,2,1,3,5,4]
+        2: [0, 2, 1, 3, 5, 4],
+        4: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 12, 13, 14, 15],
+        5: [0, 2, 1, 3, 5, 4]
     }
 
     """ Select the result increment to export """
@@ -100,75 +98,80 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
 
     data = ET.Element('VTKFile', type="UnstructuredGrid")
     e1 = ET.SubElement(data, 'UnstructuredGrid')
-    ePiece = ET.SubElement(e1, 'Piece', NumberOfPoints = str(len(results.nodes[0])),
-                                             NumberOfCells = str(len(results.elements[0])))
+    ePiece = ET.SubElement(e1, 'Piece', NumberOfPoints=str(len(results.nodes[0])),
+                                                                 NumberOfCells=str(len(results.elements[0])))
 
     ePointData = ET.SubElement(ePiece, 'PointData')
 
     """ Write the Node Displacement Data """
     if len(resultIncrement[ResultsValue.DISP]) > 0:
 
-        eDispArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="Displacement", NumberOfComponents="3", Format="Ascii")
+        eDispArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
+                                                         Name="Displacement",
+                                                         NumberOfComponents="3", Format="Ascii")
         nodeDispStr = ''
 
         for row in resultIncrement[ResultsValue.DISP]:
-            nodeDispStr  += ' '.join([str(val) for val in row[1:]]) + '\n'
+            nodeDispStr += ' '.join([str(val) for val in row[1:]]) + '\n'
         eDispArray.text = nodeDispStr
-
 
     """ Write the Node RF Data """
     if len(resultIncrement[ResultsValue.FORCE]) > 0:
-        eRFArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="RF", NumberOfComponents="3", Format="Ascii")
+        eRFArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
+                                                      Name="RF", NumberOfComponents="3", Format="Ascii")
         nodeDispStr = ''
         for row in resultIncrement[ResultsValue.FORCE]:
-            nodeDispStr  += ' '.join([str(val) for val in row[1:]]) + '\n'
+            nodeDispStr += ' '.join([str(val) for val in row[1:]]) + '\n'
         eRFArray.text = nodeDispStr
 
     """ Write the Cauchy Stress Data """
     if len(resultIncrement[ResultsValue.STRESS]) > 0:
-        sigma = resultIncrement[ResultsValue.STRESS][:,1:]
+        sigma = resultIncrement[ResultsValue.STRESS][:, 1:]
         eSigmaArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="stress",
                                     NumberOfComponents=str(sigma.shape[1]), Format="Ascii")
         nodeSigmaStr = ''
         for row in sigma:
-            nodeSigmaStr  += ' '.join([str(val) for val in row]) + '\n'
+            nodeSigmaStr += ' '.join([str(val) for val in row]) + '\n'
         eSigmaArray.text = nodeSigmaStr
 
     """ Write the Cauchy Stress Data """
     if resultIncrement.get(ResultsValue.VMSTRESS, None) is not None:
         if len(resultIncrement[ResultsValue.VMSTRESS]) > 0:
-            sigma = resultIncrement[ResultsValue.VMSTRESS][:,1:]
-            eSigmaVMArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="stressVM",
-                                        NumberOfComponents=str(sigma.shape[1]), Format="Ascii")
+            sigma = resultIncrement[ResultsValue.VMSTRESS][:, 1:]
+            eSigmaVMArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
+                                                                      Name="stressVM", NumberOfComponents=str(sigma.shape[1]),
+                                                                      Format="Ascii")
             nodeSigmaStr = ''
             for row in sigma:
-                nodeSigmaStr  += ' '.join([str(val) for val in row]) + '\n'
+                nodeSigmaStr += ' '.join([str(val) for val in row]) + '\n'
 
             eSigmaVMArray.text = nodeSigmaStr
 
     """ Write strain data """
     if len(resultIncrement[ResultsValue.STRAIN]) > 0:
-        eStrainArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="strain", NumberOfComponents="6", Format="Ascii")
+        eStrainArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
+                                                            Name="strain", NumberOfComponents="6", Format="Ascii")
         nodeStrainStr = ''
         for row in resultIncrement[ResultsValue.STRAIN]:
-            nodeStrainStr  += ' '.join([str(val) for val in row[1:]]) + '\n'
+            nodeStrainStr += ' '.join([str(val) for val in row[1:]]) + '\n'
         eStrainArray.text = nodeStrainStr
 
     """ Export the remaining geometrical element information to the .vtu format"""
-    eCellData = ET.SubElement(ePiece, 'CellData')
+    # eCellData = ET.SubElement(ePiece, 'CellData')
 
     ePoints = ET.SubElement(ePiece, 'Points')
-    ePointsArray = ET.SubElement(ePoints, 'DataArray', type="Float32", Name="Points", NumberOfComponents="3", Format="Ascii")
+    ePointsArray = ET.SubElement(ePoints, 'DataArray', type="Float32",
+                                                        Name="Points", NumberOfComponents="3", Format="Ascii")
 
     """ Write the Node Coordinate Data """
     nodeStr = ''
     for row in results.nodes[1]:
-        nodeStr  += ' '.join([str(val) for val in row]) + '\n'
+        nodeStr += ' '.join([str(val) for val in row]) + '\n'
 
     ePointsArray.text = nodeStr
 
     eCells = ET.SubElement(ePiece, 'Cells')
-    eConArray  = ET.SubElement(eCells, 'DataArray', type="Int32", Name="connectivity", Format="Ascii")
+    eConArray = ET.SubElement(eCells, 'DataArray', type="Int32", Name="connectivity", Format="Ascii")
 
     """
     Write the Node Coordinate Data:
@@ -177,7 +180,7 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
     elConStr = ''
 
     elIds, elType, elCon = results.elements
-    for i, elId in enumerate(elIds):
+    for i in range(len(elIds)):
         # Note (row[1]) is the element type
 
         if elType[i] in nodeMap:
@@ -192,7 +195,7 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: int = -1):
     eConArray.text = elConStr
 
     """ Write the element offset array """
-    eOffArray  = ET.SubElement(eCells, 'DataArray', type="Int32", Name="offsets", Format="Ascii")
+    eOffArray = ET.SubElement(eCells, 'DataArray', type="Int32", Name="offsets", Format="Ascii")
     elOffset = np.cumsum([len(row) for row in elCon])
     eOffArray.text = ' '.join([str(int(val)) for val in elOffset]) + '\n'
 

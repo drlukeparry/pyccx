@@ -1,6 +1,6 @@
 import abc
-from enum import auto, Enum, Flag
-from typing import Any, List, Tuple, Union
+from enum import auto, Flag
+from typing import Any, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -9,8 +9,8 @@ from ..core import Amplitude, ElementSet, ModelObject, NodeSet, SurfaceSet, DOF
 
 class BoundaryConditionType(Flag):
     """
-    Boundary condition type specifies which type of analyses the boundary condition may be applied to. Flags may be mixed
-    when coupled analyses are performed (e.g.  thermo-mechanical analysis: STRUCTURAL | THERMAL)
+    Boundary condition type specifies which type of analyses the boundary condition may be applied to. Flags may be
+    mixed when coupled analyses are performed (e.g.  thermo-mechanical analysis: STRUCTURAL | THERMAL)
     """
 
     ANY = auto()
@@ -31,7 +31,7 @@ class BoundaryCondition(ModelObject):
     Base class for all boundary conditions
     """
 
-    def __init__(self, name, target, amplitude: Amplitude = None, timeDelay: float = None):
+    def __init__(self, name, target, amplitude: Amplitude = None, timeDelay: Optional[float] = None):
 
         self.init = True
         self._target = target
@@ -48,7 +48,7 @@ class BoundaryCondition(ModelObject):
     @property
     def resetBoundaryCondition(self) -> bool:
         """
-        Reset the boundary condition so that previous conditions in the BC are reset/ignored. By default this value is
+        Reset the boundary condition so that previous conditions in the BC are reset/ignored. By default, this value is
         to `False` to match the behavior in Calculix. This is useful for applying different  boundary conditions across
         multiple seperated loadcases.
         """
@@ -57,6 +57,7 @@ class BoundaryCondition(ModelObject):
     @resetBoundaryCondition.setter
     def resetBoundaryCondition(self, value: bool):
         self._resetBoundaryCondition = value
+
     @property
     def amplitude(self) -> Union[None, Amplitude]:
         """
@@ -84,6 +85,7 @@ class BoundaryCondition(ModelObject):
             self._timeDelay = None
         else:
             self._timeDelay = time
+
     @property
     def target(self):
         return self._target
@@ -121,23 +123,22 @@ class BoundaryCondition(ModelObject):
         """
         Returns the BC type so that they are only applied to suitable load cases
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def writeInput(self) -> str:
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class Film(BoundaryCondition):
     """
-    The film or convective heat transfer boundary condition applies the Newton's law of cooling
-    - :math:`q = h_{c}\\left(T-T_{amb}\\right)` to specified faces of
-    boundaries elements (correctly ordered according to Calculix's requirements). This BC may be used in thermal and
-    coupled thermo-mechanical analyses.
+    The film or convective heat transfer boundary condition applies the Newton's law of cooling - :math:`q = h_{
+    c}\\left(T-T_{amb}\\right)` to specified faces of boundaries elements (correctly ordered according to Calculix's
+    requirements). This BC may be used in thermal and coupled thermo-mechanical analyses.
     """
 
     def __init__(self, target, h: float = 0.0, TAmbient: float = 0.0,
-                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
+                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None, timeDelay: Optional[float] = None):
 
         self.h = h
         self.T_amb = TAmbient
@@ -196,13 +197,13 @@ class Film(BoundaryCondition):
 
 class HeatFlux(BoundaryCondition):
     """
-    The flux boundary condition applies a uniform external heat flux :math:`q` to faces of surface
-    boundaries elements (correctly ordered according to Calculix's requirements). This BC may be used in thermal and
-    coupled thermo-mechanical analyses.
+    The flux boundary condition applies a uniform external heat flux :math:`q` to faces of surface boundaries
+    elements (correctly ordered according to Calculix's requirements). This BC may be used in thermal and coupled
+    thermo-mechanical analyses.
     """
 
     def __init__(self, target, flux: float = 0.0,
-                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
+                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None, timeDelay: Optional[float] = None):
 
         self._flux = flux
 
@@ -250,11 +251,11 @@ class HeatFlux(BoundaryCondition):
 
 class Radiation(BoundaryCondition):
     """
-    The radiation boundary condition applies Black-body radiation using the Stefan-Boltzmann Law,
-    :math:`q_{rad} = \\epsilon \\sigma_b\\left(T-T_{amb}\\right)^4`, which is imposed on the faces of
-    boundaries elements (correctly ordered according to Calculix's requirements). Ensure that the Stefan-Boltzmann constant :math:
-    `\\sigma_b`, has consistent units, which is set in the :attr:`~pyccx.analysis.Simulation.SIGMAB`.
-    This BC may be used in thermal and coupled thermo-mechanical analyses.
+    The radiation boundary condition applies Black-body radiation using the Stefan-Boltzmann Law, :math:`q_{rad} =
+    \\epsilon \\sigma_b\\left(T-T_{amb}\\right)^4`, which is imposed on the faces of boundaries elements (correctly
+    ordered according to Calculix's requirements). Ensure that the Stefan-Boltzmann constant :math:`\\sigma_b`,
+    has consistent units, which is set in the :attr:`~pyccx.analysis.Simulation.SIGMAB`. This BC may be used in
+    thermal and coupled thermo-mechanical analyses.
     """
 
     def __init__(self, target, epsilon: float = 1.0, TAmbient: float = 0.0,
@@ -274,7 +275,7 @@ class Radiation(BoundaryCondition):
     @property
     def emmisivity(self) -> float:
         """
-        The emmisivity value :math:`\\epsilon` used for the Radiation Boundary Condition
+        The emissivity value :math:`\\epsilon` used for the Radiation Boundary Condition
         """
         return self._epsilon
 
@@ -342,14 +343,14 @@ class Fixed(BoundaryCondition):
         return BoundaryConditionType.ANY
 
     @property
-    def dof(self):
+    def dof(self) -> List[DOF]:
         """
         Degree of Freedoms to be fixed
         """
         return self._dof
 
     @dof.setter
-    def dof(self, vals):
+    def dof(self, vals: List[DOF]):
         self._dof = vals
 
     @property
@@ -419,7 +420,7 @@ class Acceleration(BoundaryCondition):
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
 
-    def setVector(self, v) -> None:
+    def setVector(self, v: Iterable) -> None:
         """
         The acceleration of the body set by an Acceleration Vector
 
@@ -439,7 +440,6 @@ class Acceleration(BoundaryCondition):
 
     @magnitude.setter
     def magnitude(self, magVal: float) -> None:
-        from numpy import linalg
         self._mag = magVal
 
     @property
@@ -477,8 +477,8 @@ class Pressure(BoundaryCondition):
     The Pressure Boundary Condition applies a uniform pressure to the  faces across an element boundary.
     """
 
-    def __init__(self, target, magnitude: float = 0.0,
-                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
+    def __init__(self, target: SurfaceSet, magnitude: float = 0.0,
+                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None, timeDelay: Optional[float] = None):
 
         self._mag = magnitude
 
@@ -527,7 +527,7 @@ class Pressure(BoundaryCondition):
 class Force(BoundaryCondition):
     """
     The Force Boundary applies a uniform force directly to nodes. This BC may be used in thermal and
-    coupled thermo-mechanical analyses provided the DOF is applicable to the analysis type.
+    coupled thermo-mechanical analyses provided the :class:`DOF` is applicable to the analysis type.
     """
 
     def __init__(self, target,
@@ -542,9 +542,13 @@ class Force(BoundaryCondition):
 
     def setVector(self, v) -> None:
         """
-        The applied force set by the vector
+        The applied force set by the vector.
 
-        :param v: The Force vector
+        .. note::
+
+            The force vector is normalised to ensure that the direction is consistent.
+
+        :param v: The force vector
         """
         from numpy import linalg
         mag = linalg.norm(v)
@@ -575,6 +579,7 @@ class Force(BoundaryCondition):
         self.dir = v / linalg.norm(v)
 
     def writeInput(self) -> str:
+
         bCondStr = '*CLOAD'
 
         if self._amplitude:

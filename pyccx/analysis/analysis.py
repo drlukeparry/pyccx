@@ -4,8 +4,8 @@ import sys
 import subprocess
 import logging
 
-from enum import Enum, IntEnum, auto
-from typing import List, Tuple, Type
+from enum import IntEnum, auto
+from typing import Any, List, Type, Optional
 
 import numpy as np
 
@@ -34,9 +34,15 @@ class AnalysisType(IntEnum):
     """
     The analysis types available in Calculix that may be used for analyses
     """
+
     STRUCTURAL = auto()
+    """ Structural Analysis """
+
     THERMAL = auto()
+    """ Thermal Analysis """
+
     FLUID = auto()
+    """ Fluid Dynamics Analysis"""
 
 
 class MaterialAssignment(ModelObject):
@@ -91,17 +97,17 @@ class SolidMaterialAssignment(MaterialAssignment):
     including assigning material properties to 3D, plane stress, plane strain and axisymmetric element types. For
     plane stress and plane strain elements the thickness parameter can be specified.
     """
-    def __init__(self, name, elementSet, material, thickness: float = None):
+    def __init__(self, name, elementSet, material, thickness: Optional[float] = None):
 
         self._thickness = thickness
         super().__init__(name, elementSet, material)
 
     @property
-    def thickness(self):
+    def thickness(self) -> float:
         return self._thickness
 
     @thickness.setter
-    def thickness(self, thickness):
+    def thickness(self, thickness: float):
 
         if thickness is None:
             self._thickness = None
@@ -111,67 +117,57 @@ class SolidMaterialAssignment(MaterialAssignment):
             self._thickness = thickness
 
     def writeInput(self) -> str:
-        out = '*solid section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
+
+        outStr = '*solid section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
 
         if self._thickness:
-            out += '{:e}'.format(self._thickness)
+            outStr += '{:e}'.format(self._thickness)
 
-        return out
+        return outStr
 
 
 class ShellMaterialAssignment(MaterialAssignment):
     """
-    ShellMaterialAssignment is used to select shell elments for the selected elements in a provided
+    The ShellMaterialAssignment class is used to select shell elements for the selected elements in a provided
     :class:`ElementSet` with the given :class:`Material`. A thickness must be provided for the selected shell elements.
     """
 
-    def __init__(self, name, elementSet, material, thickness):
+    def __init__(self, name, elementSet: ElementSet, material: Material, thickness: float):
 
         super().__init__(name, elementSet, material)
 
         self._thickness = thickness
 
     @property
-    def thickness(self):
+    def thickness(self) -> float:
         return self._thickness
 
     @thickness.setter
-    def thickness(self, thickness):
+    def thickness(self, thickness: float):
 
         if thickness < 1e-8:
             raise ValueError('The thickness of the shell type should be greater than zero')
 
-        self._thickness =  thickness
-
-    def writeInput(self) -> str:
-        out  = '*shell section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
-        out += '{:e}\n'.format(self._thickness)
-        return out
-
-
-class AnalysisControls():
-
-    def __init__(self, name, elementSet, material, thickness):
-        super().__init__(name, elementSet, material)
-
         self._thickness = thickness
 
     def writeInput(self) -> str:
-        out  = '*controls'
+        out = '*shell section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
+        out += '{:e}\n'.format(self._thickness)
         return out
+
 
 class Simulation:
     """
     Provides the base class for running a Calculix Simulation
     """
 
-    NUMTHREADS = 1
+    NUMTHREADS: int = 1
     """ Number of Threads used by the Calculix Solver """
 
-    CALCULIX_PATH = ''
+    CALCULIX_PATH: str = ''
     """ The Calculix directory path used for Windows platforms"""
 
-    VERBOSE_OUTPUT = True
+    VERBOSE_OUTPUT: bool = True
     """ When enabled, the output during the analysis is redirected to the console"""
 
     def __init__(self, meshModel: Mesher):
@@ -205,13 +201,14 @@ class Simulation:
         self._elementSets = []
 
         self.includes = []
+        self._runData = None
 
     def init(self):
 
         self._input = ''
 
     @classmethod
-    def setNumThreads(cls, numThreads: int):
+    def setNumThreads(cls, numThreads: int) -> None:
         """
         Sets the number of simulation threads to use in Calculix
 
@@ -223,7 +220,7 @@ class Simulation:
     @classmethod
     def getNumThreads(cls) -> int:
         """
-        Returns the number of threads used
+        Returns the number of threads used by Calculix and GMSH
 
         :return: int:
         """
@@ -233,12 +230,12 @@ class Simulation:
     def setCalculixPath(cls, calculixPath: str) -> None:
         """
         Sets the path for the Calculix executable. Necessary when using Windows where there is not a default
-        installation proceedure for Calculix
+        installation procedure for Calculix
 
         :param calculixPath: Directory containing the Calculix Executable
         """
 
-        if os.path.isdir(calculixPath) :
+        if os.path.isdir(calculixPath):
             cls.CALCULIX_PATH = calculixPath
 
     @classmethod
@@ -246,12 +243,12 @@ class Simulation:
         """
         Sets if the output from Calculix should be verbose i.e. printed to the console
 
-        :param state:
+        :param state: `True` if the output should be printed to the console
         """
 
         cls.VERBOSE_OUTPUT = state
 
-    def setWorkingDirectory(self, workDir) -> None:
+    def setWorkingDirectory(self, workDir: str) -> None:
         """
         Sets the working directory used during the analysis.
 
@@ -269,8 +266,8 @@ class Simulation:
 
     def getBoundaryConditions(self) -> List[BoundaryCondition]:
         """
-        Collects all :class:`~pyccx.boundarycondition.BoundaryCondition` which are attached to :class:`LoadCase` in
-        the analysis
+        Collects all :class:`~pyccx.boundarycondition.BoundaryCondition` which are attached
+        to :class:`LoadCase` in the analysis
 
         :return:  All the boundary conditions in the analysis
         """
@@ -283,12 +280,12 @@ class Simulation:
     @property
     def loadCases(self) -> List[LoadCase]:
         """
-        List of :class:`~pyccx.loadcase.LoadCase` used in the analysis
+        A list of :class:`~pyccx.loadcase.LoadCase` used in the analysis
         """
         return self._loadCases
 
     @loadCases.setter
-    def loadCases(self, loadCases: List[LoadCase]):
+    def loadCases(self, loadCases: List[LoadCase]) -> None:
         self._loadCases = loadCases
 
     @property
@@ -318,7 +315,7 @@ class Simulation:
         return self._materials
 
     @materials.setter
-    def materials(self, materials):
+    def materials(self, materials: List[Material]) -> None:
         self._materials = materials
 
     @property
@@ -329,13 +326,13 @@ class Simulation:
         return self._materialAssignments
 
     @materialAssignments.setter
-    def materialAssignments(self, matAssignments: List[MaterialAssignment]):
+    def materialAssignments(self, matAssignments: List[MaterialAssignment]) -> None:
         self._materialAssignments = matAssignments
 
     def _collectAmplitudes(self):
         """
-        Private function returns a unique set of Element, Nodal, Surface sets which are used by the analysis during writing.
-        This reduces the need to explicitly attach them to an analysis.
+        Private function returns a unique set of Element, Nodal, Surface sets which are used by
+        the analysis during writing. This reduces the need to explicitly attach them to an analysis.
         """
         amps = {}
 
@@ -347,12 +344,13 @@ class Simulation:
 
         return list(amps.values())
 
-    def _collectSets(self, setType: Type[MeshSet] = None):
+    def _collectSets(self, setType: Optional[Type[MeshSet]] = None) -> Any:
         """
-        Private function returns a unique set of Element, Nodal, Surface sets which are used by the analysis during writing.
-        This reduces the need to explicitly attach them to an analysis.
+        Private function returns a unique set of Element, Nodal, Surface sets which are used by
+        the analysis during writing. This reduces the need to explicitly attach them to an analysis.
 
-        :param setType: The type of set to collect
+        :param setType: The type of Mesh Set to collect
+        :return: A list of unique MeshSets obtained for the analysis
         """
         elementSets = {}
         nodeSets = {}
@@ -413,7 +411,7 @@ class Simulation:
         return self._elementSets
 
     @elementSets.setter
-    def elementSets(self, val: List[ElementSet]):
+    def elementSets(self, val: List[ElementSet]) -> None:
         self._elementSets = val
 
     @property
@@ -424,31 +422,31 @@ class Simulation:
         return self._nodeSets
 
     @nodeSets.setter
-    def nodeSets(self, val: List[NodeSet]):
-        nodeSets = val
+    def nodeSets(self, val: List[NodeSet]) -> None:
+        self._nodeSets = val
 
     @property
     def surfaceSets(self) -> List[SurfaceSet]:
         """
-        User-defined :class:`pyccx.core.SurfaceSet`  manually added to the analysis
+        User-defined :class:`pyccx.core.SurfaceSet` manually added to the analysis
         """
         return self._surfaceSets
 
     @surfaceSets.setter
-    def surfaceSets(self, val=List[SurfaceSet]):
+    def surfaceSets(self, val: List[SurfaceSet]) -> None:
         self._surfaceSets = val
 
     def getElementSets(self) -> List[ElementSet]:
         """
         Returns **all** the :class:`~pyccx.core.ElementSet` used and generated in the analysis
         """
-        return self._collectSets(setType = ElementSet)
+        return self._collectSets(setType=ElementSet)
 
     def getNodeSets(self) -> List[NodeSet]:
         """
         Returns **all** the :class:`pyccx.core.NodeSet` used and generated in the analysis
         """
-        return self._collectSets(setType = NodeSet)
+        return self._collectSets(setType=NodeSet)
 
     def getSurfaceSets(self) -> List[SurfaceSet]:
         """
@@ -457,7 +455,9 @@ class Simulation:
         return self._collectSets(setType=SurfaceSet)
 
     def getAmplitudes(self) -> List[Amplitude]:
-        """ Returns *all** the :class:`pyccx.core.Amplitudes` used and generated in the analysis """
+        """
+        Returns *all** the :class:`pyccx.core.Amplitudes` used and generated in the analysis
+        """
 
         return self._collectAmplitudes()
 
@@ -469,7 +469,6 @@ class Simulation:
         self.init()
 
         self._writeHeaders()
-
 
         self._writeMesh()
         logging.info('\t Analysis mesh written to file')
@@ -501,7 +500,7 @@ class Simulation:
 
     def _writeHeaders(self):
 
-        self._input +=  '\n'
+        self._input += '\n'
         self._input += '{:*^125}\n'.format(' INCLUDES ')
 
         for filename in self.includes:
@@ -510,7 +509,7 @@ class Simulation:
     def _writeElementSets(self):
 
         # Collect all sets
-        elementSets = self._collectSets(setType = ElementSet)
+        elementSets = self._collectSets(setType=ElementSet)
 
         if len(elementSets) == 0:
             return
@@ -613,11 +612,10 @@ class Simulation:
 
         # TODO make a unique auto-generated name for the mesh
         meshFilename = 'mesh.inp'
-        meshPath= os.path.join(self._workingDirectory, meshFilename)
+        meshPath = os.path.join(self._workingDirectory, meshFilename)
 
         self.model.writeMesh(meshPath)
         self._input += '*include,input={:s}\n'.format(meshFilename)
-
 
     def checkAnalysis(self) -> bool:
         """
@@ -628,14 +626,17 @@ class Simulation:
         """
 
         if len(self.materials) == 0:
-            raise AnalysisError('No material models have been assigned to the analysis')
+            raise AnalysisError(self, 'No material models have been assigned to the analysis')
+
+        if len(self.materialAssignments) == 0:
+            raise AnalysisError(self, 'No material assignement has been assigned to the analysis')
 
         for material in self.materials:
             if not material.isValid():
-                raise AnalysisError('Material ({:s}) is not valid'.format(material.name))
+                raise AnalysisError(self, 'Material ({:s}) is not valid'.format(material.name))
 
         if len(self.model.identifyUnassignedElements()) > 0:
-            raise AnalysisError('Mesh model has unassigned element types')
+            raise AnalysisError(self, 'Mesh model has unassigned element types')
 
         return True
 
@@ -643,31 +644,31 @@ class Simulation:
 
         if sys.platform == 'win32':
             cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
-            p = subprocess.Popen([cmdPath, '-v'], stdout=subprocess.PIPE, universal_newlines=True )
+            p = subprocess.Popen([cmdPath, '-v'], stdout=subprocess.PIPE, universal_newlines=True)
             stdout, stderr = p.communicate()
             version = re.search(r"(\d+).(\d+)", stdout)
             return int(version.group(1)), int(version.group(2))
 
         elif sys.platform == 'linux':
-            p = subprocess.Popen(['ccx', '-v'], stdout=subprocess.PIPE, universal_newlines=True )
+            p = subprocess.Popen(['ccx', '-v'], stdout=subprocess.PIPE, universal_newlines=True)
             stdout, stderr = p.communicate()
             version = re.search(r"(\d+).(\d+)", stdout)
             return int(version.group(1)), int(version.group(2))
 
         elif sys.platform == 'darwin':
-            p = subprocess.Popen([self.CALCULIX_PATH, '-v'], stdout=subprocess.PIPE, universal_newlines=True )
+            p = subprocess.Popen([self.CALCULIX_PATH, '-v'], stdout=subprocess.PIPE, universal_newlines=True)
             stdout, stderr = p.communicate()
             version = re.search(r"(\d+).(\d+)", stdout)
             return int(version.group(1)), int(version.group(2))
         else:
-            raise NotImplemented(' Platform is not currently supported')
+            raise NotImplementedError(' Platform is not currently supported')
 
     def results(self) -> ResultProcessor:
         """
         The results obtained after running an analysis
          """
 
-        workingResultsPath = os.path.join(self._workingDirectory,'input')
+        workingResultsPath = os.path.join(self._workingDirectory, 'input')
 
         if self.isAnalysisCompleted():
             return ResultProcessor(workingResultsPath)
@@ -685,7 +686,7 @@ class Simulation:
         :param includeResults:  If set `True` will also delete the result files generated from the analysis
         """
 
-        filename = 'input' # Base filename for the analysis
+        filename = 'input'   # Base filename for the analysis
 
         files = [filename + '.inp',
                  filename + '.cvg',
@@ -710,8 +711,7 @@ class Simulation:
 
         """
         Note:
-        Format of each row in the .sta file corresponds with
-        
+        Format of each row in the .sta file corresponds with        
         0 STEP
         1 INC
         2 ATT
@@ -726,8 +726,7 @@ class Simulation:
             line1 = f.readline()
             line2 = f.readline()
 
-            if not('SUMMARY OF JOB INFORMATION' in line1 and
-                   'STEP' in line2):
+            if not('SUMMARY OF JOB INFORMATION' in line1 and 'STEP' in line2):
                 raise Exception('Invalid .sta file generated')
 
             line = f.readline()
@@ -794,8 +793,8 @@ class Simulation:
 
         self._runData = {}
 
-        if 'Total CalculiX Time:'in line:
-            runTime = re.search('Total CalculiX Time: (\S*)', line )[1]
+        if 'Total CalculiX Time:' in line:
+            runTime = re.search('Total CalculiX Time: (\S*)', line)[1]
             runTime = float(runTime)
 
             self._runData['runTime'] = runTime
@@ -816,7 +815,7 @@ class Simulation:
         inputDeckContents = self.writeInput()
 
         logging.info('\t Analysis input file has been generated')
-        inputDeckPath = os.path.join(self._workingDirectory,'input.inp')
+        inputDeckPath = os.path.join(self._workingDirectory, 'input.inp')
 
         with open(inputDeckPath, "w") as text_file:
             text_file.write(inputDeckContents)
@@ -918,4 +917,4 @@ class Simulation:
             self._analysisCompleted = True
 
         else:
-            raise NotImplemented(' Platform is not currently supported')
+            raise NotImplementedError(' Platform is not currently supported')
