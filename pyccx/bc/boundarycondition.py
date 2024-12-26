@@ -224,7 +224,7 @@ class HeatFlux(BoundaryCondition):
 
     @flux.setter
     def flux(self, fluxVal: float) -> None:
-        self._flux = fluxVal
+             self._flux = fluxVal
 
     def writeInput(self) -> str:
 
@@ -258,8 +258,9 @@ class Radiation(BoundaryCondition):
     thermal and coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target, epsilon: float = 1.0, TAmbient: float = 0.0,
-                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
+    def __init__(self, target: SurfaceSet, epsilon: float = 1.0, TAmbient: float = 0.0,
+                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None,
+                 timeDelay: Optional[float] = None):
 
         self.T_amb = TAmbient
         self._epsilon = epsilon
@@ -325,7 +326,8 @@ class Fixed(BoundaryCondition):
     """
 
     def __init__(self, target: Any, dof: List[DOF] = [], values=None,
-                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
+                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None,
+                 timeDelay: Optional[float] = None):
 
         if not isinstance(target, NodeSet):
             raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
@@ -402,18 +404,19 @@ class Acceleration(BoundaryCondition):
     structural analysis. This is provided as magnitude, direction of the acceleration on the body.
     """
 
-    def __init__(self, target, dir = None, mag = 1.0,
-                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
+    def __init__(self, target: ElementSet, direction: Optional[Iterable] = None, mag: float = 1.0,
+                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None,
+                 timeDelay: Optional[float] = None):
 
-        self._mag = 1.0
+        self._mag = mag
 
         if not isinstance(target, NodeSet) or not isinstance(target, ElementSet):
             raise ValueError('The target for an Acceleration BC should be a node or element set.')
 
-        if dir:
-            self.dir = np.asanyarray(dir)
+        if direction:
+            self._dir = np.asanyarray(direction)
         else:
-            self.dir = np.array([0.0, 0.0, 1.0])
+            self._dir = np.array([0.0, 0.0, 1.0])
 
         super().__init__(name, target, amplitude, timeDelay)
 
@@ -426,10 +429,13 @@ class Acceleration(BoundaryCondition):
 
         :param v: The vector of the acceleration
         """
+
         from numpy import linalg
-        mag = linalg.norm(v)
-        self.dir = v / linalg.norm(v)
-        self.magnitude = mag
+
+        vec = np.asanyarray(v)
+        mag = linalg.norm(vec)
+        self._dir = vec / linalg.norm(vec)
+        self._mag = mag
 
     @property
     def magnitude(self) -> float:
@@ -447,14 +453,16 @@ class Acceleration(BoundaryCondition):
         """
         The acceleration direction (normalised vector)
         """
-        return self.dir
+        return self._dir
 
     @direction.setter
-    def direction(self, v: float) -> None:
+    def direction(self, v: Iterable) -> None:
         from numpy import linalg
-        self.dir = v / linalg.norm(v)
+        vec = np.asanyarray(v)
+        self._dir = vec / linalg.norm(vec)
 
     def writeInput(self) -> str:
+
         bCondStr = '*DLOAD'
 
         if self._amplitude:
@@ -468,7 +476,7 @@ class Acceleration(BoundaryCondition):
 
         bCondStr += '\n'
 
-        bCondStr += '{:s},GRAV,{:.5f}, {:e},{:e},{:e}\n'.format(self.target.name, self._mag, *self.dir)
+        bCondStr += '{:s},GRAV,{:.5f}, {:e},{:e},{:e}\n'.format(self.target.name, self._mag, *self._dir)
         return bCondStr
 
 
@@ -530,17 +538,18 @@ class Force(BoundaryCondition):
     coupled thermo-mechanical analyses provided the :class:`DOF` is applicable to the analysis type.
     """
 
-    def __init__(self, target,
-                 name: str = None, amplitude: Amplitude = None, timeDelay: float = None):
-        self.mag = 0.0
-        self.dir = np.array([0.0, 0.0, 1.0])
+    def __init__(self, target, name: Optional[str] = None, amplitude: Optional[Amplitude] = None,
+                 timeDelay: Optional[float] = None):
+
+        self._mag = 0.0
+        self._dir = np.array([0.0, 0.0, 1.0])
 
         super().__init__(name, target, amplitude, timeDelay)
 
     def type(self) -> BoundaryConditionType:
         return BoundaryConditionType.STRUCTURAL
 
-    def setVector(self, v) -> None:
+    def setVector(self, v: Iterable) -> None:
         """
         The applied force set by the vector.
 
@@ -551,32 +560,37 @@ class Force(BoundaryCondition):
         :param v: The force vector
         """
         from numpy import linalg
-        mag = linalg.norm(v)
-        self.dir = v / linalg.norm(v)
-        self.magnitude = mag
+
+        vec = np.asanyarray(v)
+        mag = linalg.norm(vec)
+
+        self._dir = vec / mag
+        self._mag = mag
 
     @property
     def magnitude(self) -> float:
         """
         The magnitude of the force applied
         """
-        return self.mag
+        return self._mag
 
     @magnitude.setter
     def magnitude(self, magVal: float) -> None:
-        self.mag = magVal
+        self._mag = magVal
 
     @property
     def direction(self) -> np.ndarray:
         """
         The normalised vector of the force direction
         """
-        return self.dir
+        return self._dir
 
     @direction.setter
-    def direction(self, v: float) -> None:
+    def direction(self, v: Iterable) -> None:
         from numpy import linalg
-        self.dir = v / linalg.norm(v)
+
+        vec = np.asanyarray(v)
+        self._dir = vec / linalg.norm(vec)
 
     def writeInput(self) -> str:
 
@@ -596,7 +610,7 @@ class Force(BoundaryCondition):
         nodesetName = self.getTargetName()
 
         for i in range(3):
-            compMag = self.mag * self.dir[i]
-            bCondStr += '{:s},{:d}\n'.format(nodesetName, i+1, compMag)
+            compMag = self._mag * self._dir[i]
+            bCondStr += '{:s},{:d},{:e} \n'.format(nodesetName, i+1, compMag)
 
         return bCondStr
