@@ -75,21 +75,13 @@ class Amplitude(ModelObject):
         return out
 
 
-class MeshSet:
+class MeshSet(ModelObject):
     """
     The Mesh set is a basic entity for storing node and element set lists that are used for creating sets across
     both node and element types.
     """
-    def __init__(self, name):
-        self._name = name
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        self._name = name
+    def __init__(self, name: str):
+        super().__init__(name)
 
 
 class NodeSet(MeshSet):
@@ -129,8 +121,6 @@ class ElementSet(MeshSet):
     def __init__(self, name: str, elIds: Iterable):
 
         super().__init__(name)
-
-        self._els = np.array(dtype=np.int64)
         self.els = elIds
 
     @property

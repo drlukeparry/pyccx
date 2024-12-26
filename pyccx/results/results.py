@@ -86,7 +86,9 @@ class NodalResult(Result):
 
     @property
     def temperature(self) -> bool:
-        """ Include the nodal temperature in the results """
+        """
+        Include the nodal temperature in the results
+        """
         return self._temperature
 
     @temperature.setter
@@ -95,16 +97,20 @@ class NodalResult(Result):
 
     @property
     def reactionForce(self) -> bool:
-        """ Include the nodal reaction forces in the results  """
+        """
+        Include the nodal reaction forces in the results
+        """
         return self._reactionForce
 
     @reactionForce.setter
-    def reactionForce(self, state: bool):
+    def reactionForce(self, state: bool) -> None:
         self._reactionForce = state
 
     @property
     def heatFlux(self) -> bool:
-        """ Include the nodal heat flux components in the results """
+        """
+        Include the nodal heat flux components in the results
+        """
         return self._heatFlux
 
     @heatFlux.setter
@@ -113,7 +119,9 @@ class NodalResult(Result):
 
     @property
     def cauchyStress(self) -> bool:
-        """ Include the extrapolated nodal cauchy stress components in the results """
+        """
+        Include the extrapolated nodal cauchy stress components in the results
+        """
         return self._cauchyStress
 
     @cauchyStress.setter
@@ -122,7 +130,9 @@ class NodalResult(Result):
 
     @property
     def strain(self) -> bool:
-        """ Include the strain components in the results """
+        """
+        Include the strain components in the results
+        """
         return self._strain
 
     @strain.setter
@@ -131,7 +141,9 @@ class NodalResult(Result):
 
     @property
     def plasticStrain(self) -> bool:
-        """ Include equivalent plastic strain variable in the results """
+        """
+        Include equivalent plastic strain variable in the results
+        """
         return self._plasticStrain
 
     @plasticStrain.setter
@@ -141,14 +153,14 @@ class NodalResult(Result):
     @property
     def expandShellElements(self) -> bool:
         """
-        Setting this property will instruct calculix to export the  node values that are obtained impliclity when the
+        Setting this property will instruct calculix to export the  node values that are obtained implicitly when the
         nodes from the shell elements are expanded/project rom their mid-surface region. This is useful for
-        post-processing and represting an equivalent volumetric mesh for the shell elements.
+        post-processing and representing an equivalent volumetric mesh for the shell elements.
         """
         return self._expandShellElements
 
     @expandShellElements.setter
-    def expandShellElements(self, state: bool) -> None:
+    def expandShellElements(self, state: bool):
         self._expandShellElements = state
 
     @property
@@ -245,9 +257,9 @@ class NodalResult(Result):
 
 class ElementResult(Result):
     """
-    Including an :class:`ElementResult` in a :class:`~pyccx.loadcase.LoadCase` will inform Calcuix to save
-    the elemental integration properties to the (.dat) file for the selected :class:`ElementSet` in the chosen
-    working directory specified in the :class:`~pyccx.analysis.Simulation`.
+    Including an :class:`ElementResult` in a :class:`~pyccx.loadcase.LoadCase` will inform Calcuix to save the
+    elemental integration properties to the (.dat) file for the selected :class:`ElementSet` in the chosen working
+    directory specified in the :class:`~pyccx.analysis.Simulation`.
     """
     def __init__(self, elSet: ElementSet):
 
@@ -266,11 +278,13 @@ class ElementResult(Result):
 
     @property
     def plasticStrain(self) -> bool:
-        """ The equivalent plastic strain"""
+        """
+        The equivalent plastic strain
+        """
         return self._plasticStrain
 
     @plasticStrain.setter
-    def plasticStrain(self, state: bool):
+    def plasticStrain(self, state: bool) -> None:
         self._plasticStrain = state
 
     @property
@@ -289,17 +303,18 @@ class ElementResult(Result):
     def mechanicalStrain(self) -> bool:
         """
         This is the mechanical Lagrangian strain for (hyper)elastic materials and incremental plasticity and the
-        mechanical Eulerian strain for deformation plasticity (mechanical strain = total strain - thermal strain)."""
+        mechanical Eulerian strain for deformation plasticity (mechanical strain = total strain - thermal strain).
+        """
         return self._mechanicalStrain
 
     @mechanicalStrain.setter
-    def mechanicalStrain(self, state: bool):
+    def mechanicalStrain(self, state: bool) -> None:
         self._mechanicalStrain = state
 
     @property
     def ESE(self) -> bool:
         """
-        Obtains the internal strain energy per unit volume
+        Obtain the internal strain energy per unit volume
         """
         return self._ESE
 
@@ -335,20 +350,20 @@ class ElementResult(Result):
     @property
     def elementSet(self) -> Union[ElementSet, str]:
         """
-        The ElementSet to obtain values for post-processing.
+        The elementset to obtain values for post-processing.
         """
 
         return self._elSet
 
     @elementSet.setter
-    def elementSet(self, elSet: ElementSet):
+    def elementSet(self, elSet: ElementSet) -> None:
 
         if not (isinstance(elSet, NodeSet) or isinstance(elSet, str)):
-            raise TypeError('ElementResult must be initialized with a NodeSet object or name of set')
+            raise TypeError('ElementResult must be initialised with a NodeSet object or name of set')
 
         self._elSet = elSet
 
-    def writeInput(self):
+    def writeInput(self) -> str:
 
         outStr = ''
 
@@ -384,7 +399,7 @@ class ResultProcessor:
     structure. Individual timesteps (increments) are seperated and may be accessed accordingly using :meth:`getResult`.
     """
 
-    def __init__(self, jobName):
+    def __init__(self, jobName: str):
 
         self._increments = {}
         self.jobName = jobName
@@ -392,7 +407,7 @@ class ResultProcessor:
         self._elements = None
         self._nodes = None
 
-        logging.info('Results file prefix set to {:s}'.format(jobName))
+        logging.info(f"Results file prefix set to {jobName}")
 
     @property
     def increments(self) -> Dict:
@@ -425,15 +440,15 @@ class ResultProcessor:
 
         return elIds, elTypes, elCon
 
-    def getNodeResult(self, increment: int, resultKey: ResultsValue,
-                                      nodeIds: Optional[np.array] = None) -> Tuple[np.ndarray, np.ndarray]:
+    def getNodeResult(self, increment: dict,
+                      resultKey: ResultsValue,
+                      nodeIds: Optional[np.array] = None) -> Tuple[np.array, np.array]:
         """
-        Returns a nodal result at step increment, for a corresponding ResultsValue type.
-        The nodeIds parameter is optionally provided.
+        Returns a nodal result at step increment, for a correpsonding ResultsValue type. The nodeIds parameter is optional
 
         :param increment: The selected increment index available
         :param resultKey: A Valid Nodal Quantity in ResultsValue
-        :param nodeIds: A list of node ids
+        :param nodeIds: A list  of node ids
         :return: A tuple of node ids and corresponding result values
         """
         if not self.hasResults():
@@ -442,10 +457,12 @@ class ResultProcessor:
         resultsIncrement = self._increments.get(increment, None)
 
         if resultsIncrement is None:
-            raise Exception('Increment {:d} does not exist'.format(increment))
+            raise Exception(f"Increment {increment} does not exist")
 
-        if resultKey not in [ResultsValue.DISP, ResultsValue.STRESS, ResultsValue.STRAIN, ResultsValue.FORCE,
-                                        ResultsValue.TEMP]:
+        validNodeKeys = [ResultsValue.DISP, ResultsValue.STRESS, ResultsValue.VMSTRESS, ResultsValue.STRAIN,
+                         ResultsValue.FORCE, ResultsValue.TEMP]
+
+        if resultKey not in validNodeKeys:
             raise Exception('Invalid result key specified - not a Nodal Result ')
 
         result = resultsIncrement.get(resultKey, None)
@@ -467,12 +484,11 @@ class ResultProcessor:
 
             return fndIds, result[fndIds, 1:]
 
-    def getElementResult(self,
-                         increment: int,
+    def getElementResult(self, increment: int,
                          resultKey: ResultsValue,
-                         elIds: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                         elIds: Optional[np.array] = None) -> Tuple[np.array, np.array, np.array]:
         """
-        Returns a element result at step increment, for a corresponding :class:`ResultsValue` type.
+        Returns a element result at step increment, for a correpsonding ResultsValue type.
         The elIDs parameter is optional and will select those values stored at these elements. The return value is
         a tuple, consisting of the element ids, integration points and corresponding result values.
 
@@ -488,7 +504,7 @@ class ResultProcessor:
         resultIncrement = self._increments.get(increment, None)
 
         if resultIncrement is None:
-            raise Exception('Increment {:d} does not exist'.format(increment))
+            raise Exception(f"Increment {increment} does not exist")
 
         if resultKey not in [ResultsValue.ELSTRESS, ResultsValue.ELHEATFLUX]:
             raise Exception('Invalid result key specified - not a Element Result ')
@@ -516,22 +532,23 @@ class ResultProcessor:
         return len(self.increments.keys()) > 0
 
     @property
-    def numIncrements(self) -> int:
+    def numIncrements(self):
         """
         Convenience property for the number of increments available in the Calculix results file
         """
         return len(self.increments.keys())
 
-    def lastIncrement(self) -> Dict:
+    def lastIncrement(self):
         """
-        Obtain the last or final increment stored in the Calculix results file
+        Returns the last or final increment stored in the Calculix results file
         """
+
         idx = sorted(list(self._increments.keys()))[-1]
         return self._increments[idx]
 
     def findIncrementByTime(self, incTime, tol: Optional[float] = 1e-6) -> Tuple[int, Dict]:
         """
-        Finds an increment at a stored time within a specified tolerance (default: 1e-6)
+        Finds an increment at a stored time witin a specified tolerance (default: 1e-6)
 
         :param incTime: The specified analysis time to locate the increment
         :param tol: The numerical tolerance to find the increment [default: 1e-6]
@@ -748,7 +765,7 @@ class ResultProcessor:
                 numNodes = int(reSearch.group(1))
 
                 nodes = []
-                for _ in range(numNodes):
+                for i in range(numNodes):
                     line = infile.readline()
                     nid, x, y, z = self._getVals("1X,I2,I10,6E12.5", line)[1:]
                     nodes.append([nid, x, y, z])
@@ -795,7 +812,7 @@ class ResultProcessor:
                 inc = int(inc)
 
                 if inc not in self._increments.keys():
-                    self._increments[inc] = {'time': time,
+                    self._increments[inc] = {'time' : time,
                                              ResultsValue.DISP: [],
                                              ResultsValue.ELSTRESS: [],
                                              ResultsValue.STRESS: [],
@@ -820,12 +837,10 @@ class ResultProcessor:
                 self._increments[inc][ResultsValue.FORCE].append(self.readNodeForce(line, rfstr))
             elif mode == 'NDTEMP':
                 self._increments[inc][ResultsValue.TEMP].append(self.readNodeTemp(line, rfstr))
-            else:
-                raise Exception('Invalid mode encountered in results file')
 
         infile.close()
 
-        """
+        """ 
         Read the element post-processing file
         """
         self.readDat()
@@ -869,21 +884,20 @@ class ResultProcessor:
             # 3D Stress Tensor
             sigma_v = 0.5 * np.sqrt( (sigma[:, 0] - sigma[:, 1])**2 +
                                      (sigma[:, 1] - sigma[:, 2])**2 +
-                                     (sigma[:, 2] - sigma[:, 0])**2 +
-                                  6.*(sigma[:, 3]**2 + sigma[:, 4]**2 + sigma[:, 5]**2) )
+                                     (sigma[:, 2] - sigma[:,0])**2 +
+                                  6.*(sigma[:, 3]**2 + sigma[:, 4]**2 + sigma[:, 5]**2))
         else:
             raise Exception('Invalid number of stress components')
 
         return sigma_v
 
-    def clearResults(self) -> None:
+    def clearResults(self):
         self._increments = {}
         self._elements = None
         self._nodes = None
 
     @staticmethod
-    def orderNodes(nodeVals: np.ndarray) -> np.ndarray:
-
+    def orderNodes(nodeVals):
         if nodeVals.size == 0:
             return nodeVals
 
