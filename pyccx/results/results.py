@@ -467,53 +467,12 @@ class ResultProcessor:
 
             return fndIds, result[fndIds, 1:]
 
-
-    def getNodeResult(self, increment: int, resultKey: ResultsValue, nodeIds: Optional[np.array] = None) -> Tuple[np.array, np.array]:
+    def getElementResult(self,
+                         increment: int,
+                         resultKey: ResultsValue,
+                         elIds: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Returns a nodal result at step increment, for a correpsonding ResultsValue type. The nodeIds parameter is optional
-
-        :param increment: The selected increment index available
-        :param resultKey: A Valid Nodal Quantity in ResultsValue
-        :param nodeIds: A list  of node ids
-        :return: A tuple of node ids and corresponding result values
-        """
-        if not self.hasResults():
-            raise Exception('No results have been read')
-
-        increment = self._increments.get(increment, None)
-
-        if increment is None:
-            raise Exception('Increment {:d} does not exist'.format(increment))
-
-        validNodeKeys = [ResultsValue.DISP, ResultsValue.STRESS, ResultsValue.VMSTRESS, ResultsValue.STRAIN,
-                         ResultsValue.FORCE, ResultsValue.TEMP]
-
-        if resultKey not in validNodeKeys:
-            raise Exception('Invalid result key specified - not a Nodal Result ')
-
-        result = increment.get(resultKey, None)
-
-        if result is None:
-            raise Exception('Result {:s} does not exist in increment {:d}'.format(resultKey, id))
-
-        if nodeIds is None:
-            # Return the results including the nodal ids
-            return result[:, 0], result[:, 1:]
-        else:
-            if isinstance(nodeIds, NodeSet):
-                nIds = nodeIds.nodes  # Convert FEA ids to Pythonic indexing
-            else:
-                nIds = nodeIds
-
-            # Perform a set intersection
-            fndIds = np.argwhere(np.isin(result[:, 0], nIds, assume_unique=True)).ravel()
-
-            return fndIds, result[fndIds, 1:]
-
-    def getElementResult(self, increment: int, resultKey: ResultsValue,
-                         elIds: Optional[np.array] = None) -> Tuple[np.array, np.array, np.array]:
-        """
-        Returns a element result at step increment, for a correpsonding ResultsValue type.
+        Returns a element result at step increment, for a corresponding :class:`ResultsValue` type.
         The elIDs parameter is optional and will select those values stored at these elements. The return value is
         a tuple, consisting of the element ids, integration points and corresponding result values.
 
@@ -836,13 +795,13 @@ class ResultProcessor:
                 inc = int(inc)
 
                 if inc not in self._increments.keys():
-                    self._increments[inc] = {'time'  : time,
-                                             ResultsValue.DISP  : [],
+                    self._increments[inc] = {'time': time,
+                                             ResultsValue.DISP: [],
                                              ResultsValue.ELSTRESS: [],
                                              ResultsValue.STRESS: [],
                                              ResultsValue.STRAIN: [],
-                                             ResultsValue.FORCE : [],
-                                             ResultsValue.TEMP  : []}
+                                             ResultsValue.FORCE: [],
+                                             ResultsValue.TEMP: []}
 
             # set mode to none if we hit the end of a resuls block
             if line[:3] == ' -3':
@@ -905,16 +864,19 @@ class ResultProcessor:
 
         if numComps == 3:
             # 2D Stress Tensor (Planar Stress)
-            sigma_v = np.sqrt(sigma[:, 0]**2 - sigma[:, 0] * sigma[:, 1] + sigma[:, 1]**2 + 3.*sigma[:, 2]**2 )
+            sigma_v = np.sqrt(sigma[:, 0]**2 - sigma[:, 0] * sigma[:, 1] + sigma[:, 1]**2 + 3.*sigma[:, 2]**2)
         elif numComps == 6:
             # 3D Stress Tensor
-            sigma_v =  0.5 * np.sqrt( (sigma[:,0] - sigma[:,1])**2 + (sigma[:,1] - sigma[:,2])**2 + (sigma[:,2] - sigma[:,0])**2 +
-                                      6.*(sigma[:,3]**2 + sigma[:,4]**2 + sigma[:,5]**2) )
+            sigma_v = 0.5 * np.sqrt( (sigma[:, 0] - sigma[:, 1])**2 +
+                                     (sigma[:, 1] - sigma[:, 2])**2 +
+                                     (sigma[:, 2] - sigma[:, 0])**2 +
+                                  6.*(sigma[:, 3]**2 + sigma[:, 4]**2 + sigma[:, 5]**2) )
         else:
             raise Exception('Invalid number of stress components')
 
         return sigma_v
 
+    def clearResults(self) -> None:
         self._increments = {}
         self._elements = None
         self._nodes = None
