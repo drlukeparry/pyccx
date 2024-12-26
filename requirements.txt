@@ -1,4 +1,0 @@
-numpy
-matpotlib
-gmsh>=4.11
-
