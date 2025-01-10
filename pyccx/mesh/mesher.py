@@ -1487,7 +1487,6 @@ class Mesher:
 
         if self.isMeshGenerated():
             self.setAsCurrentModel()
-
             with open(filename, 'w') as f:
 
                 out = self.writeMeshInput()

@@ -88,6 +88,9 @@ class BoundaryCondition(ModelObject):
 
     @property
     def target(self):
+        """
+        The target feature set of the boundary condition
+        """
         return self._target
 
     @target.setter
@@ -95,24 +98,33 @@ class BoundaryCondition(ModelObject):
         self._target = target
 
     def getTargetName(self) -> str:
+        """
+        Returns the name of the target feature set
+        """
         return self._target.name
 
-    def getBoundaryElements(self):
-
+    def getBoundaryElements(self) -> Union[None, np.ndarray]:
+        """
+        Returns the elements associated with the target ElementSet (if applicable) for the boundary condition
+        """
         if isinstance(self._target, ElementSet):
             return self._target.els
 
         return None
 
     def getBoundaryFaces(self):
-
+        """
+        Returns the surface pairs with the target SurfaceSet (if applicable) for the boundary condition
+        """
         if isinstance(self._target, SurfaceSet):
             return self._target.surfacePairs
 
         return None
 
-    def getBoundaryNodes(self):
-
+    def getBoundaryNodes(self) -> Union[None, np.ndarray]:
+        """
+        Returns the nodes associated with the target NodeSet (if applicable) for the boundary condition
+        """
         if isinstance(self._target, NodeSet):
             return self._target.nodes
 
@@ -132,7 +144,7 @@ class BoundaryCondition(ModelObject):
 
 class Film(BoundaryCondition):
     """
-    The film or convective heat transfer boundary condition applies the Newton's law of cooling - :math:`q = h_{
+    The film or convective heat transfer boundary condition applies the Newton's law of cooling :math:`q = h_{
     c}\\left(T-T_{amb}\\right)` to specified faces of boundaries elements (correctly ordered according to Calculix's
     requirements). This BC may be used in thermal and coupled thermo-mechanical analyses.
     """
@@ -154,7 +166,7 @@ class Film(BoundaryCondition):
     @property
     def heatTransferCoefficient(self) -> float:
         """
-        The heat transfer coefficient :math:`h_{c}` used for the Film Boundary Condition
+        The heat transfer coefficient :math:`h_{c}` used for the Film boundary condition
         """
         return self.h
 
@@ -165,7 +177,7 @@ class Film(BoundaryCondition):
     @property
     def ambientTemperature(self) -> float:
         """
-        The ambient temperature :math:`T_{amb}`. used for the Film Boundary Condition
+        The ambient temperature :math:`T_{amb}` used for the Film boundary condition
         """
         return self.T_amb
 
@@ -218,7 +230,7 @@ class HeatFlux(BoundaryCondition):
     @property
     def flux(self) -> float:
         """
-        The flux value :math:`q` used for the Heat Flux Boundary Condition
+        The flux value :math:`q` used for the Heat Flux boundary condition
         """
         return self._flux
 
@@ -252,13 +264,16 @@ class HeatFlux(BoundaryCondition):
 class Radiation(BoundaryCondition):
     """
     The radiation boundary condition applies Black-body radiation using the Stefan-Boltzmann Law, :math:`q_{rad} =
-    \\epsilon \\sigma_b\\left(T-T_{amb}\\right)^4`, which is imposed on the faces of boundaries elements (correctly
-    ordered according to Calculix's requirements). Ensure that the Stefan-Boltzmann constant :math:`\\sigma_b`,
+    \\epsilon \\sigma_b\\left(T-T_{amb}\\right)^4`, which is imposed on the faces of boundary elements (correctly
+    ordered according to Calculix's requirements).
+
+    Ensure that the Stefan-Boltzmann constant :math:`\\sigma_b`,
     has consistent units, which is set in the :attr:`~pyccx.analysis.Simulation.SIGMAB`. This BC may be used in
     thermal and coupled thermo-mechanical analyses.
     """
 
-    def __init__(self, target: SurfaceSet, epsilon: float = 1.0, TAmbient: float = 0.0,
+    def __init__(self, target: SurfaceSet,
+                 epsilon: Optional[float] = 1.0, TAmbient: Optional[float] = 0.0,
                  name: Optional[str] = None, amplitude: Optional[Amplitude] = None,
                  timeDelay: Optional[float] = None):
 
@@ -266,7 +281,7 @@ class Radiation(BoundaryCondition):
         self._epsilon = epsilon
 
         if not isinstance(target, SurfaceSet):
-            raise ValueError('A SurfaceSet must be used for a Radiation Boundary Condition')
+            raise TypeError('A SurfaceSet must be used for a Radiation Boundary Condition')
 
         super().__init__(name, target, amplitude, timeDelay)
 
@@ -287,7 +302,7 @@ class Radiation(BoundaryCondition):
     @property
     def ambientTemperature(self) -> float:
         """
-        The ambient temperature :math:`T_{amb}`. used for the Radiation Boundary Condition
+        The ambient temperature :math:`T_{amb}`. used for the Radiation boundary condition
         """
         return self.T_amb
 
@@ -425,7 +440,7 @@ class Acceleration(BoundaryCondition):
 
     def setVector(self, v: Iterable) -> None:
         """
-        The acceleration of the body set by an Acceleration Vector
+        The acceleration of the body set by an acceleration vector
 
         :param v: The vector of the acceleration
         """
@@ -482,11 +497,13 @@ class Acceleration(BoundaryCondition):
 
 class Pressure(BoundaryCondition):
     """
-    The Pressure Boundary Condition applies a uniform pressure to the  faces across an element boundary.
+    The Pressure boundary condition applies a uniform pressure applied to the faces across an element boundary.
     """
 
-    def __init__(self, target: SurfaceSet, magnitude: float = 0.0,
-                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None, timeDelay: Optional[float] = None):
+    def __init__(self, target: SurfaceSet, magnitude: Optional[float] = 0.0,
+                 name: Optional[str] = None,
+                 amplitude: Optional[Amplitude] = None,
+                 timeDelay: Optional[float] = None):
 
         self._mag = magnitude
 

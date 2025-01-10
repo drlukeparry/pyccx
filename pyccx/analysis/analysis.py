@@ -47,9 +47,9 @@ class AnalysisType(IntEnum):
 
 class MaterialAssignment(ModelObject):
     """
-    MaterialAssignment is a base class for defining the Element Types and :class:`Material` that are specified for
-    an :class:`ElementSet` within the model. These are required to be set for all elements that exist within
-    :class:`pyccx.mesh.Mesher` that are defined and exported for use in Calculix.
+    MaterialAssignment is a base class for defining the Element Types and :class:`~pyccx.material.Material` that are
+    specified for an :class:`~pyccx.core.ElementSet` within the model. These are required to be set for all elements
+    that exist within :class:`pyccx.mesh.Mesher` that are defined and exported for use in Calculix.
     """
 
     def __init__(self, name: str, elementSet: ElementSet, material: Material):
@@ -61,10 +61,11 @@ class MaterialAssignment(ModelObject):
 
     @property
     def material(self) -> Material:
+        """ The Material model and parameters assigned to the Material Assignment """
         return self._material
 
     @material.setter
-    def material(self, material: Material):
+    def material(self, material: Material) -> None:
 
         if not isinstance(material, Material):
             raise TypeError('Invalid material assignment provided to MaterialAssignment ({:s})'.format(self.name))
@@ -93,11 +94,11 @@ class MaterialAssignment(ModelObject):
 class SolidMaterialAssignment(MaterialAssignment):
     """
     SolidMaterialAssignment designates elements as solid 3D continuum elements, for the selected elements in a provided
-    :class:`ElementSet` with the given :class:`Material`. This option should be used for the following class of elements
+    :class:`~pyccx.core.ElementSet` with the given :class:`Material`. This option should be used for the following class of elements
     including assigning material properties to 3D, plane stress, plane strain and axisymmetric element types. For
     plane stress and plane strain elements the thickness parameter can be specified.
     """
-    def __init__(self, name, elementSet, material, thickness: Optional[float] = None):
+    def __init__(self, name, elementSet: ElementSet, material: Material, thickness: Optional[float] = None):
 
         self._thickness = thickness
         super().__init__(name, elementSet, material)
@@ -129,7 +130,8 @@ class SolidMaterialAssignment(MaterialAssignment):
 class ShellMaterialAssignment(MaterialAssignment):
     """
     The ShellMaterialAssignment class is used to select shell elements for the selected elements in a provided
-    :class:`ElementSet` with the given :class:`Material`. A thickness must be provided for the selected shell elements.
+    :class:`~pyccx.core.ElementSet` with the given :class:`~pyccx.material.Material`. A thickness must be provided for
+    the selected shell elements.
     """
 
     def __init__(self, name, elementSet: ElementSet, material: Material, thickness: float):
@@ -140,6 +142,16 @@ class ShellMaterialAssignment(MaterialAssignment):
 
     @property
     def thickness(self) -> float:
+        """
+        The thickness of the shell elements
+
+        .. warning::
+            The thickness of the shell type should be greater than zero and is required for shell elements.
+
+        .. note::
+            The element thickness is constant for the shell assignment
+        """
+
         return self._thickness
 
     @thickness.setter
@@ -151,9 +163,9 @@ class ShellMaterialAssignment(MaterialAssignment):
         self._thickness = thickness
 
     def writeInput(self) -> str:
-        out = '*shell section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
-        out += '{:e}\n'.format(self._thickness)
-        return out
+        outStr = '*shell section, elset={:s}, material={:s}\n'.format(self._elSet.name, self._material.name)
+        outStr += '{:e}\n'.format(self._thickness)
+        return outStr
 
 
 class Simulation:
@@ -266,8 +278,8 @@ class Simulation:
 
     def getBoundaryConditions(self) -> List[BoundaryCondition]:
         """
-        Collects all :class:`~pyccx.boundarycondition.BoundaryCondition` which are attached
-        to :class:`LoadCase` in the analysis
+        Collects all unique :class:`~pyccx.bc.BoundaryCondition` which are attached
+        to each :class:`~pyccx.loadcase.LoadCase` in the analysis
 
         :return:  All the boundary conditions in the analysis
         """
@@ -280,7 +292,7 @@ class Simulation:
     @property
     def loadCases(self) -> List[LoadCase]:
         """
-        A list of :class:`~pyccx.loadcase.LoadCase` used in the analysis
+        A list of :class:`~pyccx.loadcase.LoadCase` that have been attached to the analysis
         """
         return self._loadCases
 
@@ -444,13 +456,13 @@ class Simulation:
 
     def getNodeSets(self) -> List[NodeSet]:
         """
-        Returns **all** the :class:`pyccx.core.NodeSet` used and generated in the analysis
+        Returns **all** the :class:`~pyccx.core.NodeSet` used and generated in the analysis
         """
         return self._collectSets(setType=NodeSet)
 
     def getSurfaceSets(self) -> List[SurfaceSet]:
         """
-        Returns **all** the :class:`pyccx.core.SurfaceSet` used and generated in the analysis
+        Returns **all** the :class:`~pyccx.core.SurfaceSet` used and generated in the analysis
         """
         return self._collectSets(setType=SurfaceSet)
 
@@ -622,18 +634,18 @@ class Simulation:
         Routine checks that the analysis has been correctly generated
 
         :return: bool: True if no analysis error occur
-        :raise: AnalysisError: Analysis error that occured
+        :raise: AnalysisError: Analysis error that occurred
         """
 
         if len(self.materials) == 0:
             raise AnalysisError(self, 'No material models have been assigned to the analysis')
 
         if len(self.materialAssignments) == 0:
-            raise AnalysisError(self, 'No material assignement has been assigned to the analysis')
+            raise AnalysisError(self, 'No material assignment has been assigned to the analysis')
 
         for material in self.materials:
             if not material.isValid():
-                raise AnalysisError(self, 'Material ({:s}) is not valid'.format(material.name))
+                raise AnalysisError(self, f"Material ({material.name}) is not valid")
 
         if len(self.model.identifyUnassignedElements()) > 0:
             raise AnalysisError(self, 'Mesh model has unassigned element types')
@@ -673,13 +685,13 @@ class Simulation:
         if self.isAnalysisCompleted():
             return ResultProcessor(workingResultsPath)
         else:
-            raise ValueError('Results were not available')
+            raise RuntimeError('Results were not available')
 
     def isAnalysisCompleted(self) -> bool:
-        """ Returns `True` if the analysis was completed successfully """
+        """ Returns ``True`` if the analysis was completed successfully """
         return self._analysisCompleted
 
-    def clearAnalysis(self, includeResults: bool = False) -> None:
+    def clearAnalysis(self, includeResults: Optional[bool] = False) -> None:
         """
         Clears any previous files generated from the analysis
 
