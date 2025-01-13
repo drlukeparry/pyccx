@@ -4,7 +4,9 @@ class classproperty(property):
 
 
 class Ent:
-
+    """
+    Entity types for Elementary MSH Geometry
+    """
     Point = 0
     Curve = 1
     Surface = 2

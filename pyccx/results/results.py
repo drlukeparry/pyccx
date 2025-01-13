@@ -798,11 +798,11 @@ class ResultProcessor:
 
             if '2C' in line:
                 # Read nodal coordinates
-                reSearch = re.search('\s+2C\s+(\d+)', line)
+                reSearch = re.search(r'\s+2C\s+(\d+)', line)
                 numNodes = int(reSearch.group(1))
 
                 nodes = []
-                for i in range(numNodes):
+                for _ in range(numNodes):
                     line = infile.readline()
                     nid, x, y, z = self._getVals("1X,I2,I10,6E12.5", line)[1:]
                     nodes.append([nid, x, y, z])
@@ -811,7 +811,7 @@ class ResultProcessor:
 
             if '3C' in line:
                 # Read elemental coordinates
-                reSearch = re.search('\s+3C\s+(\d+)', line)
+                reSearch = re.search(r'\s+3C\s+(\d+)', line)
                 numElements = int(reSearch[1])
 
                 elements = []
@@ -877,7 +877,7 @@ class ResultProcessor:
 
         infile.close()
 
-        """ 
+        """
         Read the element post-processing file
         """
         self.readDat()

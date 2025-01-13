@@ -340,16 +340,17 @@ class Fixed(BoundaryCondition):
     applicable to the analysis type.
     """
 
-    def __init__(self, target: Any, dof: List[DOF] = [], values=None,
-                 name: Optional[str] = None, amplitude: Optional[Amplitude] = None,
+    def __init__(self, target: Any, dof: Union[DOF, Iterable[DOF]] = (),
+                 values: Optional[Any] = None,
+                 name: Optional[str] = None,
+                 amplitude: Optional[Amplitude] = None,
                  timeDelay: Optional[float] = None):
 
         if not isinstance(target, NodeSet):
             raise ValueError('The target for a Fixed Boundary Condition must be a NodeSet')
 
-        # for d in dof:
-        #     if not d in DOF:
-        #         raise ValueError('Degree of freedom must be specified')
+        if not isinstance(dof, list):
+            dof = list(dof) # Convert DOF to list if singular
 
         self._dof = dof
         self._values = values

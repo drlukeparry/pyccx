@@ -1,9 +1,8 @@
-import numpy as np
-
-from abc import ABC
+from types import MappingProxyType
 from enum import IntEnum
 from typing import List
 
+import numpy as np
 from .utils import classproperty
 
 class ElementFamilies(IntEnum):
@@ -38,7 +37,7 @@ class ElementTypes(IntEnum):
         return value in cls._value2member_map_
 
 
-class BaseElementType(ABC):
+class BaseElementType:
     """
     Library of Base Element Types for Calculix, which includes both the element type and the element family and
     corresponding Calculix elemental name and nodal mappings for the element type when identifying surfaces or edges
@@ -47,7 +46,7 @@ class BaseElementType(ABC):
 
     Type = None
 
-    Data = {
+    _Data = MappingProxyType({
         'NODE':  {'id': 15, 'name': 'Node', 'nodes': 1, 'order': 0, 'family': ElementFamilies.Pnt,
                   'map': [1],
                   'faces': None, 'elementType': ElementTypes.Node},
@@ -76,20 +75,20 @@ class BaseElementType(ABC):
                    'map': [1, 2, 3, 4],
                    'faces': [[1, 2], [2, 3], [3, 4], [4,1]], 'elementType': ElementTypes.Shell},
         'SHELL6': {'id': 9, 'name': 'S6', 'nodes': 6, 'order': 2, 'family': ElementFamilies.Tri,
-                 'map': [1, 2, 3, 4, 5, 6],
-                 'faces': [[1, 2], [2, 3], [3, 1]], 'elementType': ElementTypes.Shell},
+                   'map': [1, 2, 3, 4, 5, 6],
+                   'faces': [[1, 2], [2, 3], [3, 1]], 'elementType': ElementTypes.Shell},
         'SHELL8': {'id': 16, 'name': 'S8', 'nodes': 8, 'order': 2, 'family': ElementFamilies.Quad,
                    'map': [1, 2, 3, 4, 5, 6, 7, 8],
                    'faces': [[1, 8, 4, 7, 3, 6, 2, 5]], 'elementType': ElementTypes.Shell},
         'AX3':  {'id': 2, 'name': 'CAX3', 'nodes': 3, 'order': 1, 'family': ElementFamilies.Tri,
-                    'map': [1, 2, 3],
-                    'faces': [[1, 2], [2, 3], [3, 1]], 'elementType': ElementTypes.Axisymmetric},
+                 'map': [1, 2, 3],
+                 'faces': [[1, 2], [2, 3], [3, 1]], 'elementType': ElementTypes.Axisymmetric},
         'AX6': {'id': 9, 'name': 'CAX6', 'nodes': 6, 'order': 2, 'family': ElementFamilies.Tri,
-                   'map': [1, 2, 3, 4, 5, 6],
-                   'faces': [[1, 2], [2, 3], [3, 1]], 'elementType': ElementTypes.Axisymmetric},
+                'map': [1, 2, 3, 4, 5, 6],
+                'faces': [[1, 2], [2, 3], [3, 1]], 'elementType': ElementTypes.Axisymmetric},
         'AX4':  {'id': 3, 'name': 'CAX4', 'nodes': 4, 'order': 1, 'family': ElementFamilies.Quad,
-                     'faces': [[1, 2], [2, 3], [3, 4], [4,1]],
-                     'map': [1,2,3,4], 'elementType': ElementTypes.Axisymmetric},
+                 'faces': [[1, 2], [2, 3], [3, 4], [4,1]],
+                 'map': [1,2,3,4], 'elementType': ElementTypes.Axisymmetric},
         'AX8': {'id': 16, 'name': 'S8', 'nodes': 8, 'order': 2, 'family': ElementFamilies.Quad,
                    'map': [1, 2, 3, 4, 5, 6, 7, 8],
                    'faces': [[1, 8, 4, 7, 3, 6, 2, 5]], 'elementType': ElementTypes.Axisymmetric},
@@ -110,51 +109,51 @@ class BaseElementType(ABC):
                   'faces': [[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]],
                   'elementType': ElementTypes.Volume},
         'HEX20': {'id': 17, 'name': 'C3D20', 'nodes': 20, 'order': 2, 'family': ElementFamilies.Hex,
-                  'map': [1,2,3,4,5,6,7,8,9,12,14,10,17,19,20,18,11,13,15,16],
+                  'map': [1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 14, 10, 17, 19, 20, 18, 11, 13, 15, 16],
                   'faces': [[1, 2, 3, 4], [5, 8, 7, 6], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 8, 4], [4, 8, 5, 1]],
                   'elementType': ElementTypes.Volume},
         'WEDGE6': {'id': 6, 'name': 'C3D6', 'nodes': 6, 'order': 1, 'family': ElementFamilies.Prism,
-                   'faces': [[1,2,3], [4,5,6], [1,2,5,4], [2,3,6,5], [3,1,4,6]],
+                   'faces': [[1, 2, 3], [4, 5, 6], [1, 2, 5, 4], [2, 3, 6, 5], [3, 1, 4, 6]],
                    'map': [1, 2, 3, 4, 5, 6],
                    'elementType': ElementTypes.Volume},
-    }
+    })
 
-    def __init__(self):
-        pass
+    def __init__(self) -> None:
+        return
 
     @classproperty
     def name(cls):
-        return cls.Data[cls.Type]['name']
+        return cls._Data[cls.Type]['name']
 
     @classproperty
     def id(cls):
-        return cls.Data[cls.Type]['id']
+        return cls._Data[cls.Type]['id']
 
     @classproperty
     def nodes(cls) -> int:
-        return cls.Data[cls.Type]['nodes']
+        return cls._Data[cls.Type]['nodes']
 
     @classproperty
     def order(cls) -> int:
-        return cls.Data[cls.Type]['order']
+        return cls._Data[cls.Type]['order']
 
     @classproperty
     def faces(cls) -> List[List[int]]:
-        return cls.Data[cls.Type]['faces']
+        return cls._Data[cls.Type]['faces']
 
     @classproperty
     def map(cls) -> List[List[int]]:
-        return cls.Data[cls.Type]['map']
+        return cls._Data[cls.Type]['map']
 
     @classproperty
     def elementType(cls) -> List[List[int]]:
-        return cls.Data[cls.Type]['elementType']
+        return cls._Data[cls.Type]['elementType']
 
     @classproperty
     def faceMask(cls) -> List[List[int]]:
 
-        nodeNum = cls.Data[cls.Type]['nodes'] #np.max(cls.Data[cls.Type]['faces']) #
-        faceIds = cls.Data[cls.Type]['faces']
+        nodeNum = cls._Data[cls.Type]['nodes']
+        faceIds = cls._Data[cls.Type]['faces']
         mask = np.zeros([len(faceIds), nodeNum])
 
         for i, faceId in enumerate(faceIds):
@@ -164,11 +163,12 @@ class BaseElementType(ABC):
 
     @classproperty
     def family(cls) -> ElementFamilies:
-        return cls.Data[cls.Type]['family']
+        return cls._Data[cls.Type]['family']
 
     @classmethod
-    def elementType(cls):
-        return cls.Data[cls.Type]
+    def data(cls):
+        """ Data structure for the Element Type"""
+        return cls._Data[cls.Type]
 
 class NODE(BaseElementType):
     """ A single node element"""

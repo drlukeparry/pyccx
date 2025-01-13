@@ -170,14 +170,23 @@ class ShellMaterialAssignment(MaterialAssignment):
 
 class Simulation:
     """
-    Provides the base class for running a Calculix Simulation
+    Provides the class for running a Calculix Simulation
     """
 
     NUMTHREADS: int = 1
-    """ Number of Threads used by the Calculix Solver """
+    """
+    The total number of Threads used by the Calculix Solver
+    """
 
     CALCULIX_PATH: str = ''
-    """ The Calculix directory path used for Windows platforms"""
+    """
+    The calculix solver directory path used for Windows platforms. Within the solver directory the executable
+    (ccx.exe) must exist and have execution permissions.
+
+    .. note ::
+        On Mac OS X, this is the complete path of the executable
+
+    """
 
     VERBOSE_OUTPUT: bool = True
     """ When enabled, the output during the analysis is redirected to the console"""
@@ -270,7 +279,7 @@ class Simulation:
         if os.path.isdir(workDir) and os.access(workDir, os.W_OK):
             self._workingDirectory = workDir
         else:
-            raise ValueError('Working directory ({:s}) is not accessible or writable'.format(workDir))
+            raise ValueError(f"Working directory ({workDir}) is not accessible or writable")
 
     @property
     def name(self) -> str:
@@ -308,7 +317,7 @@ class Simulation:
         return self._connectors
 
     @connectors.setter
-    def connectors(self, connectors: List[Connector]):
+    def connectors(self, connectors: List[Connector]) -> None:
         self._connectors = connectors
 
     @property
@@ -341,7 +350,7 @@ class Simulation:
     def materialAssignments(self, matAssignments: List[MaterialAssignment]) -> None:
         self._materialAssignments = matAssignments
 
-    def _collectAmplitudes(self):
+    def _collectAmplitudes(self) -> List[Amplitude]:
         """
         Private function returns a unique set of Element, Nodal, Surface sets which are used by
         the analysis during writing. This reduces the need to explicitly attach them to an analysis.
@@ -497,12 +506,12 @@ class Simulation:
 
         return self._input
 
-    def _writeAmplitudes(self):
+    def _writeAmplitudes(self) -> None:
 
         amplitudes = self._collectAmplitudes()
 
         if len(amplitudes) == 0:
-            return
+            return None
 
         self._input += '{:*^80}\n'.format(' AMPLITUDES ')
 
@@ -510,7 +519,7 @@ class Simulation:
             self._input += amp.writeInput()
             self._input += os.linesep
 
-    def _writeHeaders(self):
+    def _writeHeaders(self) -> None:
 
         self._input += '\n'
         self._input += '{:*^125}\n'.format(' INCLUDES ')
@@ -518,7 +527,7 @@ class Simulation:
         for filename in self.includes:
             self._input += '*include,input={:s}'.format(filename)
 
-    def _writeElementSets(self):
+    def _writeElementSets(self) -> None:
 
         # Collect all sets
         elementSets = self._collectSets(setType=ElementSet)
@@ -533,7 +542,7 @@ class Simulation:
             self._input += os.linesep
             self._input += elSet.writeInput()
 
-    def _writeNodeSets(self):
+    def _writeNodeSets(self) -> None:
 
         # Collect all sets
         nodeSets = self._collectSets(setType=NodeSet)
@@ -582,20 +591,20 @@ class Simulation:
     #        2 # number of terms in equation # typically two
     #        28,2,1.,22,2,-1. # node a id, dof, node b id, dof b
 
-    def _writeMaterialAssignments(self):
+    def _writeMaterialAssignments(self) -> None:
         self._input += os.linesep
         self._input += '{:*^80}\n'.format(' MATERIAL ASSIGNMENTS ')
 
         for matAssignment in self.materialAssignments:
             self._input += matAssignment.writeInput()
 
-    def _writeMaterials(self):
+    def _writeMaterials(self) -> None:
         self._input += os.linesep
         self._input += '{:*^80}\n'.format(' MATERIALS ')
         for material in self.materials:
             self._input += material.writeInput()
 
-    def _writeInitialConditions(self):
+    def _writeInitialConditions(self) -> None:
         self._input += os.linesep
         self._input += '{:*^80}\n'.format(' INITIAL CONDITIONS ')
 
@@ -607,12 +616,12 @@ class Simulation:
         # Write the Physical Constants
         self._input += '*PHYSICAL CONSTANTS,ABSOLUTE ZERO={:e},STEFAN BOLTZMANN={:e}\n'.format(self.TZERO, self.SIGMAB)
 
-    def _writeAnalysisConditions(self):
+    def _writeAnalysisConditions(self) -> None:
 
         self._input += os.linesep
         self._input += '{:*^80}\n'.format(' ANALYSIS CONDITIONS ')
 
-    def _writeLoadSteps(self):
+    def _writeLoadSteps(self) -> None:
 
         self._input += os.linesep
         self._input += '{:*^80}\n'.format(' LOAD STEPS ')
@@ -620,7 +629,7 @@ class Simulation:
         for loadCase in self.loadCases:
             self._input += loadCase.writeInput()
 
-    def _writeMesh(self):
+    def _writeMesh(self) -> None:
 
         # TODO make a unique auto-generated name for the mesh
         meshFilename = 'mesh.inp'
@@ -715,7 +724,7 @@ class Simulation:
         except:
             pass
 
-    def monitor(self, filename):
+    def monitor(self, filename: str):
 
         # load the .sta file for convegence monitoring
 
@@ -723,7 +732,7 @@ class Simulation:
 
         """
         Note:
-        Format of each row in the .sta file corresponds with        
+        Format of each row in the .sta file corresponds with
         0 STEP
         1 INC
         2 ATT
@@ -746,7 +755,7 @@ class Simulation:
             convergenceOutput = []
 
             while line:
-                out = re.search('\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)*', line)
+                out = re.search(r"\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)*", line)
 
                 if out:
                     out = [float(val) for val in out.groups()]
@@ -756,11 +765,11 @@ class Simulation:
 
         convergenceOutput = np.array(convergenceOutput)
 
-        cvgFilename = '{:s}.cvg'.format(filename)
+        cvgFilename = f"{filename}.cvg"
 
         """
         Note:
-        
+
         Format of the CVF format consists of the following parameters
         0 STEP
         1 INC
@@ -789,7 +798,7 @@ class Simulation:
             convergenceOutput2 = []
 
             while line:
-                out = re.search('\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)*', line)
+                out = re.search(r"\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)*", line)
 
                 if out:
                     out = [float(val) for val in out.groups()]
@@ -806,7 +815,7 @@ class Simulation:
         self._runData = {}
 
         if 'Total CalculiX Time:' in line:
-            runTime = re.search('Total CalculiX Time: (\S*)', line)[1]
+            runTime = re.search(r"Total CalculiX Time: (\S*)", line)[1]
             runTime = float(runTime)
 
             self._runData['runTime'] = runTime
@@ -844,6 +853,15 @@ class Simulation:
 
         if sys.platform == 'win32':
             cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
+
+            # Check executable can be opened and has permissions to be executable
+            if not os.path.isfile(cmdPath):
+                raise FileNotFoundError(f"Calculix executable not found at path: {cmdPath}")
+
+            # check if the executable is executable
+            if not os.access(cmdPath, os.X_OK):
+                raise PermissionError(f"Calculix executable at path: {cmdPath} is not executable")
+
             arguments = '-i input'
 
             cmd = cmdPath + arguments
@@ -877,7 +895,9 @@ class Simulation:
 
             cmdSt = ['ccx', '-i', filename]
 
-            popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True)
+            popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory,
+                                     stdout=subprocess.PIPE,
+                                     universal_newlines=True)
 
             for stdout_line in iter(popen.stdout.readline, ""):
 
@@ -903,9 +923,19 @@ class Simulation:
 
             filename = 'input'
 
+            # Check executable can be opened and has permissions to be executable
+            if not os.path.isfile(Simulation.CALCULIX_PATH):
+                raise FileNotFoundError(f"Calculix executable not found at path: {Simulation.CALCULIX_PATH}")
+
+            # check if the executable is executable
+            if not os.access(Simulation.CALCULIX_PATH, os.X_OK):
+                raise PermissionError(f"Calculix executable at path: {Simulation.CALCULIX_PATH} is not executable")
+
             cmdSt = [self.CALCULIX_PATH, '-i', filename]
 
-            popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory, stdout=subprocess.PIPE, universal_newlines=True)
+            popen = subprocess.Popen(cmdSt, cwd=self._workingDirectory,
+                                     stdout=subprocess.PIPE,
+                                     universal_newlines=True)
 
             for stdout_line in iter(popen.stdout.readline, ""):
 
@@ -922,6 +952,7 @@ class Simulation:
 
             popen.stdout.close()
             return_code = popen.wait()
+
             if return_code:
                 raise subprocess.CalledProcessError(return_code, cmdSt)
 

@@ -2,10 +2,9 @@ from typing import Any, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
-
 class ModelObject:
 
-    def __init__(self, name: str, label: str = ''):
+    def __init__(self, name: str, label: str = '') -> None:
 
         self._name = ''
         self._label = label
@@ -17,7 +16,7 @@ class ModelObject:
         return self._label
 
     @label.setter
-    def label(self, label: str):
+    def label(self, label: str) -> None:
         self._label = label
 
     @property

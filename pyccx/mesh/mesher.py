@@ -127,7 +127,7 @@ class Mesher:
         self.clearMeshAssignments()
         self._isMeshGenerated = True
 
-    def clearPhysicalGroups(self, dimension: int = None):
+    def clearPhysicalGroups(self, dimension: Optional[int] = None):
         """
         Clears all physical groups in the model
         :param dimension: Integer is the dimension of the physical group to clear. Default is None.
@@ -690,7 +690,7 @@ class Mesher:
     @classmethod
     def setMeshSizeFactor(self, meshSizeFactor: float) -> None:
         """
-        The mesh factor size provides an estimate length for the initial element sizes based on proportion of the 
+        The mesh factor size provides an estimate length for the initial element sizes based on proportion of the
         maximum bounding box length.
 
         :param meshSizeFactor: The mesh factor size between [0.,1.0]
@@ -1161,7 +1161,8 @@ class Mesher:
 
         # For any coordinate values that are below a epsilon, set these to zero
 
-        for nid, nCoords in zip(nids, nodeCoords):
+        for nid in nids:
+
             ncoords = nodeCoords[int(nid) - 1]
 
             # Truncate any values below the epsilon
