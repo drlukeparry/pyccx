@@ -7,3 +7,4 @@ from .bc import BoundaryConditionType, BoundaryCondition, Acceleration, Film, Fi
 from .core import Connector, DOF, ElementSet, MeshSet, NodeSet, SurfaceSet
 from .loadcase import LoadCaseType, LoadCase
 from .results import ElementResult, NodalResult, ResultProcessor
+from .version import __version__

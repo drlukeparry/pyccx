@@ -31,7 +31,8 @@ dependencies = [
     "matplotlib",
     "gmsh>4.13",
     "numpy>1.21",
-    "colorlog"
+    "colorlog",
+    "setuptools"
 ]
 
 [project.optional-dependencies]
@@ -41,11 +42,26 @@ docs = [
     'jupyter',
     'sphinx_rtd_theme',
     'sphinx-paramlinks',
+    'sphinx_automodapi',
+    'sphinx_rtd_theme',
+    'furo',
+    'sphinx-autodoc-typehints',
+    'autodocsumm',
+    'm2r2',
+    'docutils==0.20',
     'pypandoc',
     'autodocsumm',
+    'mock',
     'matplotlib',
-    'trimesh',
+    'trimesh'
 ]
+
+tests = [
+    "pytest",
+    "pytest-cov",
+    "coverage-badge"
+]
+
 build = ["build", "hatchling", "requests", "twine"]
 codegen = ["pytest", "numpy"]
 lint = ["ruff", "pre-commit"]

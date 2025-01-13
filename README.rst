@@ -20,7 +20,7 @@ PyCCX - a library for creating and running 3D FEA simulations using the opensour
 The aims of this project was to provide a simple framework for implemented 3D FEA Analysis using the opensource
 `Calculix <http://www.calculix.de>`_ solver.
 The analysis is complimented by use of the recent introduction of the
-`GMSH-SDK <http://https://gitlab.onelab.info/gmsh/gmsh/api>`_ , an extension to `GMSH <http://gmsh.info/>`_to provide
+`GMSH-SDK <http://https://gitlab.onelab.info/gmsh/gmsh/api>`_ , an extension to `GMSH <http://gmsh.info/>`_ to provide
 API bindings for different programming languages by the project authors to provide sophisticated 3D FEA mesh
 generation outside of the GUI implementation. This project aims to provide an integrated approach for generating full
 3D FEA analysis for use in research, development and prototyping in a Python environment. Along with setting up and
@@ -28,7 +28,7 @@ processing the analysis, convenience functions are included.
 
 The inception of this project was a result of finding no native Python/Matlab package available to perform full
 non-linear FEA analysis of 3D CAD models in order to prototype a concept related to 3D printing. The project aims to
-compliment the work of the`PyCalculix project <https://github.com/spacether/pycalculix>`_, which currently is limited
+compliment the work of the `PyCalculix project <https://github.com/spacether/pycalculix>`_, which currently is limited
 to providing capabilities to generate 2D Meshes and FEA analysis for 2D planar structures. The potential in the
 future is to provide a more generic extensible framework compatible with different opensource and commercial FEA
 solvers (e.g. Abaqus, Marc, Z88, Elmer).
