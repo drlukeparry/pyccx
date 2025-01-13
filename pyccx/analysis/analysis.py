@@ -661,23 +661,43 @@ class Simulation:
 
         return True
 
-    def version(self):
+    @staticmethod
+    def version():
 
         if sys.platform == 'win32':
-            cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
+            cmdPath = os.path.join(Simulation.CALCULIX_PATH, 'ccx.exe ')
+
+            # Check executable can be opened and has permissions to be executable
+            if not os.path.isfile(cmdPath):
+                raise FileNotFoundError(f"Calculix executable not found at path: {cmdPath}")
+
+            # check if the executable is executable
+            if not os.access(cmdPath, os.X_OK):
+                raise PermissionError(f"Calculix executable at path: {cmdPath} is not executable")
+
             p = subprocess.Popen([cmdPath, '-v'], stdout=subprocess.PIPE, universal_newlines=True)
             stdout, stderr = p.communicate()
             version = re.search(r"(\d+).(\d+)", stdout)
             return int(version.group(1)), int(version.group(2))
 
         elif sys.platform == 'linux':
+
             p = subprocess.Popen(['ccx', '-v'], stdout=subprocess.PIPE, universal_newlines=True)
             stdout, stderr = p.communicate()
             version = re.search(r"(\d+).(\d+)", stdout)
             return int(version.group(1)), int(version.group(2))
 
         elif sys.platform == 'darwin':
-            p = subprocess.Popen([self.CALCULIX_PATH, '-v'], stdout=subprocess.PIPE, universal_newlines=True)
+
+            # Check executable can be opened and has permissions to be executable
+            if not os.path.isfile(Simulation.CALCULIX_PATH):
+                raise FileNotFoundError(f"Calculix executable not found at path: {Simulation.CALCULIX_PATH}")
+
+            # check if the executable is executable
+            if not os.access(Simulation.CALCULIX_PATH, os.X_OK):
+                raise PermissionError(f"Calculix executable at path: {Simulation.CALCULIX_PATH} is not executable")
+
+            p = subprocess.Popen([Simulation.CALCULIX_PATH, '-v'], stdout=subprocess.PIPE, universal_newlines=True)
             stdout, stderr = p.communicate()
             version = re.search(r"(\d+).(\d+)", stdout)
             return int(version.group(1)), int(version.group(2))
