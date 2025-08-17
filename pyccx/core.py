@@ -1,4 +1,5 @@
 from typing import Any, Iterable, List, Optional, Tuple, Union
+from enum import IntEnum
 
 import numpy as np
 
@@ -264,7 +265,7 @@ class Connector(ModelObject):
         return strOut
 
 
-class DOF:
+class DOF(IntEnum):
     """
     Provides a reference to the typical degrees-of-freedom (DOF) used for setting boundary conditions and displaying
     the required output in Calculix.
