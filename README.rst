@@ -138,6 +138,7 @@ Calculix can be installed using the `Homebrew <https://brew.sh/>`_ package manag
 compiler environment to be installed. Once this is done, Calculix can be installed using the following command:
 
 .. code:: bash
+
     brew tap costerwi/homebrew-calculix
     brew install calculix-ccx
 
