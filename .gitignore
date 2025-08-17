@@ -3,6 +3,23 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Results files from calculix
+*.frd
+*.dat
+*.opt
+
+# VTK Outputs
+*.vtk
+*.vtu
+*.vtp
+
+# GMSH output files
+*.msh4
+*.pos
+*.geo
+*.mesh
+*.msh
+
 # C extensions
 *.so
 
