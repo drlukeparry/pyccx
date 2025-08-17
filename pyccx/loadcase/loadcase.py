@@ -135,7 +135,7 @@ class LoadCase(ModelObject):
     @property
     def totalTime(self) -> float:
         """
-        The total time duration for the load case
+        The total duration time for the load case
         """
         return self._totalTime
 

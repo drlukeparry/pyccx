@@ -7,13 +7,13 @@ from .utils import classproperty
 
 class ElementFamilies(IntEnum):
     """ Element Family Types"""
-    Pnt         = 1
+    Pnt        = 1
     Line       = 2
-    Tri          = 3
-    Quad      = 4
-    Tet         = 5
-    Pyramid = 6
-    Prism     = 7
+    Tri        = 3
+    Quad       = 4
+    Tet        = 5
+    Pyramid    = 6
+    Prism      = 7
     Hex        = 8
 
     @classmethod
@@ -25,12 +25,12 @@ class ElementTypes(IntEnum):
     The Element Family Types available generally for Calculix and other FEA solvers. This includes common 1D (beam),
     2D planar and axisymmetric elements and various 3D element formulations (3D continuum and 3D shell elements)
     """
-    Node     = 1
-    Line       = 2
-    Planar    = 3
-    Shell      = 4
+    Node         = 1
+    Line         = 2
+    Planar       = 3
+    Shell        = 4
     Axisymmetric = 5
-    Volume   = 6
+    Volume       = 6
 
     @classmethod
     def has_value(cls, value):
