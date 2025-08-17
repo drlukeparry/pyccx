@@ -5,4 +5,4 @@ sphinx-paramlinks
 autodocsumm
 pypandoc
 m2r2
-gmsh>=4.14
+gmsh>=4.14.0
