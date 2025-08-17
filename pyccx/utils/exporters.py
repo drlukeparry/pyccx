@@ -115,20 +115,33 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: Optional[int] = -1
             nodeDispStr += ' '.join([str(val) for val in row[1:]]) + '\n'
         eDispArray.text = nodeDispStr
 
-    """ Write the Node RF Data """
+    """ Write the Nodal Reaction Force Data """
     if len(resultIncrement[ResultsValue.FORCE]) > 0:
         eRFArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
-                                                      Name="RF", NumberOfComponents="3", Format="Ascii")
-        nodeDispStr = ''
+                                                               Name="RF", NumberOfComponents="3",
+                                                               Format="Ascii")
+        nodalRFStr = ''
         for row in resultIncrement[ResultsValue.FORCE]:
-            nodeDispStr += ' '.join([str(val) for val in row[1:]]) + '\n'
-        eRFArray.text = nodeDispStr
+            nodalRFStr += ' '.join([str(val) for val in row[1:]]) + '\n'
+        eRFArray.text = nodalRFStr
+
+    """ Write the Nodal Temperature Data """
+    if len(resultIncrement[ResultsValue.TEMP]) > 0:
+        eTempArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
+                                                                 Name="T", NumberOfComponents="1",
+                                                                 Format="Ascii")
+        nodeTempStr = ''
+        for row in resultIncrement[ResultsValue.TEMP]:
+            nodeTempStr += ' '.join([str(val) for val in row[1:]]) + '\n'
+
+        eTempArray.text = nodeTempStr
 
     """ Write the Cauchy Stress Data """
     if len(resultIncrement[ResultsValue.STRESS]) > 0:
         sigma = resultIncrement[ResultsValue.STRESS][:, 1:]
-        eSigmaArray = ET.SubElement(ePointData, 'DataArray', type="Float32", Name="stress",
-                                    NumberOfComponents=str(sigma.shape[1]), Format="Ascii")
+        eSigmaArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
+                                                                  Name="stress", NumberOfComponents=str(sigma.shape[1]),
+                                                                  Format="Ascii")
         nodeSigmaStr = ''
         for row in sigma:
             nodeSigmaStr += ' '.join([str(val) for val in row]) + '\n'
@@ -139,8 +152,8 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: Optional[int] = -1
         if len(resultIncrement[ResultsValue.VMSTRESS]) > 0:
             sigma = resultIncrement[ResultsValue.VMSTRESS][:, 1:]
             eSigmaVMArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
-                                                                      Name="stressVM", NumberOfComponents=str(sigma.shape[1]),
-                                                                      Format="Ascii")
+                                                                        Name="stressVM", NumberOfComponents=str(sigma.shape[1]),
+                                                                        Format="Ascii")
             nodeSigmaStr = ''
             for row in sigma:
                 nodeSigmaStr += ' '.join([str(val) for val in row]) + '\n'
@@ -150,7 +163,8 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: Optional[int] = -1
     """ Write strain data """
     if len(resultIncrement[ResultsValue.STRAIN]) > 0:
         eStrainArray = ET.SubElement(ePointData, 'DataArray', type="Float32",
-                                                            Name="strain", NumberOfComponents="6", Format="Ascii")
+                                                                   Name="strain", NumberOfComponents="6",
+                                                                   Format="Ascii")
         nodeStrainStr = ''
         for row in resultIncrement[ResultsValue.STRAIN]:
             nodeStrainStr += ' '.join([str(val) for val in row[1:]]) + '\n'
@@ -161,7 +175,8 @@ def exportToVTK(filename: str, results: ResultProcessor, inc: Optional[int] = -1
 
     ePoints = ET.SubElement(ePiece, 'Points')
     ePointsArray = ET.SubElement(ePoints, 'DataArray', type="Float32",
-                                                        Name="Points", NumberOfComponents="3", Format="Ascii")
+                                                            Name="Points", NumberOfComponents="3",
+                                                            Format="Ascii")
 
     """ Write the Node Coordinate Data """
     nodeStr = ''
