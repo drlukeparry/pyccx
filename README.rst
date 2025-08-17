@@ -17,21 +17,22 @@ PyCCX - Python Library for Calculix
 
 PyCCX - a library for creating and running 3D FEA simulations using the opensource Calculix FEA Package.
 
-The aims of this project was to provide a simple framework for implemented 3D FEA Analysis using the opensource
+The aim of this project was to provide a framework for implemented 3D FEA Analysis using the opensource
 `Calculix <http://www.calculix.de>`_ solver. The analysis is complimented by use of the recent introduction of the
 `GMSH-SDK <http://https://gitlab.onelab.info/gmsh/gmsh/api>`_ , an extension to `GMSH <http://gmsh.info/>`_ to provide
 API bindings for different programming languages by the project authors to provide sophisticated 3D FEA mesh
 generation outside of the GUI implementation.
 
 This project aims to provide an integrated approach for generating full
-2D and 3D structural and thermal FEA analysis for use in research, development and prototyping in a Python environment.
-The aim is to support automated scripted approaches for performing FEA simulations, in particular for use in
-optimisation of engineering designs and assessing the sensitivity of design and material inputs on the structural
-response of a system. This intends to remove requirement to setup each analysis manually using a GUI such as prepromax
-or GMSH.
+2D and 3D structural and thermal FEA analysis for use in research, development and prototyping all inside a
+Python environment. The functionality targets the delivery of automated scripted approaches for performing FEA simulations,
+in particular for use assessing the sensitivity of design and material inputs on the response of a system structure, that
+can be used as part of parametric optimisation studies.
 
-Along with setting up and processing the analysis, convenience functions are included to consistently interface between both
-the Calculix and GMSH functionality within a single python environment.
+This intends to remove requirement to setup each analysis manually using a GUI such as prepromax or GMSH.
+
+Along with setting up and processing the analysis, numerous convenience functions are included to consistently interface
+between both the Calculix and GMSH functionality within a single python environment.
 
 Structure
 ##############
@@ -39,7 +40,7 @@ Structure
 PyCCX framework consists of classes for specifying common components on the pre-processing phase, including the following
 common simulation features:
 
-* Generation of both 2D and 3D compatible analysis meeshes for use with Calculix using GMSH
+* Generation of both 2D and 3D compatible analysis meshes for use with Calculix via GMSH
 * Creation and assignment of thermal and mechanical boundary conditions for use in analyses
 * Creation of multiple time (in)-dependent load cases
 * Creation and assignment of multiple material models and element types through a single analysis
@@ -49,9 +50,9 @@ common simulation features:
 A meshing class provides an interface with GMSH for performing the meshing routines and for associating
 boundary conditions with the elements/faces generated from geometrical CAD entities.
 
-The provided simulation class assembles, the mesh and corresponding mesh identifier sets (Element, Nodal and Surfaces)
+The simulation class assembles the mesh and corresponding mesh identifier sets (Element, Nodal and Surfaces)
 in conjunction with the applied boundary conditions for each specified load-case within an analysis. The analysis
-is then exported into the Calculix input deck, and then performs the execution to the Calculix solver. The simulation
+is then exported as a Calculix input deck, and then performs the execution to the Calculix solver. The simulation
 can be additionally monitored within the Python environment.
 
 The results obtained upon completion of the analysis can be processes, to extract individual nodal and elemental quantities
@@ -68,10 +69,11 @@ Meshing:
 ---------
 Meshing is performed using the GMSH-SDK, which provides a Python interface to the GMSH meshing library. The features
 within pyccx provided higher-level functionality building across existing GMSH functionality. The library mainly
-facilitates setting up the analysis consistently within a single environment.
+facilitates setting up the analysis consistently within a single environment, such as mapping geometrical FE elements
+into compatible Calculix types with consistent nodal ordering. Additional features available for meshing include:
 
 * Integration with GMSH for generation 3D FEA Meshes
-* Cleanign and merging of CAD assemblies using internal functionality provided by GMSH
+* Cleaning and merging of CAD assemblies using internal functionality provided by GMSH
 * Creation and assignment of NodeSet, ElementSet, SurfaceSet from mesh features applied for boundary conditions
 * Attachment of boundary conditions to geometrical CAD entities via GMSH (native .step import supported via OCC)
 
@@ -94,8 +96,8 @@ Results Processing:
 
 Installation
 *************
-Installation is currently supported on Windows, all this further support will be added for Linux environments. PyCCX
-can be installed along with dependencies for GMSH automatically using
+PyCCX is multi-platform as a source based package. This can be installed along with dependencies for GMSH automatically
+using the following commands:
 
 .. code:: bash
 
@@ -110,20 +112,20 @@ alternatively, the package can be installed using the uv library:
     uv pip install pyccx
 
 Calculix Solver
-*************
+*****************
 
 Depending on your environment, you will need to install the latest version of Calculix. This can be done through
-the conda-forge `calculix package <https://anaconda.org/conda-forge/calculix>`_ in the Anaconda distribution,
+conda-forge `calculix package <https://anaconda.org/conda-forge/calculix>`_ in the Anaconda distribution,
 
 .. code:: bash
 
     conda install -c conda-forge calculix
 
-However, the most reliable mode is downloading the package directly.
+However, it is suggested that the most reliable mode is downloading the latest distribution of Calculix directly.
 
 **Windows:**
 
-The solver be seperately obtained from within the distribution of `prepromax <https://prepomax.fs.um.si>`_
+The solver be separately obtained from within the distribution of `prepromax <https://prepomax.fs.um.si>`_
 
 **Linux:**
 
@@ -138,10 +140,15 @@ compiler environment to be installed. Once this is done, Calculix can be install
     brew tap costerwi/homebrew-calculix
     brew install calculix-ccx
 
-The Calculix solver executable needs to be available in the system path, or the path to the executable needs to be manually
-specified.
+The path of the installed Calculix solver executable should be obtained, which is dependent on the configuration of the
+brew installation.
 
-Across all platforms the direct path of the calculix solver executable needs to be initialised before any further use.
+Usage
+*************
+
+The Calculix solver executable needs to be available in the system path, or the path to the executable needs to be manually
+specified. Across all platforms the direct path of the calculix solver executable needs to be initialised before any
+further use.
 
 .. code:: python
 
@@ -151,11 +158,8 @@ Across all platforms the direct path of the calculix solver executable needs to 
     Simulation.setCalculixPath('Path')
 
 
-Usage
-*************
-
-The following code excerpt shows an example for creating and running a steady state thermal analysis of model using PyCCX
-of an existing mesh generated using the pyccx.mesh.mesher class.
+The following code excerpt shows part of an example for creating and running a steady state thermal analysis of model
+using PyCCX of an existing mesh generated using the `pyccx.mesh.mesher` class.
 
 .. code:: python
 
