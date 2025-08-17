@@ -37,8 +37,8 @@ between both the Calculix and GMSH functionality within a single python environm
 Structure
 ##############
 
-PyCCX framework consists of classes for specifying common components on the pre-processing phase, including the following
-common simulation features:
+PyCCX framework consists of classes for specifying common components on the pre-processing stage, including the following
+common FE workflow for performing a simulation:
 
 * Generation of both 2D and 3D compatible analysis meshes for use with Calculix via GMSH
 * Creation and assignment of thermal and mechanical boundary conditions for use in analyses
@@ -47,8 +47,9 @@ common simulation features:
 * Control and monitoring the Calculix simulation execution
 * Processing and extraction of results obtained from Calculix
 
-A meshing class provides an interface with GMSH for performing the meshing routines and for associating
-boundary conditions with the elements/faces generated from geometrical CAD entities.
+A meshing infrastructure provides an interface with GMSH for performing the meshing routines and for associating
+physical boundary conditions with the elements/faces generated from geometrical entities obtained from CAD models,
+typically by importing .step files.
 
 The simulation class assembles the mesh and corresponding mesh identifier sets (Element, Nodal and Surfaces)
 in conjunction with the applied boundary conditions for each specified load-case within an analysis. The analysis
@@ -91,12 +92,12 @@ Results Processing:
 * Element and Nodal Results can be obtained across each timesteps
 * Results can be processed and visualised using the `pyccx.results` module
 * Extraction of node and element results directly from the Calculix .frd and datafile
-* Export of results to VTK for visualisation directly in Paraview
+* Export of results to VTK file format for visualisation directly in Paraview
 
 
 Installation
 *************
-PyCCX is multi-platform as a source based package. This can be installed along with dependencies for GMSH automatically
+PyCCX is multi-platform as a source based pythonpackage. This can be installed along with dependencies for GMSH automatically
 using the following commands:
 
 .. code:: bash
