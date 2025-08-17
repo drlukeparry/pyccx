@@ -9,6 +9,7 @@ authors = [
     { name = "Luke Parry", email = "dev@lukeparry.uk" },
     { name = "Luktug", email = "contact@luktug.co.uk" }
 ]
+
 keywords = [
     "FEA",
     "Finite Element Analysis",
@@ -16,6 +17,7 @@ keywords = [
     "Calculix",
     "GMSH"
 ]
+
 classifiers = [
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
@@ -29,10 +31,10 @@ classifiers = [
 ]
 dependencies = [
     "matplotlib",
-    "gmsh>4.13",
+    "gmsh>4.14",
     "numpy>1.21",
     "colorlog",
-    "setuptools"
+    "setuptools",
 ]
 
 [project.optional-dependencies]
