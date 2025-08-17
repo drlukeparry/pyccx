@@ -665,7 +665,7 @@ class Simulation:
     def version():
 
         if sys.platform == 'win32':
-            cmdPath = os.path.join(Simulation.CALCULIX_PATH, 'ccx.exe ')
+            cmdPath = Simulation.CALCULIX_PATH
 
             # Check executable can be opened and has permissions to be executable
             if not os.path.isfile(cmdPath):
@@ -872,7 +872,7 @@ class Simulation:
         logging.info('{:=^60}'.format(' RUNNING CALCULIX '))
 
         if sys.platform == 'win32':
-            cmdPath = os.path.join(self.CALCULIX_PATH, 'ccx.exe ')
+            cmdPath = self.CALCULIX_PATH
 
             # Check executable can be opened and has permissions to be executable
             if not os.path.isfile(cmdPath):
