@@ -6,6 +6,8 @@
 Welcome to PyCCX's documentation!
 ==================================
 
+.. include:: ../README.rst
+
 Links
 ==========
 .. toctree::

@@ -2,6 +2,7 @@ import gmsh
 import numpy as np
 from .mesher import Mesher
 
+
 def removeSurfaceMeshes(model: Mesher) -> None:
     """
     In order to assign face based boundary conditions to surfaces (e.g. flux, convection), the surface mesh is compared
